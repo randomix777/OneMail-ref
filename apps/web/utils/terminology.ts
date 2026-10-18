@@ -1,4 +1,4 @@
-import { isMicrosoftProvider } from "@/utils/email/provider-types";
+import { getProviderCapabilities } from "@/utils/email/provider-registry";
 
 interface EmailTerminology {
   label: {
@@ -11,32 +11,29 @@ interface EmailTerminology {
 }
 
 /**
- * Get email terminology based on the provider
- * Gmail uses "labels" while Outlook uses "categories"
+ * Gmail organizes mail with labels. Providers without that capability use
+ * folder/category wording instead.
  */
 export function getEmailTerminology(provider: string): EmailTerminology {
-  const isOutlook = isMicrosoftProvider(provider);
-
-  if (isOutlook) {
+  if (getProviderCapabilities(provider).labels) {
     return {
       label: {
-        singular: "category",
-        plural: "categories",
-        singularCapitalized: "Category",
-        pluralCapitalized: "Categories",
-        action: "Categorize",
+        singular: "label",
+        plural: "labels",
+        singularCapitalized: "Label",
+        pluralCapitalized: "Labels",
+        action: "Label",
       },
     };
   }
 
-  // Default to Gmail terminology
   return {
     label: {
-      singular: "label",
-      plural: "labels",
-      singularCapitalized: "Label",
-      pluralCapitalized: "Labels",
-      action: "Label",
+      singular: "category",
+      plural: "categories",
+      singularCapitalized: "Category",
+      pluralCapitalized: "Categories",
+      action: "Categorize",
     },
   };
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import {
   createMailEngine,
   createHostRuntime,
@@ -6,7 +6,7 @@ import {
 import { createNodeSqliteDriver } from "@inboxzero/mail-sqlite/node";
 import { createSqliteMailStore } from "@inboxzero/mail-sqlite/store";
 import {
-  createGmailTestHarness,
+  createNylasTestHarness,
   createOutlookTestHarness,
 } from "@/__tests__/integration/helpers";
 import { createEmailProviderMailboxSource } from "@/utils/mail-api/source";
@@ -17,6 +17,23 @@ vi.mock("server-only", () => ({}));
 vi.mock("@inboxzero/tinybird", () => ({
   publishArchive: vi.fn().mockResolvedValue(undefined),
 }));
+
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
+
+afterAll(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    delete process.env.NYLAS_API_KEY;
+    delete process.env.NYLAS_API_URI;
+  }
+});
 
 const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS;
 const inboxQuery = (accountId: string) => ({
@@ -31,55 +48,46 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
   "mail engine dual-provider archive slice",
   { timeout: 60_000 },
   () => {
-    it("ingests Gmail emulator mail, archives exact messages, and reconciles local state", async () => {
-      const email = "engine-gmail@example.com";
-      const harness = await createGmailTestHarness({
-        email,
+    it("ingests Nylas mail, archives exact messages, and reconciles local state", async () => {
+      const harness = await createNylasTestHarness({
         messages: [
           {
-            id: "g-keep",
-            user_email: email,
-            from: "ada@example.com",
-            to: email,
+            id: "n-keep",
             subject: "Keep me",
-            body_text: "Stay",
-            label_ids: ["INBOX", "UNREAD"],
-            internal_date: `${Date.now()}`,
+            body: "Stay",
+            folders: ["INBOX", "UNREAD"],
+            unread: true,
+            receivedAt: new Date(),
           },
           {
-            id: "g-archive",
-            user_email: email,
-            from: "ada@example.com",
-            to: email,
+            id: "n-archive",
             subject: "Archive me",
-            body_text: "Go",
-            label_ids: ["INBOX", "UNREAD"],
-            internal_date: `${Date.now() - 1000}`,
+            body: "Go",
+            folders: ["INBOX", "UNREAD"],
+            unread: true,
+            receivedAt: new Date(Date.now() - 1000),
           },
         ],
       });
       try {
         const result = await runArchiveSlice({
-          accountId: "gmail-engine",
+          accountId: "nylas-engine",
           provider: harness.provider,
-          archiveMessageId: "g-archive",
+          archiveMessageId: "n-archive",
         });
         expect(result.before).toBe(2);
         expect(result.after).toBe(1);
-        const archived = await harness.gmailClient.users.messages.get({
-          userId: "me",
-          id: "g-archive",
-          format: "metadata",
-        });
-        expect(archived.data.labelIds ?? []).not.toContain("INBOX");
-        const kept = await harness.gmailClient.users.messages.get({
-          userId: "me",
-          id: "g-keep",
-          format: "metadata",
-        });
-        expect(kept.data.labelIds ?? []).toContain("INBOX");
+
+        // Nylas replaces folder membership, so the archived message keeps
+        // everything except INBOX.
+        const archived = harness.mailbox.find(
+          (message) => message.id === "n-archive",
+        );
+        expect(archived?.folders).not.toContain("INBOX");
+        const kept = harness.mailbox.find((message) => message.id === "n-keep");
+        expect(kept?.folders).toContain("INBOX");
       } finally {
-        await harness.emulator.close();
+        harness.restoreFetch();
       }
     });
 

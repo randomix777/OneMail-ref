@@ -23,6 +23,23 @@ export type GmailSeedMessage = {
   internal_date: string;
 };
 
+/**
+ * Structurally the seed `createNylasTestHarness` takes. Declared here rather than
+ * imported so the fixtures stay independent of the integration helpers.
+ */
+export type NylasSeedMessage = {
+  id: string;
+  threadId: string;
+  fromName?: string;
+  fromEmail: string;
+  toEmails: string[];
+  subject: string;
+  body: string;
+  folders: string[];
+  unread: boolean;
+  receivedAt: Date;
+};
+
 export type DemoInboxRuleRow = ReturnType<typeof buildRuleRow>;
 
 export type DemoRuleFixture = {
@@ -77,6 +94,23 @@ export function toGmailSeedMessages(
     body_html: message.bodyHtml,
     label_ids: getMessageLabelIds(fixture, message),
     internal_date: String(new Date(message.date).getTime()),
+  }));
+}
+
+export function toNylasSeedMessages(
+  fixture: DemoInboxFixture,
+): NylasSeedMessage[] {
+  return flattenFixtureMessages(fixture).map(({ thread, message }) => ({
+    id: message.id,
+    threadId: thread.id,
+    fromName: message.from.name,
+    fromEmail: message.from.email,
+    toEmails: message.to.map((address) => address.email),
+    subject: message.subject,
+    body: message.bodyText,
+    folders: getMessageLabelIds(fixture, message),
+    unread: message.unread ?? false,
+    receivedAt: new Date(message.date),
   }));
 }
 

@@ -1,84 +1,51 @@
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import {
-  createGmailTestHarness,
+  createNylasTestHarness,
   createOutlookTestHarness,
-  type GmailTestHarness,
+  type NylasSeedMessage,
+  type NylasTestHarness,
   type OutlookTestHarness,
 } from "./helpers";
 
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
+
 const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS;
-const gmailEmail = "shared-gmail@example.com";
 const outlookEmail = "shared-outlook@example.com";
 const threadId = "team-comments-thread";
 const historyCount = 25;
 
 describe.skipIf(!RUN_INTEGRATION_TESTS)(
-  "shared conversation complete provider retrieval — Gmail",
+  "shared conversation complete provider retrieval — Nylas",
   { timeout: 60_000 },
   () => {
-    let harness: GmailTestHarness;
+    let harness: NylasTestHarness;
 
     beforeAll(async () => {
-      harness = await createGmailTestHarness({
-        email: gmailEmail,
-        messages: [
-          ...Array.from({ length: historyCount }, (_, index) => ({
-            id: `shared-history-${index}`,
-            thread_id: threadId,
-            user_email: gmailEmail,
-            from: "sender@example.com",
-            to: gmailEmail,
-            subject: "Team discussion",
-            body_text: `History ${index}`,
-            label_ids: ["INBOX"],
-            internal_date: String(1_790_000_000_000 + index * 1000),
-          })),
-          {
-            id: "shared-changed-recipient",
-            thread_id: threadId,
-            user_email: gmailEmail,
-            from: gmailEmail,
-            to: "new-recipient@example.com",
-            subject: "Re: Team discussion",
-            body_text: "Changed recipient branch",
-            label_ids: ["SENT"],
-            internal_date: "1790000030000",
-          },
-          {
-            id: "shared-draft",
-            thread_id: threadId,
-            user_email: gmailEmail,
-            from: gmailEmail,
-            to: "new-recipient@example.com",
-            subject: "Re: Team discussion",
-            body_text: "Private draft",
-            label_ids: ["DRAFT"],
-            internal_date: "1790000040000",
-          },
-          {
-            id: "unrelated",
-            thread_id: "unrelated-thread",
-            user_email: gmailEmail,
-            from: "other@example.com",
-            to: gmailEmail,
-            subject: "Unrelated",
-            body_text: "Do not share",
-            label_ids: ["INBOX"],
-            internal_date: "1790000050000",
-          },
-        ],
+      harness = await createNylasTestHarness({
+        messages: sharedNylasMessages(),
       });
     });
 
-    afterAll(async () => {
-      await harness?.emulator.close();
+    afterAll(() => {
+      harness?.restoreFetch();
+      if (process.env.RUN_INTEGRATION_TESTS) {
+        delete process.env.NYLAS_API_KEY;
+        delete process.env.NYLAS_API_URI;
+      }
     });
 
     test("returns complete history and the changed-recipient branch without draft or unrelated mail", async () => {
-      const thread = await harness.provider.getThread(
-        harness.threadIds["shared-history-0"],
-        { complete: true },
-      );
+      const thread = await harness.provider.getThread(threadId, {
+        complete: true,
+      });
       const bodies = thread.messages.map(
         (message) => `${message.textPlain ?? ""} ${message.textHtml ?? ""}`,
       );
@@ -92,6 +59,48 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
     });
   },
 );
+
+function sharedNylasMessages(): NylasSeedMessage[] {
+  return [
+    ...Array.from({ length: historyCount }, (_, index) => ({
+      id: `shared-history-${index}`,
+      threadId,
+      subject: "Team discussion",
+      body: `History ${index}`,
+      folders: ["INBOX"],
+      receivedAt: new Date(1_790_000_000_000 + index * 1000),
+    })),
+    {
+      id: "shared-changed-recipient",
+      threadId,
+      fromEmail: "shared-nylas@example.com",
+      toEmail: "new-recipient@example.com",
+      subject: "Re: Team discussion",
+      body: "Changed recipient branch",
+      folders: ["SENT"],
+      receivedAt: new Date(1_790_000_030_000),
+    },
+    {
+      id: "shared-draft",
+      threadId,
+      fromEmail: "shared-nylas@example.com",
+      toEmail: "new-recipient@example.com",
+      subject: "Re: Team discussion",
+      body: "Private draft",
+      folders: ["DRAFT"],
+      receivedAt: new Date(1_790_000_040_000),
+    },
+    {
+      id: "unrelated",
+      threadId: "unrelated-thread",
+      fromEmail: "other@example.com",
+      subject: "Unrelated",
+      body: "Do not share",
+      folders: ["INBOX"],
+      receivedAt: new Date(1_790_000_050_000),
+    },
+  ];
+}
 
 describe.skipIf(!RUN_INTEGRATION_TESTS)(
   "shared conversation complete provider retrieval — Microsoft",

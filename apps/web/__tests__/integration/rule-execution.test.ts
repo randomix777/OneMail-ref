@@ -1,17 +1,21 @@
 /**
- * Integration test: rule execution via @inbox-zero/emulate
+ * Integration test: rule execution
  *
  * Tests the executeAct function — the core of rule execution that applies
- * labels, archives, marks read, and creates drafts against the Gmail API.
- * AI matching is bypassed; we feed pre-built action items directly and
- * verify that Gmail state changes persist.
+ * labels, archives, marks read, and creates drafts — against the Nylas
+ * transport. AI matching is bypassed; we feed pre-built action items directly
+ * and verify that provider state changes persist.
  *
  * Usage:
  *   pnpm test-integration rule-execution
  */
 
 import { describe, test, expect, beforeAll, afterAll, vi } from "vitest";
-import { createGmailTestHarness, type GmailTestHarness } from "./helpers";
+import {
+  createNylasTestHarness,
+  type NylasSeedMessage,
+  type NylasTestHarness,
+} from "./helpers";
 import { executeAct } from "@/utils/ai/choose-rule/execute";
 import { ActionType, ExecutedRuleStatus } from "@/generated/prisma/enums";
 import { createTestLogger } from "@/__tests__/helpers";
@@ -52,53 +56,69 @@ vi.mock("@/utils/encryption", () => ({
   decrypt: vi.fn((s: string) => s),
 }));
 
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
+
+afterAll(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    delete process.env.NYLAS_API_KEY;
+    delete process.env.NYLAS_API_URI;
+  }
+});
+
 const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS;
 const TEST_EMAIL = "rules-test@example.com";
-const TEST_PORT = 4106;
 
-const SEED_MESSAGES = [
+const SEED_MESSAGES: NylasSeedMessage[] = [
   {
     id: "msg_to_label",
-    user_email: TEST_EMAIL,
-    from: "ceo@company.com",
-    to: TEST_EMAIL,
+    threadId: "thread_to_label",
+    fromEmail: "ceo@company.com",
     subject: "Quarterly review",
-    body_text: "Please review the Q1 numbers.",
-    body_html: "<p>Please review the Q1 numbers.</p>",
-    label_ids: ["INBOX", "UNREAD"],
-    internal_date: "1711900000000",
+    body: "Please review the Q1 numbers.",
+    folders: ["INBOX", "UNREAD"],
+    unread: true,
+    receivedAt: new Date(1_711_900_000_000),
   },
   {
     id: "msg_to_archive",
-    user_email: TEST_EMAIL,
-    from: "newsletter@updates.com",
-    to: TEST_EMAIL,
+    threadId: "thread_to_archive",
+    fromEmail: "newsletter@updates.com",
     subject: "Weekly digest",
-    body_text: "Here is your weekly digest.",
-    label_ids: ["INBOX", "UNREAD"],
-    internal_date: "1711900060000",
+    body: "Here is your weekly digest.",
+    folders: ["INBOX", "UNREAD"],
+    unread: true,
+    receivedAt: new Date(1_711_900_060_000),
   },
   {
     id: "msg_to_draft",
-    user_email: TEST_EMAIL,
-    from: "partner@partner.io",
-    to: TEST_EMAIL,
+    threadId: "thread_to_draft",
+    fromEmail: "partner@partner.io",
     subject: "Meeting follow-up",
-    body_text: "Thanks for the meeting yesterday.",
-    body_html: "<p>Thanks for the meeting yesterday.</p>",
-    label_ids: ["INBOX", "UNREAD"],
-    internal_date: "1711900120000",
+    body: "Thanks for the meeting yesterday.",
+    folders: ["INBOX", "UNREAD"],
+    unread: true,
+    receivedAt: new Date(1_711_900_120_000),
   },
 ];
+
+const THREAD_IDS = Object.fromEntries(
+  SEED_MESSAGES.map((seed) => [seed.id, seed.threadId ?? seed.id]),
+);
 
 describe.skipIf(!RUN_INTEGRATION_TESTS)(
   "Rule execution (executeAct)",
   { timeout: 30_000 },
   () => {
-    let harness: GmailTestHarness;
-    let gmailClient: GmailTestHarness["gmailClient"];
-    let provider: GmailTestHarness["provider"];
-    let threadIds: GmailTestHarness["threadIds"];
+    let harness: NylasTestHarness;
+    let provider: NylasTestHarness["provider"];
     const emailAccount = {
       email: TEST_EMAIL,
       id: "test-account-id",
@@ -106,16 +126,12 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
     };
 
     beforeAll(async () => {
-      harness = await createGmailTestHarness({
-        port: TEST_PORT,
-        email: TEST_EMAIL,
-        messages: SEED_MESSAGES,
-      });
-      ({ gmailClient, provider, threadIds } = harness);
+      harness = await createNylasTestHarness({ messages: SEED_MESSAGES });
+      provider = harness.provider;
     });
 
-    afterAll(async () => {
-      await harness?.emulator.close();
+    afterAll(() => {
+      harness?.restoreFetch();
     });
 
     function buildExecutedRule(
@@ -137,7 +153,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
         createdAt: new Date(),
         updatedAt: new Date(),
         messageId,
-        threadId: threadIds[messageId],
+        threadId: THREAD_IDS[messageId],
         automated: true,
         reason: "test",
         status: ExecutedRuleStatus.APPLYING,
@@ -169,29 +185,39 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
       };
     }
 
-    function buildParsedMessage(seed: (typeof SEED_MESSAGES)[number]) {
+    function buildParsedMessage(seed: NylasSeedMessage) {
+      const receivedAt = seed.receivedAt ?? new Date();
+
       return {
         id: seed.id,
-        threadId: threadIds[seed.id],
+        threadId: seed.threadId ?? seed.id,
         headers: {
-          from: seed.from,
-          to: seed.to,
-          subject: seed.subject,
-          date: new Date(Number(seed.internal_date)).toISOString(),
+          from: seed.fromEmail ?? "ada@example.com",
+          to: seed.toEmail ?? "owner@example.com",
+          subject: seed.subject ?? "",
+          date: receivedAt.toISOString(),
           "message-id": `<${seed.id}@test>`,
         },
-        textPlain: seed.body_text,
-        textHtml: seed.body_html || "",
-        snippet: seed.body_text.slice(0, 50),
-        labelIds: seed.label_ids,
-        internalDate: seed.internal_date,
+        textPlain: seed.body ?? "",
+        textHtml: "",
+        snippet: (seed.body ?? "").slice(0, 50),
+        labelIds: [
+          ...(seed.folders ?? ["INBOX"]),
+          ...(seed.unread ? ["UNREAD"] : []),
+        ],
+        internalDate: String(receivedAt.getTime()),
         historyId: "1",
-        subject: seed.subject,
-        date: new Date(Number(seed.internal_date)).toISOString(),
+        subject: seed.subject ?? "",
+        date: receivedAt.toISOString(),
         inline: [],
         attachments: [],
         rawRecipients: [],
       };
+    }
+
+    function foldersOf(messageId: string) {
+      return harness.mailbox.find((message) => message.id === messageId)
+        ?.folders;
     }
 
     test("LABEL action: creates label and applies it to message", async () => {
@@ -219,19 +245,14 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
         }),
       );
 
-      // Verify label was created in Gmail
-      const labels = await gmailClient.users.labels.list({ userId: "me" });
-      const ceoLabel = labels.data.labels?.find(
-        (l) => l.name === "CEO/Important",
+      // Verify the label exists at the provider
+      const ceoLabel = harness.labels.find(
+        (label) => label.name === "CEO/Important",
       );
       expect(ceoLabel).toBeDefined();
 
-      // Verify label was applied to the message
-      const msg = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_to_label",
-      });
-      expect(msg.data.labelIds).toContain(ceoLabel!.id);
+      // Verify it was applied to the message
+      expect(foldersOf("msg_to_label")).toContain(ceoLabel?.id);
     });
 
     test("ARCHIVE action: removes INBOX label from thread", async () => {
@@ -244,11 +265,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
       const message = buildParsedMessage(SEED_MESSAGES[1]);
 
       // Verify starts in INBOX
-      const before = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_to_archive",
-      });
-      expect(before.data.labelIds).toContain("INBOX");
+      expect(foldersOf("msg_to_archive")).toContain("INBOX");
 
       await executeAct({
         client: provider,
@@ -259,11 +276,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
       });
 
       // Verify INBOX removed
-      const after = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_to_archive",
-      });
-      expect(after.data.labelIds).not.toContain("INBOX");
+      expect(foldersOf("msg_to_archive")).not.toContain("INBOX");
 
       // Verify status updated to APPLIED
       expect(mockExecutedRuleUpdate).toHaveBeenCalledWith(
@@ -290,12 +303,15 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
         logger: createTestLogger(),
       });
 
-      // Verify UNREAD removed (mark as read)
-      const after = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_to_label",
-      });
-      expect(after.data.labelIds).not.toContain("UNREAD");
+      // Verify UNREAD removed (mark as read), read back through the provider so
+      // the label derivation is exercised too.
+      expect(foldersOf("msg_to_label")).toBeDefined();
+      expect(
+        harness.mailbox.find((entry) => entry.id === "msg_to_label")?.unread,
+      ).toBe(false);
+
+      const after = await provider.getMessage("msg_to_label");
+      expect(after.labelIds).not.toContain("UNREAD");
     });
 
     test("LABEL + ARCHIVE combined: labels then archives", async () => {
@@ -318,21 +334,15 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
       });
 
       // Verify label created and applied
-      const labels = await gmailClient.users.labels.list({ userId: "me" });
-      const processedLabel = labels.data.labels?.find(
-        (l) => l.name === "Processed",
+      const processedLabel = harness.labels.find(
+        (label) => label.name === "Processed",
       );
       expect(processedLabel).toBeDefined();
 
-      const msg = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_to_draft",
-      });
-
       // Label was applied
-      expect(msg.data.labelIds).toContain(processedLabel!.id);
+      expect(foldersOf("msg_to_draft")).toContain(processedLabel?.id);
       // INBOX was removed (archived)
-      expect(msg.data.labelIds).not.toContain("INBOX");
+      expect(foldersOf("msg_to_draft")).not.toContain("INBOX");
 
       // Single APPLIED status update
       expect(mockExecutedRuleUpdate).toHaveBeenCalledWith(

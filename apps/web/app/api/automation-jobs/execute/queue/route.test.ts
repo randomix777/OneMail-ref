@@ -24,8 +24,11 @@ vi.mock("@vercel/queue", () => ({
   handleCallback: handleCallbackMock,
 }));
 
-vi.mock("@/utils/error", () => ({
+vi.mock("@/utils/error", async (importOriginal) => ({
   captureException: (...args: unknown[]) => captureExceptionMock(...args),
+  // Reached through the email-provider import chain, which defines `SafeError`
+  // subclasses; the rest of this module stays mocked.
+  SafeError: (await importOriginal<typeof import("@/utils/error")>()).SafeError,
 }));
 
 vi.mock("@/utils/automation-jobs/execute", async (importOriginal) => {

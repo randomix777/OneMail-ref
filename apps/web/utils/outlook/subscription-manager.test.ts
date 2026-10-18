@@ -18,8 +18,11 @@ vi.mock("@/utils/prisma", () => ({
   },
 }));
 
-vi.mock("@/utils/error", () => ({
+vi.mock("@/utils/error", async (importOriginal) => ({
   captureException: vi.fn(),
+  // Reached through the email-provider import chain, which defines `SafeError`
+  // subclasses; the rest of this module stays mocked.
+  SafeError: (await importOriginal<typeof import("@/utils/error")>()).SafeError,
 }));
 
 describe("OutlookSubscriptionManager", () => {

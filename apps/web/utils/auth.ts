@@ -28,7 +28,11 @@ import {
 } from "@/utils/email/provider-types";
 import { ensureEmailAccountsWatched } from "@/utils/email/watch-manager";
 import { captureException } from "@/utils/error";
-import { SCOPES as GMAIL_SCOPES } from "@/utils/gmail/scopes";
+import {
+  IDENTITY_SCOPES as GOOGLE_IDENTITY_SCOPES,
+  SCOPES as GMAIL_SCOPES,
+} from "@/utils/gmail/scopes";
+import { hasNylasConfig } from "@/utils/nylas/client";
 import {
   fetchGoogleOpenIdProfile,
   getGoogleOauthDiscoveryUrl,
@@ -100,12 +104,23 @@ const mobileAuthOrigins = env.MOBILE_AUTH_ORIGIN
 const desktopAuthOrigins = env.DESKTOP_AUTH_ORIGIN
   ? [env.DESKTOP_AUTH_ORIGIN]
   : [];
+/**
+ * Google sign-in asks for Gmail access only while mail still comes from our own
+ * Google client. Once Nylas carries Google mail it also carries the consent, so
+ * our client drops back to identity and sign-in stops being the act that
+ * connects a mailbox — `hasNylasConfig()` is the switch that keeps this
+ * reversible during the migration.
+ */
+const googleSignInScopes = hasNylasConfig()
+  ? [...GOOGLE_IDENTITY_SCOPES]
+  : [...GMAIL_SCOPES];
+
 const googleSocialProvider =
   googleLoginEnabled && !useGoogleOauthEmulator
     ? {
         clientId: env.GOOGLE_CLIENT_ID,
         clientSecret: env.GOOGLE_CLIENT_SECRET,
-        scope: [...GMAIL_SCOPES],
+        scope: googleSignInScopes,
         accessType: "offline" as const,
         prompt: "select_account consent" as const,
         disableIdTokenSignIn: true,
@@ -184,7 +199,7 @@ const genericOauthConfig: GenericOAuthConfig[] = [
           discoveryUrl: getGoogleOauthDiscoveryUrl(),
           clientId: env.GOOGLE_CLIENT_ID,
           clientSecret: env.GOOGLE_CLIENT_SECRET,
-          scopes: [...GMAIL_SCOPES],
+          scopes: googleSignInScopes,
           pkce: true,
           accessType: "offline" as const,
           prompt: "select_account consent" as const,
@@ -642,6 +657,12 @@ async function getProfileData(providerId: string, accessToken: string) {
 }
 
 function shouldLinkEmailAccount(providerId: string) {
+  // With Nylas carrying Google mail, sign-in no longer grants mail access, so
+  // creating an EmailAccount here would produce a mailbox that cannot read a
+  // single message. Connecting a Google mailbox is instead an explicit act
+  // through `/api/nylas/linking`, which is the only thing that yields a grant.
+  if (isGoogleProvider(providerId) && hasNylasConfig()) return false;
+
   return isGoogleProvider(providerId) || isMicrosoftProvider(providerId);
 }
 

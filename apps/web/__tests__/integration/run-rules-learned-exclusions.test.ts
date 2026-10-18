@@ -21,7 +21,11 @@ import {
 import { runRules } from "@/utils/ai/choose-rule/run-rules";
 import { aiChooseRule } from "@/utils/ai/choose-rule/ai-choose-rule";
 import type { RuleWithActions } from "@/utils/types";
-import { createGmailTestHarness, type GmailTestHarness } from "./helpers";
+import {
+  createNylasTestHarness,
+  type NylasSeedMessage,
+  type NylasTestHarness,
+} from "./helpers";
 
 vi.mock("next/server", () => ({
   after: vi.fn(),
@@ -56,39 +60,49 @@ vi.mock("@/utils/prisma", () => ({
 
 const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS;
 const TEST_EMAIL = "learned-exclusions@example.com";
-const TEST_PORT = 4107;
 const TEST_MESSAGE_ID = "msg_learned_exclusion";
 const TEST_SENDER = "updates@transactional.getinboxzero.com";
+
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
 
 describe.skipIf(!RUN_INTEGRATION_TESTS)(
   "runRules learned exclusions",
   { timeout: 30_000 },
   () => {
-    let harness: GmailTestHarness;
+    let harness: NylasTestHarness;
     const logger = createTestLogger();
 
     beforeAll(async () => {
-      harness = await createGmailTestHarness({
-        port: TEST_PORT,
-        email: TEST_EMAIL,
+      harness = await createNylasTestHarness({
         messages: [
           {
             id: TEST_MESSAGE_ID,
-            user_email: TEST_EMAIL,
-            from: TEST_SENDER,
-            to: TEST_EMAIL,
+            threadId: "thread_learned_exclusion",
+            fromEmail: TEST_SENDER,
             subject: "Account update",
-            body_text: "Your account status changed.",
-            body_html: "<p>Your account status changed.</p>",
-            label_ids: ["INBOX", "UNREAD"],
-            internal_date: "1711900000000",
+            body: "Your account status changed.",
+            folders: ["INBOX"],
+            unread: true,
+            receivedAt: new Date(1_711_900_000_000),
           },
-        ],
+        ] satisfies NylasSeedMessage[],
       });
     });
 
-    afterAll(async () => {
-      await harness?.emulator.close();
+    afterAll(() => {
+      harness?.restoreFetch();
+      if (process.env.RUN_INTEGRATION_TESTS) {
+        delete process.env.NYLAS_API_KEY;
+        delete process.env.NYLAS_API_URI;
+      }
     });
 
     beforeEach(() => {

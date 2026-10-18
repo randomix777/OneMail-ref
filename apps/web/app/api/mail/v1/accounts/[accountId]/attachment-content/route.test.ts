@@ -25,7 +25,7 @@ vi.mock("@/utils/middleware", () => ({
           auth: { emailAccountId: "acc-1", userId: "user-1" },
           emailProvider: {
             name: "google",
-            localMailSyncStrategy: "history",
+            localMailSyncStrategy: "account-history",
             getAttachmentStream,
           },
           logger: createScopedLogger("test"),

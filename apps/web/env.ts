@@ -99,6 +99,18 @@ const parsedEnv = createEnv({
     APPLE_KEY_ID: z.string().optional(),
     APPLE_PRIVATE_KEY: z.string().optional(),
     APPLE_APP_BUNDLE_IDENTIFIER: z.string().optional(),
+    // Nylas carries Google mail so we inherit its CASA assessment instead of
+    // running our own. Optional so the app still boots without it; Google
+    // mailboxes simply cannot be connected until it is configured.
+    NYLAS_API_KEY: z.string().optional(),
+    NYLAS_CLIENT_ID: z.string().optional(),
+    // US or EU host; the two are separate deployments with separate data.
+    NYLAS_API_URI: z.preprocess(
+      optionalEnvValue,
+      z.string().url().default("https://api.us.nylas.com"),
+    ),
+    // Key used to verify the X-Nylas-Signature header on webhook deliveries.
+    NYLAS_WEBHOOK_SECRET: z.string().optional(),
     // Comma-separated SHA-256 fingerprints served from /.well-known/assetlinks.json
     ANDROID_APP_CERT_SHA256_FINGERPRINTS: z
       .string()

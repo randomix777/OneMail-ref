@@ -11,7 +11,11 @@
 
 import http from "node:http";
 import { describe, test, expect, beforeAll, afterAll, vi } from "vitest";
-import { createGmailTestHarness, type GmailTestHarness } from "./helpers";
+import {
+  createNylasTestHarness,
+  type NylasSeedMessage,
+  type NylasTestHarness,
+} from "./helpers";
 import { executeAct } from "@/utils/ai/choose-rule/execute";
 import { ActionType, ExecutedRuleStatus } from "@/generated/prisma/enums";
 import { createTestLogger } from "@/__tests__/helpers";
@@ -86,19 +90,29 @@ vi.mock("@inboxzero/network/safe-url", () => ({
 
 const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS;
 const TEST_EMAIL = "webhook-test@example.com";
-const EMULATOR_PORT = 4107;
 const WEBHOOK_PORT = 4108;
 
-const SEED_MESSAGES = [
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
+
+const SEED_MESSAGES: NylasSeedMessage[] = [
   {
     id: "msg_webhook",
-    user_email: TEST_EMAIL,
-    from: "sender@example.com",
-    to: TEST_EMAIL,
+    threadId: "thread_webhook",
+    fromName: "Sender",
+    fromEmail: "sender@example.com",
     subject: "Trigger webhook",
-    body_text: "This should trigger a webhook.",
-    label_ids: ["INBOX", "UNREAD"],
-    internal_date: "1711900000000",
+    body: "This should trigger a webhook.",
+    folders: ["INBOX"],
+    unread: true,
+    receivedAt: new Date(1_711_900_000_000),
   },
 ];
 
@@ -106,7 +120,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
   "CALL_WEBHOOK action",
   { timeout: 30_000 },
   () => {
-    let harness: GmailTestHarness;
+    let harness: NylasTestHarness;
     let threadId: string;
 
     // Local HTTP server to receive webhook calls
@@ -134,21 +148,23 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
         webhookServer.listen(WEBHOOK_PORT, resolve),
       );
 
-      // Start Gmail emulator via shared harness
-      harness = await createGmailTestHarness({
-        port: EMULATOR_PORT,
-        email: TEST_EMAIL,
+      // Start the Nylas fake via the shared harness
+      harness = await createNylasTestHarness({
         messages: SEED_MESSAGES,
       });
 
-      threadId = harness.threadIds.msg_webhook;
+      threadId = SEED_MESSAGES[0].threadId ?? SEED_MESSAGES[0].id;
     });
 
     afterAll(async () => {
       await new Promise<void>((resolve) =>
         webhookServer?.close(() => resolve()),
       );
-      await harness?.emulator.close();
+      harness?.restoreFetch();
+      if (process.env.RUN_INTEGRATION_TESTS) {
+        delete process.env.NYLAS_API_KEY;
+        delete process.env.NYLAS_API_URI;
+      }
     });
 
     test("CALL_WEBHOOK delivers payload with correct structure and secret", async () => {
@@ -350,20 +366,14 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
       // Webhook was called
       expect(receivedRequests).toHaveLength(1);
 
-      // Label was created and applied in Gmail
-      const labels = await harness.gmailClient.users.labels.list({
-        userId: "me",
-      });
-      const webhookLabel = labels.data.labels?.find(
-        (l) => l.name === "Webhooks",
+      // Label was created and applied at the provider
+      const webhookLabel = harness.labels.find(
+        (label) => label.name === "Webhooks",
       );
       expect(webhookLabel).toBeDefined();
 
-      const msg = await harness.gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_webhook",
-      });
-      expect(msg.data.labelIds).toContain(webhookLabel!.id);
+      const applied = await harness.provider.getMessage("msg_webhook");
+      expect(applied.labelIds).toContain(webhookLabel?.id);
     });
   },
 );

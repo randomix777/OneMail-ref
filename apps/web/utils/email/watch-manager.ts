@@ -15,6 +15,10 @@ import {
   isGoogleProvider,
   isMicrosoftProvider,
 } from "@/utils/email/provider-types";
+import {
+  resolveMailTransport,
+  usesPerAccountWatch,
+} from "@/utils/email/provider-registry";
 import { logErrorWithDedupe } from "@/utils/log-error-with-dedupe";
 import { clearWatchLapsedErrorIfResolved } from "@/utils/error-messages";
 import { syncGoogleEmailFromProfile } from "@/utils/auth/rename-email";
@@ -60,6 +64,7 @@ async function getEmailAccountsToWatch(userIds: string[] | null) {
       account: {
         select: {
           provider: true,
+          transport: true,
           providerAccountId: true,
           access_token: true,
           refresh_token: true,
@@ -142,6 +147,20 @@ async function watchEmailAccount(
   logger: Logger,
 ): Promise<WatchEmailAccountResult | null> {
   const { account, user, watchEmailsExpirationDate } = emailAccount;
+
+  const transport = resolveMailTransport(account.provider, account.transport);
+
+  if (!usesPerAccountWatch(transport)) {
+    // There is no subscription to renew, and for Nylas there are no provider
+    // tokens to renew it with — the account is already carrying its mail. Left
+    // out of the results so it is neither reported as a failure nor given a
+    // synthetic expiration date, which would trip the lapse email later.
+    logger.info("Skipping watch setup for a transport that pushes app-wide", {
+      transport,
+    });
+
+    return null;
+  }
 
   const userHasAiAccess = hasAiAccess(
     getUserTier(user.premium),

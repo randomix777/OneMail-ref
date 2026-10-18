@@ -1,10 +1,9 @@
 /**
- * Integration test: core EmailProvider operations across Gmail and Outlook
+ * Integration test: core EmailProvider operations across Nylas and Outlook
  *
- * Tests the shared EmailProvider interface against both emulators.
- * Each test suite runs identically against Gmail and Outlook, verifying
- * that labeling, archiving, mark-read, and message retrieval work
- * consistently across providers.
+ * Tests the shared EmailProvider interface against the Nylas fake and the
+ * Outlook emulator. Each test suite runs identically against both, verifying
+ * that labeling, archiving, mark-read, and message retrieval work consistently.
  *
  * Usage:
  *   pnpm test-integration provider-operations
@@ -12,9 +11,10 @@
 
 import { describe, test, expect, beforeAll, afterAll, vi } from "vitest";
 import {
-  createGmailTestHarness,
+  createNylasTestHarness,
   createOutlookTestHarness,
-  type GmailTestHarness,
+  type NylasSeedMessage,
+  type NylasTestHarness,
   type ProviderTestHarness,
 } from "./helpers";
 
@@ -22,55 +22,69 @@ vi.mock("@inboxzero/tinybird", () => ({
   publishArchive: vi.fn().mockResolvedValue(undefined),
 }));
 
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
+
+afterAll(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    delete process.env.NYLAS_API_KEY;
+    delete process.env.NYLAS_API_URI;
+  }
+});
+
 const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS;
-const GMAIL_EMAIL = "provider-test@example.com";
+const NYLAS_EMAIL = "provider-test@example.com";
 const OUTLOOK_EMAIL = "provider-test@outlook.com";
 
 // Seed data factories — same logical messages, different seed formats
 
-function gmailSeedMessages(email: string) {
-  return [
+function nylasSeedMessages(): NylasSeedMessage[] {
+  const named: NylasSeedMessage[] = [
     {
       id: "msg_read_me",
-      user_email: email,
-      from: "alice@example.com",
-      to: email,
+      threadId: "thread_read_me",
       subject: "Unread message",
-      body_text: "Please read me",
-      label_ids: ["INBOX", "UNREAD"],
-      internal_date: "1711900000000",
+      body: "Please read me",
+      folders: ["INBOX", "UNREAD"],
+      unread: true,
+      receivedAt: new Date(1_711_900_000_000),
     },
     {
       id: "msg_archive_me",
-      user_email: email,
-      from: "bob@example.com",
-      to: email,
+      threadId: "thread_archive_me",
       subject: "Archive this",
-      body_text: "Archive me please",
-      label_ids: ["INBOX"],
-      internal_date: "1711900060000",
+      body: "Archive me please",
+      folders: ["INBOX"],
+      receivedAt: new Date(1_711_900_060_000),
     },
     {
       id: "msg_label_me",
-      user_email: email,
-      from: "carol@example.com",
-      to: email,
+      threadId: "thread_label_me",
       subject: "Label this",
-      body_text: "Label me please",
-      label_ids: ["INBOX"],
-      internal_date: "1711900120000",
+      body: "Label me please",
+      folders: ["INBOX"],
+      receivedAt: new Date(1_711_900_120_000),
     },
-    ...Array.from({ length: 100 }, (_, index) => ({
-      id: `msg_bulk_${index}`,
-      user_email: email,
-      from: "bulk-sender@example.com",
-      to: email,
-      subject: `Bulk archive ${index}`,
-      body_text: "Archive this message",
-      label_ids: ["INBOX"],
-      internal_date: String(1_711_800_000_000 + index * 1000),
-    })),
   ];
+
+  // A bulk snapshot, the way a mailbox arrives that has never been archived.
+  const bulk: NylasSeedMessage[] = Array.from({ length: 100 }, (_, index) => ({
+    id: `msg_bulk_${index}`,
+    threadId: `thread_bulk_${index}`,
+    subject: `Bulk archive ${index}`,
+    body: "Archive this message",
+    folders: ["INBOX"],
+    receivedAt: new Date(1_711_800_000_000 + index * 1000),
+  }));
+
+  return [...named, ...bulk];
 }
 
 function outlookSeedMessages(email: string) {
@@ -116,7 +130,10 @@ function outlookSeedMessages(email: string) {
  * This is where the DRY magic happens: one set of tests, two providers.
  */
 function providerTestSuite(
-  getHarness: () => ProviderTestHarness,
+  getHarness: () => {
+    provider: ProviderTestHarness["provider"];
+    email: string;
+  },
   providerName: string,
 ) {
   test("getMessagesWithPagination returns parsed messages with headers", async () => {
@@ -234,35 +251,26 @@ function providerTestSuite(
   });
 }
 
-// ── Gmail suite ─────────────────────────────────────────────────────
+// ── Nylas suite ─────────────────────────────────────────────────────
 
 describe.skipIf(!RUN_INTEGRATION_TESTS)(
-  "Provider operations — Gmail",
+  "Provider operations — Nylas",
   { timeout: 30_000 },
   () => {
-    let harness: ProviderTestHarness & {
-      gmailClient: GmailTestHarness["gmailClient"];
-    };
+    let harness: NylasTestHarness & { email: string };
 
     beforeAll(async () => {
-      const h = await createGmailTestHarness({
-        port: 4110,
-        email: GMAIL_EMAIL,
-        messages: gmailSeedMessages(GMAIL_EMAIL),
+      const h = await createNylasTestHarness({
+        messages: nylasSeedMessages(),
       });
-      harness = {
-        emulator: h.emulator,
-        gmailClient: h.gmailClient,
-        provider: h.provider,
-        email: GMAIL_EMAIL,
-      };
+      harness = { ...h, email: NYLAS_EMAIL };
     });
 
-    afterAll(async () => {
-      await harness?.emulator?.close();
+    afterAll(() => {
+      harness?.restoreFetch();
     });
 
-    providerTestSuite(() => harness, "Gmail");
+    providerTestSuite(() => harness, "Nylas");
 
     test("archiveMessages removes a large snapshot from the inbox", async () => {
       const messageIds = Array.from(
@@ -272,23 +280,19 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
 
       await harness.provider.archiveMessages(messageIds);
 
-      const inbox = await harness.gmailClient.users.messages.list({
-        userId: "me",
-        labelIds: ["INBOX"],
-        maxResults: 500,
-      });
-      const inboxIds = new Set(
-        inbox.data.messages?.map((message) => message.id) ?? [],
+      const stillInInbox = new Set(
+        harness.mailbox
+          .filter((message) => message.folders.includes("INBOX"))
+          .map((message) => message.id),
       );
-      expect(messageIds.some((messageId) => inboxIds.has(messageId))).toBe(
+      expect(messageIds.some((messageId) => stillInInbox.has(messageId))).toBe(
         false,
       );
       for (const messageId of ["msg_bulk_0", "msg_bulk_50", "msg_bulk_99"]) {
-        const message = await harness.gmailClient.users.messages.get({
-          userId: "me",
-          id: messageId,
-        });
-        expect(message.data.threadId).toBeDefined();
+        expect(
+          harness.mailbox.find((message) => message.id === messageId)
+            ?.thread_id,
+        ).toBeDefined();
       }
     });
   },

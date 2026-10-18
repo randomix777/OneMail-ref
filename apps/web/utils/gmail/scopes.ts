@@ -4,6 +4,19 @@ const GOOGLE_CONTACTS_SCOPE = "https://www.googleapis.com/auth/contacts";
 const GOOGLE_OTHER_CONTACTS_SCOPE =
   "https://www.googleapis.com/auth/contacts.other.readonly";
 
+/**
+ * Identity only — enough to sign a user in and read their address and display
+ * name. Once Google mail is reached through Nylas, our own OAuth client must not
+ * request Gmail scopes at all: CASA attaches to the client that asks for the
+ * restricted scope, so leaving them here would forfeit the assessment Nylas
+ * already holds.
+ */
+export const IDENTITY_SCOPES = [
+  "https://www.googleapis.com/auth/userinfo.profile",
+  "https://www.googleapis.com/auth/userinfo.email",
+  "openid",
+] as const;
+
 export const REQUIRED_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.profile",
   "https://www.googleapis.com/auth/userinfo.email",

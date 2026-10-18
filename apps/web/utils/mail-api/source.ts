@@ -5,10 +5,7 @@ import type {
   ScopeDescriptor,
 } from "@inboxzero/mail-core/ports/mailbox-source";
 import type { BodyObservation, SyncPosition } from "@inboxzero/mail-core/sync";
-import {
-  encodeMailboxSyncCursor,
-  InvalidMailboxSyncCursorError,
-} from "@/utils/email/mailbox-sync";
+import { InvalidMailboxSyncCursorError } from "@/utils/email/mailbox-sync";
 import type { EmailProvider, ProviderMailboxSearch } from "@/utils/email/types";
 import {
   parsedMessageMetadata,
@@ -16,6 +13,7 @@ import {
   parsedMessagePatch,
 } from "@/utils/mail-api/observations";
 import { isProviderRateLimitModeError } from "@/utils/email/rate-limit-mode-error";
+import { getProviderSyncPageSize } from "@/utils/email/provider-registry";
 import { extractErrorInfo as extractGmailErrorInfo } from "@/utils/gmail/retry";
 import { extractErrorInfo as extractOutlookErrorInfo } from "@/utils/outlook/retry";
 import type { ParsedMessage } from "@/utils/types";
@@ -58,7 +56,8 @@ export function createEmailProviderMailboxSource(input: {
   accountId: string;
 }): MailboxSource & Required<Pick<MailboxSource, "readChangesBatch">> {
   const { provider, accountId } = input;
-  const maxPageSize = provider.name === "microsoft" ? 20 : 50;
+  const maxPageSize = getProviderSyncPageSize(provider.name);
+  const usesFolderDelta = provider.localMailSyncStrategy === "folder-delta";
   const source: MailboxSource = {
     async describe() {
       return {
@@ -75,7 +74,9 @@ export function createEmailProviderMailboxSource(input: {
       };
     },
     async discoverScopes() {
-      if (provider.name === "microsoft") {
+      // Only a folder-delta source needs one scope per folder; an
+      // account-history source has a single stream for the whole mailbox.
+      if (usesFolderDelta) {
         const folders = await provider.getFolders();
         return {
           status: "ok",
@@ -188,7 +189,7 @@ export function createEmailProviderMailboxSource(input: {
         const page = await provider.getMailboxSyncPage({
           cursor: position.checkpoint || undefined,
           folderId:
-            provider.name === "microsoft" && position.streamId !== "primary"
+            usesFolderDelta && position.streamId !== "primary"
               ? position.streamId
               : undefined,
           limit: pageSize,
@@ -451,10 +452,12 @@ async function catchUpCheckpoint(
     });
     if (page.cursor) return page.cursor;
   } catch (error) {
-    if (provider.name === "microsoft") throw error;
-    // Fall back to the newest numeric Gmail history id we already fetched.
+    // A provider that can rebuild its cursor from what we already fetched does
+    // so; one that cannot must surface the failure rather than silently
+    // restarting the mailbox from scratch.
+    if (!provider.deriveCatchUpCursorFromMessages) throw error;
   }
-  return encodedGmailCursorFromMessages(messages);
+  return provider.deriveCatchUpCursorFromMessages?.(messages) ?? null;
 }
 
 async function finalCatchUpFrom({
@@ -471,9 +474,8 @@ async function finalCatchUpFrom({
   if (token.catchUpFrom) {
     const checkpoint =
       token.catchUpFrom.checkpoint ??
-      (provider.name === "google"
-        ? encodedGmailCursorFromMessages(messages)
-        : null);
+      provider.deriveCatchUpCursorFromMessages?.(messages) ??
+      null;
     return { ...token.catchUpFrom, checkpoint };
   }
   return {
@@ -489,7 +491,8 @@ async function finalCatchUpFrom({
 }
 
 function scopedFolderId(provider: EmailProvider, scope: ScopeDescriptor) {
-  if (provider.name === "microsoft") return scope.folderId ?? scope.id;
+  if (provider.localMailSyncStrategy === "folder-delta")
+    return scope.folderId ?? scope.id;
   return scope.folderId ?? undefined;
 }
 
@@ -507,23 +510,6 @@ function flattenFolderScopes(folders: FolderScopeNode[]) {
     scopes.push(...flattenFolderScopes(folder.childFolders ?? []));
   }
   return scopes;
-}
-
-function encodedGmailCursorFromMessages(
-  messages: ParsedMessage[],
-): string | null {
-  const historyId = messages
-    .map((message) => message.historyId)
-    .filter((id): id is string => Boolean(id && /^\d+$/.test(id)))
-    .reduce((latest, id) => (BigInt(id) > BigInt(latest) ? id : latest), "0");
-  if (historyId === "0") return null;
-  return encodeMailboxSyncCursor({
-    version: 1,
-    provider: "google",
-    phase: "delta",
-    historyId,
-    after: "1970-01-01T00:00:00.000Z",
-  });
 }
 
 function isMissingProviderResource(error: unknown) {

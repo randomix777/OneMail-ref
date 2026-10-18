@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import {
   createMailEngine,
   createHostRuntime,
@@ -12,7 +12,7 @@ import {
 import { createNodeSqliteDriver } from "@inboxzero/mail-sqlite/node";
 import { createSqliteMailStore } from "@inboxzero/mail-sqlite/store";
 import {
-  createGmailTestHarness,
+  createNylasTestHarness,
   createOutlookTestHarness,
 } from "@/__tests__/integration/helpers";
 import type { EmailProvider } from "@/utils/email/types";
@@ -21,6 +21,23 @@ vi.mock("server-only", () => ({}));
 vi.mock("@inboxzero/tinybird", () => ({
   publishArchive: vi.fn().mockResolvedValue(undefined),
 }));
+
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
+
+afterAll(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    delete process.env.NYLAS_API_KEY;
+    delete process.env.NYLAS_API_URI;
+  }
+});
 
 const harnessState = vi.hoisted(() => ({
   provider: null as EmailProvider | null,
@@ -94,31 +111,26 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
   "mail engine HTTP-mediated archive slice",
   { timeout: 60_000 },
   () => {
-    it("archives Gmail mail through /api/mail/v1 into real SQLite", async () => {
-      const email = "engine-gmail-http@example.com";
-      const accountId = "gmail-http-engine";
-      const harness = await createGmailTestHarness({
-        email,
+    it("archives Nylas mail through /api/mail/v1 into real SQLite", async () => {
+      const accountId = "nylas-http-engine";
+      const email = "engine-nylas-http@example.com";
+      const harness = await createNylasTestHarness({
         messages: [
           {
-            id: "g-keep-http",
-            user_email: email,
-            from: "ada@example.com",
-            to: email,
+            id: "n-keep-http",
             subject: "Keep me",
-            body_text: "Stay",
-            label_ids: ["INBOX", "UNREAD"],
-            internal_date: `${Date.now()}`,
+            body: "Stay",
+            folders: ["INBOX", "UNREAD"],
+            unread: true,
+            receivedAt: new Date(),
           },
           {
-            id: "g-archive-http",
-            user_email: email,
-            from: "ada@example.com",
-            to: email,
+            id: "n-archive-http",
             subject: "Archive me",
-            body_text: "Go",
-            label_ids: ["INBOX", "UNREAD"],
-            internal_date: `${Date.now() - 1000}`,
+            body: "Go",
+            folders: ["INBOX", "UNREAD"],
+            unread: true,
+            receivedAt: new Date(Date.now() - 1000),
           },
         ],
       });
@@ -127,20 +139,21 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
           accountId,
           email,
           provider: harness.provider,
-          archiveMessageId: "g-archive-http",
+          archiveMessageId: "n-archive-http",
         });
         expect(result.beforeInbox).toBe(2);
         expect(result.beforeUnread).toBe(2);
         expect(result.afterInbox).toBe(1);
         expect(result.afterUnread).toBe(1);
-        const archived = await harness.gmailClient.users.messages.get({
-          userId: "me",
-          id: "g-archive-http",
-          format: "metadata",
-        });
-        expect(archived.data.labelIds ?? []).not.toContain("INBOX");
+
+        // Nylas replaces folder membership, so the archived message keeps
+        // everything except INBOX.
+        expect(
+          harness.mailbox.find((message) => message.id === "n-archive-http")
+            ?.folders,
+        ).not.toContain("INBOX");
       } finally {
-        await harness.emulator.close();
+        harness.restoreFetch();
       }
     });
 

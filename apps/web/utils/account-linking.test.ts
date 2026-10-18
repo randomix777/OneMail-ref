@@ -10,18 +10,54 @@ describe("getAccountLinkingUrl", () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        url: "https://accounts.google.com/o/oauth2/v2/auth",
+        url: "https://api.us.nylas.com/v3/connect/auth",
       }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(getAccountLinkingUrl("google")).resolves.toBe(
-      "https://accounts.google.com/o/oauth2/v2/auth",
+      "https://api.us.nylas.com/v3/connect/auth",
     );
-    expect(fetchMock).toHaveBeenCalledWith("/api/google/linking/auth-url", {
+    expect(fetchMock).toHaveBeenCalledWith("/api/nylas/linking/auth-url", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     });
+  });
+
+  it("uses the family's own linking route, not a fallback", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ url: "https://login.microsoftonline.com" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getAccountLinkingUrl("microsoft", {
+      reconnectEmailAccountId: "email-account-id",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/outlook/linking/auth-url?emailAccountId=email-account-id",
+      expect.anything(),
+    );
+  });
+
+  it("surfaces a known error from the linking route", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          error:
+            "Google mail requires Nylas to be configured on this instance.",
+          isKnownError: true,
+        }),
+      }),
+    );
+
+    await expect(getAccountLinkingUrl("google")).rejects.toThrow(
+      "Google mail requires Nylas to be configured on this instance.",
+    );
   });
 
   it("returns the redirect URL when the server asks the client to log out", async () => {

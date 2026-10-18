@@ -6,6 +6,7 @@ import {
   InvalidMailboxSyncCursorError,
 } from "@/utils/email/mailbox-sync";
 import { ProviderRateLimitModeError } from "@/utils/email/rate-limit-mode-error";
+import { deriveGmailCatchUpCursor } from "@/utils/gmail/mailbox-sync";
 import { syncPageSchema } from "@inboxzero/mail-core/sync";
 import { createEmailProviderMailboxSource } from "./source";
 import type { EmailProvider } from "@/utils/email/types";
@@ -23,7 +24,11 @@ describe("createEmailProviderMailboxSource", () => {
     );
     const source = createEmailProviderMailboxSource({
       accountId: "acc-1",
-      provider: { name: "google", searchMessages } as unknown as EmailProvider,
+      provider: {
+        name: "google",
+        localMailSyncStrategy: "account-history",
+        searchMessages,
+      } as unknown as EmailProvider,
     });
     const input = {
       session: { accountId: "acc-1", generation: "g1" },
@@ -71,6 +76,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "microsoft",
+        localMailSyncStrategy: "folder-delta",
         searchMessages,
       } as unknown as EmailProvider,
     });
@@ -103,6 +109,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "microsoft",
+        localMailSyncStrategy: "folder-delta",
         searchMessages: vi.fn(async () => {
           throw Object.assign(new Error("Syntax error in search query"), {
             statusCode: 400,
@@ -120,6 +127,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
+        localMailSyncStrategy: "account-history",
         searchMessages: vi.fn(async () => {
           throw Object.assign(new Error("Backend error"), { status: 503 });
         }),
@@ -137,7 +145,11 @@ describe("createEmailProviderMailboxSource", () => {
     }));
     const source = createEmailProviderMailboxSource({
       accountId: "acc-1",
-      provider: { name: "google", searchMessages } as unknown as EmailProvider,
+      provider: {
+        name: "google",
+        localMailSyncStrategy: "account-history",
+        searchMessages,
+      } as unknown as EmailProvider,
     });
     await expect(
       source.search({
@@ -174,6 +186,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
+        localMailSyncStrategy: "account-history",
         async getThread() {
           throw new Error("503 Service unavailable");
         },
@@ -197,7 +210,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
-        localMailSyncStrategy: "history",
+        localMailSyncStrategy: "account-history",
         async getMailboxSyncPage() {
           throw new InvalidMailboxSyncCursorError();
         },
@@ -262,7 +275,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
-        localMailSyncStrategy: "history",
+        localMailSyncStrategy: "account-history",
         async getMailboxSyncPage() {
           throw new ProviderRateLimitModeError({ provider: "google" });
         },
@@ -294,7 +307,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
-        localMailSyncStrategy: "history",
+        localMailSyncStrategy: "account-history",
         async getMailboxSyncPage() {
           throw new Error("provider down");
         },
@@ -574,7 +587,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
-        localMailSyncStrategy: "history",
+        localMailSyncStrategy: "account-history",
         async getMailboxSyncPage() {
           return {
             cursor: "next",
@@ -660,6 +673,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
+        localMailSyncStrategy: "account-history",
         async getThread() {
           return { messages, historyId: "h1" };
         },
@@ -716,6 +730,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
+        localMailSyncStrategy: "account-history",
         getMessagesWithPagination,
         async getMailboxSyncPage() {
           return {
@@ -800,6 +815,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
+        localMailSyncStrategy: "account-history",
         getMailboxSyncPage,
         async getMessagesWithPagination() {
           return {
@@ -847,9 +863,11 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
+        localMailSyncStrategy: "account-history",
         async getMailboxSyncPage() {
           throw new Error("profile unavailable");
         },
+        deriveCatchUpCursorFromMessages: deriveGmailCatchUpCursor,
         async getMessagesWithPagination() {
           return {
             messages: [
@@ -898,11 +916,41 @@ describe("createEmailProviderMailboxSource", () => {
     });
   });
 
+  it("fails the page when the provider cannot rebuild its own cursor", async () => {
+    const source = createEmailProviderMailboxSource({
+      accountId: "acc-1",
+      provider: {
+        name: "microsoft",
+        localMailSyncStrategy: "folder-delta",
+        async getMailboxSyncPage() {
+          throw new Error("cursor unavailable");
+        },
+        async getMessagesWithPagination() {
+          return { messages: [] };
+        },
+      } as unknown as EmailProvider,
+    });
+
+    const result = await source.enumerate({
+      session: { accountId: "acc-1", generation: "g1" },
+      requestId: "r1",
+      signal: new AbortController().signal,
+      bootstrapId: "mailbox",
+      page: "{}",
+      pageSize: 50,
+    });
+
+    // Silently starting over would re-enumerate the whole mailbox on every
+    // transient failure; the page must report the problem instead.
+    expect(result).toMatchObject({ status: "paused", reason: "unavailable" });
+  });
+
   it("returns enumerated bodies when the provider already fetched them", async () => {
     const source = createEmailProviderMailboxSource({
       accountId: "acc-1",
       provider: {
         name: "google",
+        localMailSyncStrategy: "account-history",
         async getMessagesWithPagination() {
           return {
             messages: [
@@ -946,6 +994,7 @@ describe("createEmailProviderMailboxSource", () => {
         async getMailboxSyncPage() {
           throw new Error("unused");
         },
+        deriveCatchUpCursorFromMessages: deriveGmailCatchUpCursor,
       } as unknown as EmailProvider,
     });
     const result = await source.enumerate({
@@ -987,6 +1036,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
+        localMailSyncStrategy: "account-history",
         async getMessage() {
           return {
             id: "msg-1",
@@ -1055,6 +1105,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
+        localMailSyncStrategy: "account-history",
         async getMessage() {
           throw Object.assign(new Error(`Provider returned ${status}`), {
             status,
@@ -1082,6 +1133,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
+        localMailSyncStrategy: "account-history",
         async getMessage() {
           return {
             id: "empty-1",
@@ -1121,7 +1173,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
-        localMailSyncStrategy: "history",
+        localMailSyncStrategy: "account-history",
         async getMailboxSyncPage() {
           throw new Error("401 unauthorized");
         },
@@ -1150,7 +1202,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
-        localMailSyncStrategy: "history",
+        localMailSyncStrategy: "account-history",
         async getAttachmentStream(messageId, attachmentId, signal) {
           expect(messageId).toBe("m1");
           expect(attachmentId).toBe("att-1");
@@ -1183,7 +1235,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
-        localMailSyncStrategy: "history",
+        localMailSyncStrategy: "account-history",
         async getAttachmentStream() {
           throw new Error("provider down");
         },
@@ -1209,7 +1261,7 @@ describe("createEmailProviderMailboxSource", () => {
       accountId: "acc-1",
       provider: {
         name: "google",
-        localMailSyncStrategy: "history",
+        localMailSyncStrategy: "account-history",
         async getAttachmentStream() {
           throw Object.assign(new Error("Unable to stream attachment"), {
             status: 404,
@@ -1332,6 +1384,7 @@ describe("structured mailbox search", () => {
       accountId: "a",
       provider: {
         name: "microsoft",
+        localMailSyncStrategy: "folder-delta",
         getMessage,
         searchMessages: async () => ({
           messages: [
@@ -1379,6 +1432,7 @@ describe("structured mailbox search", () => {
       accountId: "a",
       provider: {
         name: "microsoft",
+        localMailSyncStrategy: "folder-delta",
         getMessage,
         searchMessages: async () => ({
           messages: [
@@ -1414,6 +1468,7 @@ describe("structured mailbox search", () => {
       accountId: "a",
       provider: {
         name: "microsoft",
+        localMailSyncStrategy: "folder-delta",
         getMessage: vi
           .fn()
           .mockRejectedValue(new Error("body download failed")),
@@ -1459,6 +1514,7 @@ describe("structured mailbox search", () => {
       accountId: "a",
       provider: {
         name: "microsoft",
+        localMailSyncStrategy: "folder-delta",
         searchMessages,
       } as unknown as EmailProvider,
     });
@@ -1503,6 +1559,7 @@ describe("structured mailbox search", () => {
       accountId: "a",
       provider: {
         name: "microsoft",
+        localMailSyncStrategy: "folder-delta",
         searchMessages: async () => ({
           messages: [
             searchMessage("custom"),

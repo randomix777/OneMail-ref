@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isMicrosoftProvider } from "@/utils/email/provider-types";
+import { getProviderCapabilities } from "@/utils/email/provider-registry";
 import { MailSplitFilterKind } from "@/generated/prisma/enums";
 import { createGenerateObject } from "@/utils/llms";
 import type { EmailAccountWithAI } from "@/utils/llms/types";
@@ -86,7 +86,9 @@ export async function aiPromptToSplitFilters({
   options: SplitPromptOption[];
   senders: string[];
 }): Promise<PromptToSplitFiltersResult> {
-  const supportsStarred = !isMicrosoftProvider(emailAccount.account.provider);
+  const supportsStarred = getProviderCapabilities(
+    emailAccount.account.provider,
+  ).starred;
   const system = `You turn a description of an inbox split into a set of filter conditions.
 
 A split is a tab in the mail client showing a slice of the inbox. The reader reviews and edits your conditions before the split is saved, so prefer a small, obviously-correct set over a clever one.

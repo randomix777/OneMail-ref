@@ -1,6 +1,5 @@
 import type { MailPredicate } from "@inboxzero/mail-core/queries";
-import type { LocalMailSyncRequest } from "@/utils/actions/local-mail-sync.validation";
-import type { LocalMailSyncResponse } from "@/utils/email/local-mail-sync-types";
+import type { ProviderFamily } from "@/utils/email/provider-registry";
 import type { ParsedMessage } from "@/utils/types";
 import type { InboxZeroLabel } from "@/utils/label";
 import type { ThreadsQuery } from "@/utils/threads/validation";
@@ -242,6 +241,14 @@ export interface EmailProvider {
   deleteFilter(id: string): Promise<{ status: number }>;
   deleteFolder(folderId: string): Promise<void>;
   deleteLabel(labelId: string): Promise<void>;
+  /**
+   * Rebuilds this provider's delta cursor from messages the sync already
+   * fetched, for when reading the cursor upstream failed but the mailbox is
+   * still usable. Providers with no such reconstruction omit the method, and
+   * the sync then treats the read failure as fatal rather than silently
+   * restarting from scratch.
+   */
+  deriveCatchUpCursorFromMessages?(messages: ParsedMessage[]): string | null;
   draftEmail(
     email: ParsedMessage,
     args: {
@@ -424,7 +431,7 @@ export interface EmailProvider {
     ownerEmail: string,
     folderName: string,
   ): Promise<void>;
-  readonly name: "google" | "microsoft";
+  readonly name: ProviderFamily;
   removeDraftAttachment(
     draftId: string,
     attachmentId: string,
@@ -496,10 +503,6 @@ export interface EmailProvider {
     draftId: string,
     attachment: DraftAttachmentMetadata,
   ): Promise<DraftAttachmentUploadStart>;
-  syncLocalMail(
-    request: LocalMailSyncRequest,
-    context: { emailAccountId: string },
-  ): Promise<LocalMailSyncResponse>;
   toJSON(): { name: string; type: string };
   trashMessages(messageIds: string[]): Promise<void>;
   trashThread(

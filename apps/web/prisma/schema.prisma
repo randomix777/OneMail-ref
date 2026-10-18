@@ -20,6 +20,7 @@ model Account {
   provider              String
   type                  String        @default("oidc") // next-auth deprecated field
   providerAccountId     String
+  transport             String        @default("oauth") // "oauth" | "nylas" | "imap" — how we reach this mailbox
   refresh_token         String?       @db.Text
   refreshTokenExpiresAt DateTime?
   access_token          String?       @db.Text

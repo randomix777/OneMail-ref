@@ -1,9 +1,14 @@
 import type { GetAuthLinkUrlResponse } from "@/app/api/google/linking/auth-url/route";
 import type { GetOutlookAuthLinkUrlResponse } from "@/app/api/outlook/linking/auth-url/route";
-import { isGoogleProvider } from "@/utils/email/provider-types";
+import type { GetNylasAuthLinkUrlResponse } from "@/app/api/nylas/linking/auth-url/route";
+import {
+  getProviderDefinition,
+  type ProviderFamily,
+} from "@/utils/email/provider-registry";
 
 /**
- * Initiates the OAuth account linking flow for Google or Microsoft.
+ * Initiates the account linking flow for a provider family, using whichever
+ * route the registry says serves that family.
  * Returns a URL to redirect the user to (OAuth provider, or /logout if
  * the session is stale).
  *
@@ -14,15 +19,15 @@ import { isGoogleProvider } from "@/utils/email/provider-types";
  * message is safe to show to the user.
  */
 export async function getAccountLinkingUrl(
-  provider: "google" | "microsoft",
+  provider: ProviderFamily,
   options?: { reconnectEmailAccountId?: string },
 ): Promise<string> {
-  const apiProvider = provider === "microsoft" ? "outlook" : "google";
+  const { label, linkingEndpoint } = getProviderDefinition(provider);
   const query = options?.reconnectEmailAccountId
     ? `?emailAccountId=${encodeURIComponent(options.reconnectEmailAccountId)}`
     : "";
 
-  const response = await fetch(`/api/${apiProvider}/linking/auth-url${query}`, {
+  const response = await fetch(`${linkingEndpoint}${query}`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
   });
@@ -42,13 +47,13 @@ export async function getAccountLinkingUrl(
       throw new Error(errorBody.error);
     }
 
-    throw new Error(
-      `Failed to initiate ${isGoogleProvider(provider) ? "Google" : "Microsoft"} account linking`,
-    );
+    throw new Error(`Failed to initiate ${label} account linking`);
   }
 
-  const data: GetAuthLinkUrlResponse | GetOutlookAuthLinkUrlResponse =
-    await response.json();
+  const data:
+    | GetAuthLinkUrlResponse
+    | GetOutlookAuthLinkUrlResponse
+    | GetNylasAuthLinkUrlResponse = await response.json();
 
   return data.url;
 }

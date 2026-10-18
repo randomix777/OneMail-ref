@@ -20,7 +20,11 @@ import {
   beforeEach,
   vi,
 } from "vitest";
-import { createGmailTestHarness, type GmailTestHarness } from "./helpers";
+import {
+  createNylasTestHarness,
+  type NylasSeedMessage,
+  type NylasTestHarness,
+} from "./helpers";
 import {
   createTodoistMcpEmulator,
   type TodoistMcpEmulator,
@@ -95,39 +99,52 @@ const CONNECTED_TODOIST = {
   tools: [],
 };
 
-const SEED_MESSAGES = [
+const SEED_MESSAGES: NylasSeedMessage[] = [
   {
     id: "msg_todoist",
-    user_email: TEST_EMAIL,
-    from: "sender@example.com",
-    to: TEST_EMAIL,
+    threadId: "thread_todoist",
+    fromName: "Sender",
+    fromEmail: "sender@example.com",
+    toEmail: TEST_EMAIL,
     subject: "Please review the contract",
-    body_text: "Can you review the contract by tomorrow?",
-    label_ids: ["INBOX", "UNREAD"],
-    internal_date: "1711900000000",
+    body: "Can you review the contract by tomorrow?",
+    folders: ["INBOX"],
+    unread: true,
+    receivedAt: new Date(1_711_900_000_000),
   },
 ];
+
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
 
 describe.skipIf(!RUN_INTEGRATION_TESTS)(
   "INTEGRATION action (Todoist)",
   { timeout: 30_000 },
   () => {
-    let harness: GmailTestHarness;
+    let harness: NylasTestHarness;
     let emulator: TodoistMcpEmulator;
     let threadId: string;
 
     beforeAll(async () => {
       emulator = await createTodoistMcpEmulator({ port: MCP_EMULATOR_PORT });
-      harness = await createGmailTestHarness({
-        email: TEST_EMAIL,
-        messages: SEED_MESSAGES,
-      });
-      threadId = harness.threadIds.msg_todoist;
+      harness = await createNylasTestHarness({ messages: SEED_MESSAGES });
+      threadId = SEED_MESSAGES[0].threadId ?? SEED_MESSAGES[0].id;
     });
 
     afterAll(async () => {
       await emulator?.close();
-      await harness?.emulator.close();
+      harness?.restoreFetch();
+      if (process.env.RUN_INTEGRATION_TESTS) {
+        delete process.env.NYLAS_API_KEY;
+        delete process.env.NYLAS_API_URI;
+      }
     });
 
     beforeEach(() => {

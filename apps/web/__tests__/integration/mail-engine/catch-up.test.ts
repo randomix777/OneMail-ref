@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import {
   createMailEngine,
   createHostRuntime,
@@ -6,7 +6,7 @@ import {
 import { createNodeSqliteDriver } from "@inboxzero/mail-sqlite/node";
 import { createSqliteMailStore } from "@inboxzero/mail-sqlite/store";
 import {
-  createGmailTestHarness,
+  createNylasTestHarness,
   createOutlookTestHarness,
 } from "@/__tests__/integration/helpers";
 import { createEmailProviderMailboxSource } from "@/utils/mail-api/source";
@@ -34,6 +34,23 @@ vi.mock("@/utils/snooze/scheduler", () => ({
   cancelSnoozedThreadByClientMutationId: vi.fn(),
 }));
 
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
+
+afterAll(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    delete process.env.NYLAS_API_KEY;
+    delete process.env.NYLAS_API_URI;
+  }
+});
+
 const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS;
 const inboxQuery = (accountId: string) => ({
   accountIds: [accountId],
@@ -47,74 +64,63 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
   "mail engine dual-provider catch-up",
   { timeout: 60_000 },
   () => {
-    it("rebuilds Gmail local state after an external archive and new mail", async () => {
-      const email = "engine-gmail-catchup@example.com";
-      const harness = await createGmailTestHarness({
-        email,
+    it("rebuilds Nylas local state after an external archive", async () => {
+      const harness = await createNylasTestHarness({
         messages: [
           {
-            id: "g-keep-catch",
-            user_email: email,
-            from: "ada@example.com",
-            to: email,
+            id: "n-keep-catch",
             subject: "Keep me",
-            body_text: "Stay",
-            label_ids: ["INBOX", "UNREAD"],
-            internal_date: `${Date.now()}`,
+            body: "Stay",
+            folders: ["INBOX", "UNREAD"],
+            unread: true,
+            receivedAt: new Date(),
           },
           {
-            id: "g-external-archive",
-            user_email: email,
-            from: "ada@example.com",
-            to: email,
+            id: "n-external-archive",
             subject: "Leave inbox elsewhere",
-            body_text: "Go",
-            label_ids: ["INBOX", "UNREAD"],
-            internal_date: `${Date.now() - 1000}`,
+            body: "Go",
+            folders: ["INBOX", "UNREAD"],
+            unread: true,
+            receivedAt: new Date(Date.now() - 1000),
           },
         ],
       });
       try {
-        const restoreGmailFetch = installGmailFetchRewrite(
-          harness.emulator.url,
-        );
         const store = await createSqliteMailStore(createNodeSqliteDriver());
-        try {
-          const engine = await startEngine({
-            accountId: "gmail-catchup",
-            provider: harness.provider,
-            store,
-          });
-          const before = await store.readMailboxView(
-            inboxQuery("gmail-catchup"),
-          );
-          expect(before.view.counts.matchingConversations).toBe(2);
-          await harness.gmailClient.users.messages.modify({
-            userId: "me",
-            id: "g-external-archive",
-            requestBody: { removeLabelIds: ["INBOX"] },
-          });
-          await engine.runUntil(Date.now() + 8000);
-          const after = await store.readMailboxView(
-            inboxQuery("gmail-catchup"),
-          );
-          const inspection = await store.inspect();
-          const archived = inspection.messages.find(
-            (message) => message.messageId === "g-external-archive",
-          );
-          expect(archived?.effective.roles.includes("inbox")).toBe(false);
-          expect(after.view.counts.matchingConversations).toBe(1);
-          await engine.runUntil(Date.now() + 4000);
-          const duplicate = await store.readMailboxView(
-            inboxQuery("gmail-catchup"),
-          );
-          expect(duplicate.view.counts.matchingConversations).toBe(1);
-          await engine.close();
-        } finally {
-          restoreGmailFetch();
-        }
+        const engine = await startEngine({
+          accountId: "nylas-catchup",
+          provider: harness.provider,
+          store,
+        });
+        const before = await store.readMailboxView(inboxQuery("nylas-catchup"));
+        expect(before.view.counts.matchingConversations).toBe(2);
+
+        // Somewhere else left the inbox. Nylas has no change log, so the engine
+        // only learns this by re-reading the window on catch-up.
+        const external = harness.mailbox.find(
+          (message) => message.id === "n-external-archive",
+        );
+        if (!external) throw new Error("seed message missing");
+        external.folders = ["UNREAD"];
+
+        await engine.runUntil(Date.now() + 8000);
+        const after = await store.readMailboxView(inboxQuery("nylas-catchup"));
+        const inspection = await store.inspect();
+        const archived = inspection.messages.find(
+          (message) => message.messageId === "n-external-archive",
+        );
+        expect(archived?.effective.roles.includes("inbox")).toBe(false);
+        expect(after.view.counts.matchingConversations).toBe(1);
+
+        // A second pass over the same window must not re-add it.
+        await engine.runUntil(Date.now() + 4000);
+        const duplicate = await store.readMailboxView(
+          inboxQuery("nylas-catchup"),
+        );
+        expect(duplicate.view.counts.matchingConversations).toBe(1);
+        await engine.close();
       } finally {
-        await harness.emulator.close();
+        harness.restoreFetch();
       }
     });
 
@@ -217,40 +223,4 @@ async function startEngine(input: {
   await engine.requestSync([input.accountId]);
   await engine.runUntil(Date.now() + 8000);
   return engine;
-}
-
-function installGmailFetchRewrite(emulatorUrl: string) {
-  const realFetch = globalThis.fetch;
-  const emulatorOrigin = new URL(emulatorUrl).origin;
-  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
-    const url =
-      typeof input === "string"
-        ? input
-        : input instanceof URL
-          ? input.href
-          : input.url;
-    const rewritten = rewriteGmailApiUrl(url, emulatorOrigin);
-    if (rewritten === url) return realFetch(input, init);
-    if (input instanceof Request) {
-      return realFetch(new Request(rewritten, input), init);
-    }
-    return realFetch(rewritten, init);
-  }) as typeof fetch;
-  return () => {
-    globalThis.fetch = realFetch;
-  };
-}
-
-function rewriteGmailApiUrl(url: string, emulatorOrigin: string) {
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return url;
-  }
-  if (parsed.hostname !== "gmail.googleapis.com") return url;
-  return new URL(
-    `${parsed.pathname}${parsed.search}${parsed.hash}`,
-    emulatorOrigin,
-  ).href;
 }

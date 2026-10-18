@@ -182,7 +182,7 @@ test("opens account reconnect from blocked_auth catch-up", async ({
       json: { url: reconnectPath },
     });
   };
-  await page.route("**/api/google/linking/auth-url**", fulfillReconnect);
+  await page.route("**/api/nylas/linking/auth-url**", fulfillReconnect);
   await page.route("**/api/outlook/linking/auth-url**", fulfillReconnect);
   await capturePlaywrightCheckpoint(page, testInfo, "mail-engine-blocked-auth");
   await page.getByRole("button", { name: "Reconnect" }).click();

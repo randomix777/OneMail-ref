@@ -9,6 +9,7 @@ import { getGmailSyncMessages } from "@/utils/gmail/sync-messages";
 import { getHistory } from "@/utils/gmail/history";
 import { extractErrorInfo, withGmailRetry } from "@/utils/gmail/retry";
 import type { Logger } from "@/utils/logger";
+import type { ParsedMessage } from "@/utils/types";
 
 // Archive, read, and star are label events. Gmail does not treat archive as
 // messagesDeleted, so mailbox delta sync must ask for labelRemoved explicitly.
@@ -18,6 +19,31 @@ const GMAIL_MAILBOX_HISTORY_TYPES = [
   "labelAdded",
   "labelRemoved",
 ] as const;
+
+/**
+ * Reconstructs a Gmail delta cursor from messages we already hold, for the case
+ * where reading the profile's history id failed but the history itself is
+ * usable. Only Gmail can do this, which is why the provider exposes it as a
+ * capability rather than the sync adapter knowing about Gmail.
+ */
+export function deriveGmailCatchUpCursor(
+  messages: ParsedMessage[],
+): string | null {
+  const historyId = messages
+    .map((message) => message.historyId)
+    .filter((id): id is string => Boolean(id && /^\d+$/.test(id)))
+    .reduce((latest, id) => (BigInt(id) > BigInt(latest) ? id : latest), "0");
+
+  if (historyId === "0") return null;
+
+  return encodeMailboxSyncCursor({
+    version: 1,
+    provider: "google",
+    phase: "delta",
+    historyId,
+    after: "1970-01-01T00:00:00.000Z",
+  });
+}
 
 export async function getGmailMailboxSyncPage({
   gmail,

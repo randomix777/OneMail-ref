@@ -19,9 +19,23 @@ const microsoftCursorSchema = z.object({
   snapshot: z.boolean(),
 });
 
+/**
+ * Nylas exposes no provider change log, so its delta is a time window over the
+ * whole grant. Note that `provider` in this union names the *sync source*, not
+ * the account family: a Nylas-backed Google mailbox stores `"nylas"` here while
+ * its account family stays `"google"`.
+ */
+const nylasCursorSchema = z.object({
+  version: z.literal(1),
+  provider: z.literal("nylas"),
+  after: z.string().datetime(),
+  pageToken: z.string().min(1).optional(),
+});
+
 const cursorSchema = z.discriminatedUnion("provider", [
   gmailCursorSchema,
   microsoftCursorSchema,
+  nylasCursorSchema,
 ]);
 
 export type MailboxSyncCursor = z.infer<typeof cursorSchema>;

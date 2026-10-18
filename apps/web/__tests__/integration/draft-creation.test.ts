@@ -1,18 +1,21 @@
 /**
- * Integration test: Gmail draft creation & sending via @inbox-zero/emulate
+ * Integration test: draft creation & sending
  *
- * Tests draftEmail (reply draft creation) and sendDraft against a local
- * Gmail emulator. Verifies drafts are created with correct threading,
- * appear in the drafts list, and can be sent.
+ * Drives the provider's draft surface — `draftEmail` (reply draft creation),
+ * `getDrafts`, `getDraft` and `sendDraft` — against the Nylas fake. The old file
+ * called `utils/gmail/mail.ts` and `utils/gmail/draft.ts` directly, which have no
+ * Nylas equivalent and go with the direct Gmail transport.
  *
  * Usage:
  *   pnpm test-integration draft-creation
  */
 
-import { describe, test, expect, beforeAll, afterAll, vi } from "vitest";
-import { createGmailTestHarness, type GmailTestHarness } from "./helpers";
-import { draftEmail } from "@/utils/gmail/mail";
-import { sendDraft } from "@/utils/gmail/draft";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import {
+  createNylasTestHarness,
+  type NylasSeedMessage,
+  type NylasTestHarness,
+} from "./helpers";
 
 // draftEmail needs ensureEmailSendingEnabled which checks env vars
 vi.mock("@/utils/mail", async (importOriginal) => {
@@ -23,21 +26,31 @@ vi.mock("@/utils/mail", async (importOriginal) => {
   };
 });
 
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
+
 const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS;
 const TEST_EMAIL = "draft-test@example.com";
-const TEST_PORT = 4105;
 
-const SEED_MESSAGES = [
+const SEED_MESSAGES: NylasSeedMessage[] = [
   {
     id: "msg_original",
-    user_email: TEST_EMAIL,
-    from: "alice@example.com",
-    to: TEST_EMAIL,
+    threadId: "thread_project",
+    fromName: "Alice",
+    fromEmail: "alice@example.com",
+    toEmail: TEST_EMAIL,
     subject: "Project update",
-    body_text: "Here is the latest update on the project.",
-    body_html: "<p>Here is the latest update on the project.</p>",
-    label_ids: ["INBOX", "UNREAD"],
-    internal_date: "1711900000000",
+    body: "Here is the latest update on the project.",
+    folders: ["INBOX"],
+    unread: true,
+    receivedAt: new Date(1_711_900_000_000),
   },
 ];
 
@@ -45,120 +58,67 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
   "Draft creation & sending",
   { timeout: 30_000 },
   () => {
-    let harness: GmailTestHarness;
-    let gmailClient: GmailTestHarness["gmailClient"];
-    let provider: GmailTestHarness["provider"];
+    let harness: NylasTestHarness;
 
     beforeAll(async () => {
-      harness = await createGmailTestHarness({
-        port: TEST_PORT,
-        email: TEST_EMAIL,
-        messages: SEED_MESSAGES,
-      });
-      gmailClient = harness.gmailClient;
-      provider = harness.provider;
+      harness = await createNylasTestHarness({ messages: SEED_MESSAGES });
     });
 
-    afterAll(async () => {
-      await harness?.emulator?.close();
+    afterAll(() => {
+      harness?.restoreFetch();
+      if (process.env.RUN_INTEGRATION_TESTS) {
+        delete process.env.NYLAS_API_KEY;
+        delete process.env.NYLAS_API_URI;
+      }
     });
 
-    test("draftEmail creates a reply draft on a thread", async () => {
-      // Fetch the original message via the provider to get parsed headers
-      const result = await provider.getMessagesWithPagination({
-        maxResults: 1,
-      });
-      const originalMsg = result.messages[0];
+    async function originalMessage() {
+      return harness.provider.getMessage("msg_original");
+    }
 
-      const draftResult = await draftEmail(
-        gmailClient,
-        {
-          threadId: originalMsg.threadId,
-          id: originalMsg.id,
-          headers: originalMsg.headers,
-          textPlain: originalMsg.textPlain || "",
-          textHtml: originalMsg.textHtml || "",
-          snippet: originalMsg.snippet || "",
-          attachments: [],
-          internalDate: originalMsg.internalDate,
-          rawRecipients: [],
-        },
-        {
-          content: "Thanks for the update! I'll review this today.",
-        },
+    test("draftEmail creates a reply draft on the original's thread", async () => {
+      const original = await originalMessage();
+
+      const { draftId } = await harness.provider.draftEmail(
+        original,
+        { content: "Thanks for the update! I'll review this today." },
         TEST_EMAIL,
       );
 
-      expect(draftResult.data.id).toBeDefined();
-      expect(draftResult.data.message?.id).toBeDefined();
+      expect(draftId).toBeDefined();
 
-      // Verify draft appears in drafts list
-      const drafts = await gmailClient.users.drafts.list({ userId: "me" });
-      const found = drafts.data.drafts?.find(
-        (d) => d.id === draftResult.data.id,
-      );
-      expect(found).toBeDefined();
+      // The draft appears in the drafts folder…
+      const drafts = await harness.provider.getDrafts();
+      expect(drafts.some((draft) => draft.id === draftId)).toBe(true);
+
+      // …and belongs to the conversation it answers, which is what makes the
+      // reply land in the right thread when it is sent.
+      const draft = await harness.provider.getDraft(draftId);
+      expect(draft?.threadId).toBe(original.threadId);
     });
 
-    test("sendDraft sends a draft and returns message/thread IDs", async () => {
-      // Create a draft first
-      const result = await provider.getMessagesWithPagination({
-        maxResults: 1,
-      });
-      const originalMsg = result.messages[0];
-
-      const draftResult = await draftEmail(
-        gmailClient,
-        {
-          threadId: originalMsg.threadId,
-          id: originalMsg.id,
-          headers: originalMsg.headers,
-          textPlain: originalMsg.textPlain || "",
-          textHtml: originalMsg.textHtml || "",
-          snippet: originalMsg.snippet || "",
-          attachments: [],
-          internalDate: originalMsg.internalDate,
-          rawRecipients: [],
-        },
-        {
-          content: "Draft that will be sent.",
-        },
+    test("sendDraft sends the draft and takes it out of the drafts folder", async () => {
+      const original = await originalMessage();
+      const { draftId } = await harness.provider.draftEmail(
+        original,
+        { content: "Draft that will be sent." },
         TEST_EMAIL,
       );
 
-      const draftId = draftResult.data.id!;
+      const sent = await harness.provider.sendDraft(draftId);
 
-      // Send it
-      const sent = await sendDraft(gmailClient, draftId);
+      expect(sent.messageId).toBe(draftId);
+      expect(sent.threadId).toBe(original.threadId);
 
-      expect(sent.messageId).toBeDefined();
-      expect(sent.threadId).toBeDefined();
-
-      // Verify draft is no longer in drafts list
-      const drafts = await gmailClient.users.drafts.list({ userId: "me" });
-      const stillThere = drafts.data.drafts?.find((d) => d.id === draftId);
-      expect(stillThere).toBeUndefined();
+      const drafts = await harness.provider.getDrafts();
+      expect(drafts.some((draft) => draft.id === draftId)).toBe(false);
     });
 
-    test("draftEmail with explicit subject overrides original", async () => {
-      const result = await provider.getMessagesWithPagination({
-        maxResults: 1,
-      });
-      const originalMsg = result.messages[0];
+    test("draftEmail with an explicit subject overrides the reply subject", async () => {
+      const original = await originalMessage();
 
-      const draftResult = await draftEmail(
-        gmailClient,
-        {
-          threadId: originalMsg.threadId,
-          id: originalMsg.id,
-          headers: originalMsg.headers,
-          textPlain: originalMsg.textPlain || "",
-          textHtml: originalMsg.textHtml || "",
-          snippet: originalMsg.snippet || "",
-          attachments: [],
-          internalDate: originalMsg.internalDate,
-          rawRecipients: [],
-        },
+      const { draftId } = await harness.provider.draftEmail(
+        original,
         {
           content: "Changed subject reply.",
           subject: "Custom Subject Override",
@@ -166,18 +126,8 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
         TEST_EMAIL,
       );
 
-      expect(draftResult.data.id).toBeDefined();
-
-      // Fetch the draft to verify subject
-      const draft = await gmailClient.users.drafts.get({
-        userId: "me",
-        id: draftResult.data.id!,
-        format: "full",
-      });
-      const subjectHeader = draft.data.message?.payload?.headers?.find(
-        (h) => h.name?.toLowerCase() === "subject",
-      );
-      expect(subjectHeader?.value).toBe("Custom Subject Override");
+      const draft = await harness.provider.getDraft(draftId);
+      expect(draft?.subject).toBe("Custom Subject Override");
     });
   },
 );

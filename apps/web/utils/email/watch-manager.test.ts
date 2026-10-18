@@ -74,6 +74,7 @@ describe("ensureEmailAccountsWatched", () => {
         watchEmailsSubscriptionId: null,
         account: {
           provider: "google",
+          transport: "oauth",
           access_token: "access-token",
           refresh_token: "refresh-token",
           expires_at: Date.now() + 3_600_000,
@@ -118,6 +119,29 @@ describe("ensureEmailAccountsWatched", () => {
         errorDetails: "invalid_grant: token has been expired or revoked",
       },
     ]);
+  });
+
+  it("skips a Nylas account instead of reporting it as a missing-token failure", async () => {
+    // A Nylas mailbox keeps no provider tokens and needs no per-mailbox
+    // subscription: one application-level webhook carries it. It has to be left
+    // out of the results, or the hourly job reports a failure forever.
+    vi.mocked(prisma.emailAccount.findMany).mockResolvedValue([
+      getWatchedEmailAccount({
+        watchEmailsExpirationDate: null,
+        transport: "nylas",
+        withTokens: false,
+      }),
+    ] as any);
+
+    const results = await ensureEmailAccountsWatched({
+      userIds: null,
+      logger,
+    });
+
+    expect(results).toEqual([]);
+    expect(createEmailProvider).not.toHaveBeenCalled();
+    expect(prisma.emailAccount.update).not.toHaveBeenCalled();
+    expect(captureException).not.toHaveBeenCalled();
   });
 
   it("clears the watch lapsed error after re-establishing a lapsed watch", async () => {
@@ -243,8 +267,12 @@ function getGoogleProvider() {
 
 function getWatchedEmailAccount({
   watchEmailsExpirationDate,
+  transport = "oauth",
+  withTokens = true,
 }: {
-  watchEmailsExpirationDate: Date;
+  watchEmailsExpirationDate: Date | null;
+  transport?: string;
+  withTokens?: boolean;
 }) {
   return {
     id: "email-account-id",
@@ -255,9 +283,10 @@ function getWatchedEmailAccount({
     watchEmailsSubscriptionId: null,
     account: {
       provider: "google",
+      transport,
       providerAccountId: "google-subject",
-      access_token: "access-token",
-      refresh_token: "refresh-token",
+      access_token: withTokens ? "access-token" : null,
+      refresh_token: withTokens ? "refresh-token" : null,
       expires_at: Date.now() + 3_600_000,
       disconnectedAt: null,
     },

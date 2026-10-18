@@ -31,7 +31,7 @@ import {
   MessagingRouteTargetType,
 } from "@/generated/prisma/enums";
 import {
-  createGmailTestHarness,
+  createNylasTestHarness,
   createSlackTestHarness,
   type SlackTestHarness,
 } from "./helpers";
@@ -51,6 +51,16 @@ const mockCreateEmailProvider = vi.fn();
 vi.mock("@/utils/email/provider", () => ({
   createEmailProvider: (...args: unknown[]) => mockCreateEmailProvider(...args),
 }));
+
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
 
 const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS === "true";
 const TEST_PORT = 4098;
@@ -523,33 +533,32 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
         handleSlackRuleNotificationModalSubmit,
       } = await import("@/utils/messaging/rule-notifications");
 
-      const gmailEmail = "slack-draft-send@example.com";
+      const nylasEmail = "slack-draft-send@example.com";
       const subject = getUniqueSubject("Edited draft câfé 👀🔍");
       const editedContent = "I reviewed this and sent the update.";
-      const gmailHarness = await createGmailTestHarness({
-        port: 4112,
-        email: gmailEmail,
+      const nylasHarness = await createNylasTestHarness({
         messages: [
           {
             id: "msg_original",
-            user_email: gmailEmail,
-            from: "sender@example.com",
-            to: gmailEmail,
+            threadId: "thread_slack_draft",
+            fromName: "Sender",
+            fromEmail: "sender@example.com",
+            toEmail: nylasEmail,
             subject,
-            body_text: "Can you send the update back to me?",
-            body_html: "<p>Can you send the update back to me?</p>",
-            label_ids: ["INBOX", "UNREAD"],
-            internal_date: "1711900000000",
+            body: "Can you send the update back to me?",
+            folders: ["INBOX"],
+            unread: true,
+            receivedAt: new Date(1_711_900_000_000),
           },
         ],
       });
 
       try {
-        mockCreateEmailProvider.mockResolvedValue(gmailHarness.provider);
+        mockCreateEmailProvider.mockResolvedValue(nylasHarness.provider);
 
         const sourceMessage =
-          await gmailHarness.provider.getMessage("msg_original");
-        const createdDraft = await gmailHarness.provider.createDraft({
+          await nylasHarness.provider.getMessage("msg_original");
+        const createdDraft = await nylasHarness.provider.createDraft({
           to: "sender@example.com",
           subject: `Re: ${subject}`,
           messageHtml: "<p>Initial draft body.</p>",
@@ -586,7 +595,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
             emailAccount: {
               id: "email-account-1",
               userId: "user-1",
-              email: gmailEmail,
+              email: nylasEmail,
               account: {
                 provider: "google",
               },
@@ -760,7 +769,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
           }),
         );
 
-        const draftBeforeSend = await gmailHarness.provider.getDraft(
+        const draftBeforeSend = await nylasHarness.provider.getDraft(
           createdDraft.id,
         );
         const sentMessageId = draftBeforeSend?.id;
@@ -795,7 +804,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
           DraftEmailStatus.LIKELY_SENT,
         );
         expect(
-          await gmailHarness.provider.getDraft(createdDraft.id),
+          await nylasHarness.provider.getDraft(createdDraft.id),
         ).toBeNull();
 
         const editedSlackMessage = await findMessageBySubject({
@@ -806,7 +815,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
         expect(editedSlackMessage?.text).toContain("Reply sent.");
         expect(editedSlackMessage?.text).toContain(editedContent);
 
-        const sentReply = await gmailHarness.provider.getMessage(
+        const sentReply = await nylasHarness.provider.getMessage(
           sentMessageId!,
         );
 
@@ -818,7 +827,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
           editedContent,
         );
       } finally {
-        await gmailHarness.emulator.close();
+        nylasHarness.restoreFetch();
       }
     });
 

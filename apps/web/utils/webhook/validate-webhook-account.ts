@@ -72,7 +72,10 @@ type WebhookEmailAccount = Prisma.EmailAccountGetPayload<{
 }>;
 
 export async function getWebhookEmailAccount(
-  where: { email: string } | { watchEmailsSubscriptionId: string },
+  where:
+    | { email: string }
+    | { watchEmailsSubscriptionId: string }
+    | { providerAccountId: string },
   logger: Logger,
 ) {
   let emailAccount: WebhookEmailAccount | null = null;
@@ -80,6 +83,17 @@ export async function getWebhookEmailAccount(
   if ("email" in where) {
     emailAccount = await prisma.emailAccount.findUnique({
       where: { email: where.email },
+      select: webhookEmailAccountSelect,
+    });
+  } else if ("providerAccountId" in where) {
+    // Nylas routes notifications by grant id rather than subscription id.
+    emailAccount = await prisma.emailAccount.findFirst({
+      where: {
+        account: {
+          providerAccountId: where.providerAccountId,
+          provider: "google",
+        },
+      },
       select: webhookEmailAccountSelect,
     });
   } else {

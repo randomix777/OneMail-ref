@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import {
   createMailEngine,
   createHostRuntime,
@@ -15,7 +15,7 @@ import {
 import { createNodeSqliteDriver } from "@inboxzero/mail-sqlite/node";
 import { createSqliteMailStore } from "@inboxzero/mail-sqlite/store";
 import {
-  createGmailTestHarness,
+  createNylasTestHarness,
   createOutlookTestHarness,
 } from "@/__tests__/integration/helpers";
 import type { EmailProvider } from "@/utils/email/types";
@@ -24,6 +24,23 @@ vi.mock("server-only", () => ({}));
 vi.mock("@inboxzero/tinybird", () => ({
   publishArchive: vi.fn().mockResolvedValue(undefined),
 }));
+
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
+
+afterAll(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    delete process.env.NYLAS_API_KEY;
+    delete process.env.NYLAS_API_URI;
+  }
+});
 
 const harnessState = vi.hoisted(() => ({
   provider: null as EmailProvider | null,
@@ -88,31 +105,26 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
   "mail engine HTTP search, body, read, and reopen",
   { timeout: 60_000 },
   () => {
-    it("loads Gmail bodies, searches, marks read, and reopens SQLite", async () => {
-      const email = "engine-gmail-search@example.com";
-      const accountId = "gmail-search-engine";
-      const harness = await createGmailTestHarness({
-        email,
+    it("loads Nylas bodies, searches, marks read, and reopens SQLite", async () => {
+      const accountId = "nylas-search-engine";
+      const email = "engine-nylas-search@example.com";
+      const harness = await createNylasTestHarness({
         messages: [
           {
-            id: "g-search-keep",
-            user_email: email,
-            from: "ada@example.com",
-            to: email,
+            id: "n-search-keep",
             subject: "Keep me",
-            body_text: "Stay in inbox",
-            label_ids: ["INBOX", "UNREAD"],
-            internal_date: `${Date.now()}`,
+            body: "Stay in inbox",
+            folders: ["INBOX", "UNREAD"],
+            unread: true,
+            receivedAt: new Date(),
           },
           {
-            id: "g-search-hit",
-            user_email: email,
-            from: "ada@example.com",
-            to: email,
+            id: "n-search-hit",
             subject: "Need a zebra invoice",
-            body_text: "zebra-token-gmail",
-            label_ids: ["INBOX", "UNREAD"],
-            internal_date: `${Date.now() - 1000}`,
+            body: "zebra-token-nylas",
+            folders: ["INBOX", "UNREAD"],
+            unread: true,
+            receivedAt: new Date(Date.now() - 1000),
           },
         ],
       });
@@ -121,22 +133,23 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
           accountId,
           email,
           provider: harness.provider,
-          searchToken: "zebra-token-gmail",
-          readMessageId: "g-search-hit",
+          searchToken: "zebra-token-nylas",
+          readMessageId: "n-search-hit",
         });
         expect(result.beforeUnread).toBeGreaterThanOrEqual(1);
         expect(result.afterUnread).toBe(result.beforeUnread - 1);
-        expect(result.searchHits).toBeGreaterThanOrEqual(1);
-        expect(result.bodyText).toContain("zebra-token-gmail");
+        // Only one of the two seeded threads carries the token, so a search that
+        // returned everything would still satisfy `>= 1` — pin the exact hit.
+        expect(result.searchHits).toBe(1);
+        expect(result.bodyText).toContain("zebra-token-nylas");
         expect(result.reopenedInbox).toBeGreaterThanOrEqual(1);
-        const read = await harness.gmailClient.users.messages.get({
-          userId: "me",
-          id: "g-search-hit",
-          format: "metadata",
-        });
-        expect(read.data.labelIds ?? []).not.toContain("UNREAD");
+
+        expect(
+          harness.mailbox.find((message) => message.id === "n-search-hit")
+            ?.unread,
+        ).toBe(false);
       } finally {
-        await harness.emulator.close();
+        harness.restoreFetch();
       }
     });
 

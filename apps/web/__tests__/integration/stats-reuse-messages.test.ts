@@ -2,17 +2,20 @@
  * Integration test: stats loading reuses messages from pagination
  *
  * Verifies that saveBatch correctly processes messages returned by
- * getMessagesWithPagination without re-fetching via getMessagesBatch.
+ * getMessagesWithPagination without re-fetching them one by one.
  *
- * Uses @inbox-zero/emulate for a local Gmail API and mocks Prisma for DB writes.
+ * Uses the Nylas fake from the shared harness and mocks Prisma for DB writes.
  *
  * Usage:
  *   pnpm test-integration stats-reuse-messages
  */
 
-import { describe, test, expect, beforeAll, afterAll, vi } from "vitest";
-import { createGmailTestHarness, type GmailTestHarness } from "./helpers";
-import type { GmailProvider } from "@/utils/email/google";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import {
+  createNylasTestHarness,
+  type NylasSeedMessage,
+  type NylasTestHarness,
+} from "./helpers";
 import { saveBatch } from "@/utils/actions/stats-loading";
 import { createTestLogger } from "@/__tests__/helpers";
 
@@ -24,42 +27,51 @@ vi.mock("@/utils/prisma", () => ({
   },
 }));
 
-const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS === "true";
-const TEST_EMAIL = "stats-test@example.com";
-const TEST_PORT = 4099;
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
 
-const SEED_MESSAGES = [
+const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS === "true";
+const BASE_MS = Date.UTC(2024, 3, 1, 12, 0, 0);
+
+const SEED_MESSAGES: NylasSeedMessage[] = [
   {
     id: "msg_1",
-    user_email: TEST_EMAIL,
-    from: "Alice Smith <alice@example.com>",
-    to: TEST_EMAIL,
+    threadId: "thread_1",
+    fromName: "Alice Smith",
+    fromEmail: "alice@example.com",
     subject: "First email",
-    body_text: "Hello from Alice",
-    body_html:
-      '<p>Hello from Alice <a href="https://unsub.example.com/1">unsubscribe</a></p>',
-    label_ids: ["INBOX", "UNREAD"],
-    internal_date: "1711900000000",
+    body: 'Hello from Alice <a href="https://unsub.example.com/1">unsubscribe</a>',
+    folders: ["INBOX"],
+    unread: true,
+    receivedAt: new Date(BASE_MS),
   },
   {
     id: "msg_2",
-    user_email: TEST_EMAIL,
-    from: "bob@corp.com",
-    to: TEST_EMAIL,
+    threadId: "thread_2",
+    fromName: "Bob",
+    fromEmail: "bob@corp.com",
     subject: "Second email",
-    body_text: "Hello from Bob",
-    label_ids: ["INBOX"],
-    internal_date: "1711900060000",
+    body: "Hello from Bob",
+    folders: ["INBOX"],
+    receivedAt: new Date(BASE_MS + 60_000),
   },
   {
     id: "msg_3",
-    user_email: TEST_EMAIL,
-    from: "carol@shop.io",
-    to: TEST_EMAIL,
+    threadId: "thread_3",
+    fromName: "Carol",
+    fromEmail: "carol@shop.io",
     subject: "Third email",
-    body_text: "Hello from Carol",
-    label_ids: ["INBOX", "UNREAD", "SENT"],
-    internal_date: "1711900120000",
+    body: "Hello from Carol",
+    folders: ["INBOX", "SENT"],
+    unread: true,
+    receivedAt: new Date(BASE_MS + 120_000),
   },
 ];
 
@@ -67,39 +79,35 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
   "Stats: reuse messages from pagination",
   { timeout: 30_000 },
   () => {
-    let harness: GmailTestHarness;
-    let provider: GmailProvider;
-    let fetchSpy: ReturnType<typeof vi.spyOn>;
+    let harness: NylasTestHarness;
 
     beforeAll(async () => {
-      harness = await createGmailTestHarness({
-        port: TEST_PORT,
-        email: TEST_EMAIL,
-        messages: SEED_MESSAGES,
-      });
-      provider = harness.provider;
-
-      fetchSpy = vi.spyOn(globalThis, "fetch");
+      harness = await createNylasTestHarness({ messages: SEED_MESSAGES });
     });
 
-    afterAll(async () => {
-      fetchSpy?.mockRestore();
-      await harness?.emulator.close();
+    afterAll(() => {
+      harness?.restoreFetch();
+      if (process.env.RUN_INTEGRATION_TESTS) {
+        delete process.env.NYLAS_API_KEY;
+        delete process.env.NYLAS_API_URI;
+      }
     });
 
-    test("saveBatch processes emulator messages and saves to DB", async () => {
-      mockExecuteRaw.mockClear();
-
-      const logger = createTestLogger();
-
-      const result = await saveBatch({
+    function runSaveBatch() {
+      return saveBatch({
         emailAccountId: "test-account-id",
-        emailProvider: provider,
-        logger,
+        emailProvider: harness.provider,
+        logger: createTestLogger(),
         nextPageToken: undefined,
         before: undefined,
         after: undefined,
       });
+    }
+
+    test("saveBatch processes the provider's messages and saves them", async () => {
+      mockExecuteRaw.mockClear();
+
+      const result = await runSaveBatch();
 
       // Should return the messages
       expect(result.data.messages).toHaveLength(3);
@@ -119,16 +127,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
     test("saveBatch refreshes mutable fields for cached messages", async () => {
       mockExecuteRaw.mockClear();
 
-      const logger = createTestLogger();
-
-      await saveBatch({
-        emailAccountId: "test-account-id",
-        emailProvider: provider,
-        logger,
-        nextPageToken: undefined,
-        before: undefined,
-        after: undefined,
-      });
+      await runSaveBatch();
 
       expect(mockExecuteRaw).toHaveBeenCalledTimes(1);
 
@@ -138,35 +137,19 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
       expect(rawCall).toContain("true");
     });
 
-    test("no batch API call is made", async () => {
-      fetchSpy.mockClear();
+    test("no per-message fetch is made for messages already paginated", async () => {
+      harness.requests.length = 0;
 
-      const logger = createTestLogger();
+      await runSaveBatch();
 
-      await saveBatch({
-        emailAccountId: "test-account-id",
-        emailProvider: provider,
-        logger,
-        nextPageToken: undefined,
-        before: undefined,
-        after: undefined,
-      });
-
-      // Batch endpoint would be a fetch to /batch/gmail/v1
-      // Extract URL string from any input type (string, URL, or Request)
-      const batchCalls = fetchSpy.mock.calls.filter((call) => {
-        const input = call[0];
-        const url =
-          typeof input === "string"
-            ? input
-            : input instanceof URL
-              ? input.href
-              : input instanceof Request
-                ? input.url
-                : "";
-        return url.includes("/batch/gmail/");
-      });
-      expect(batchCalls).toHaveLength(0);
+      // The paginated rows are complete enough to save, so every request should
+      // be the list call: a single-message GET here would mean the batch was
+      // re-fetched one message at a time.
+      const singleMessageReads = harness.requests.filter((request) =>
+        /\/messages\/[^/]+$/.test(request.url.pathname),
+      );
+      expect(singleMessageReads).toEqual([]);
+      expect(harness.requests.length).toBeGreaterThan(0);
     });
   },
 );

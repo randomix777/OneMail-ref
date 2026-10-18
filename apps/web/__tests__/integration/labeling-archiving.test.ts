@@ -1,255 +1,159 @@
 /**
- * Integration test: Gmail labeling & archiving operations via @inbox-zero/emulate
+ * Integration test: labeling & archiving round-trips
  *
- * Tests labelThread, archiveThread, markReadThread, createLabel, and
- * labelMessage against a local Gmail emulator. Verifies labels persist
- * across operations.
+ * Covers the provider-level read/label/archive operations in both directions.
+ * The old file drove `utils/gmail/label.ts` and `utils/gmail/thread.ts` directly;
+ * those client-level wrappers have no Nylas equivalent and go with the direct
+ * Gmail transport, so the coverage now sits on the provider interface — and
+ * where the wrappers only ever tested one direction (mark read, add label,
+ * archive), this covers the round trip (unread again, label removed, unarchived).
  *
  * Usage:
  *   pnpm test-integration labeling-archiving
  */
 
-import { describe, test, expect, beforeAll, afterAll, vi } from "vitest";
-import { createGmailTestHarness, type GmailTestHarness } from "./helpers";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import {
-  labelThread,
-  archiveThread,
-  markReadThread,
-  createLabel,
-  getLabels,
-  getLabel,
-  labelMessage,
-  GmailLabel,
-} from "@/utils/gmail/label";
+  createNylasTestHarness,
+  type NylasSeedMessage,
+  type NylasTestHarness,
+} from "./helpers";
 
-// Mock Tinybird — archiveThread publishes analytics
-vi.mock("@inboxzero/tinybird", () => ({
-  publishArchive: vi.fn().mockResolvedValue(undefined),
-}));
+vi.mock("server-only", () => ({}));
+
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
+
+afterAll(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    delete process.env.NYLAS_API_KEY;
+    delete process.env.NYLAS_API_URI;
+  }
+});
 
 const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS;
-const TEST_EMAIL = "label-test@example.com";
-const TEST_PORT = 4103;
+const BASE_MS = Date.UTC(2024, 3, 1, 12, 0, 0);
 
-const SEED_MESSAGES = [
-  {
-    id: "msg_inbox_unread",
-    user_email: TEST_EMAIL,
-    from: "alice@example.com",
-    to: TEST_EMAIL,
-    subject: "Unread message in inbox",
-    body_text: "Please read me",
-    label_ids: ["INBOX", "UNREAD"],
-    internal_date: "1711900000000",
-  },
-  {
-    id: "msg_inbox_read",
-    user_email: TEST_EMAIL,
-    from: "bob@example.com",
-    to: TEST_EMAIL,
-    subject: "Read message in inbox",
-    body_text: "Already read",
-    label_ids: ["INBOX"],
-    internal_date: "1711900060000",
-  },
-  {
-    id: "msg_starred",
-    user_email: TEST_EMAIL,
-    from: "carol@example.com",
-    to: TEST_EMAIL,
-    subject: "Starred message",
-    body_text: "Important",
-    label_ids: ["INBOX", "STARRED", "UNREAD"],
-    internal_date: "1711900120000",
-  },
-];
+/**
+ * `thread_pair` holds two messages on purpose: every thread-level operation has
+ * to reach both, which a one-message-per-thread seed can never prove.
+ */
+function seedMessages(): NylasSeedMessage[] {
+  return [
+    {
+      id: "msg_pair_a",
+      threadId: "thread_pair",
+      subject: "Pair A",
+      body: "First of two",
+      folders: ["INBOX"],
+      unread: true,
+      receivedAt: new Date(BASE_MS),
+    },
+    {
+      id: "msg_pair_b",
+      threadId: "thread_pair",
+      subject: "Re: Pair A",
+      body: "Second of two",
+      folders: ["INBOX"],
+      unread: true,
+      receivedAt: new Date(BASE_MS + 60_000),
+    },
+    {
+      id: "msg_single",
+      threadId: "thread_single",
+      subject: "Single",
+      body: "On its own",
+      folders: ["INBOX", "STARRED"],
+      starred: true,
+      receivedAt: new Date(BASE_MS + 120_000),
+    },
+  ];
+}
 
 describe.skipIf(!RUN_INTEGRATION_TESTS)(
-  "Labeling & archiving operations",
+  "Labeling & archiving operations — Nylas",
   { timeout: 30_000 },
   () => {
-    let emulator: GmailTestHarness["emulator"];
-    let gmailClient: GmailTestHarness["gmailClient"];
-    let threadIds: GmailTestHarness["threadIds"];
+    let harness: NylasTestHarness;
 
     beforeAll(async () => {
-      const harness = await createGmailTestHarness({
-        port: TEST_PORT,
-        email: TEST_EMAIL,
-        messages: SEED_MESSAGES,
-      });
-      emulator = harness.emulator;
-      gmailClient = harness.gmailClient;
-      threadIds = harness.threadIds;
+      harness = await createNylasTestHarness({ messages: seedMessages() });
     });
 
-    afterAll(async () => {
-      await emulator?.close();
+    afterAll(() => {
+      harness?.restoreFetch();
     });
 
-    test("markReadThread marks an unread thread as read", async () => {
-      const threadId = threadIds.msg_inbox_unread;
+    async function labelIdsOf(messageId: string) {
+      const message = await harness.provider.getMessage(messageId);
+      return message.labelIds ?? [];
+    }
 
-      // Verify starts unread
-      const before = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_inbox_unread",
-      });
-      expect(before.data.labelIds).toContain("UNREAD");
+    test("markReadThread sets and clears read state on every message in the thread", async () => {
+      await harness.provider.markReadThread("thread_pair", true);
 
-      // Mark as read
-      await markReadThread({ gmail: gmailClient, threadId, read: true });
+      expect(await labelIdsOf("msg_pair_a")).not.toContain("UNREAD");
+      expect(await labelIdsOf("msg_pair_b")).not.toContain("UNREAD");
 
-      // Verify UNREAD removed
-      const after = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_inbox_unread",
-      });
-      expect(after.data.labelIds).not.toContain("UNREAD");
+      // Back again: the reverse direction is what the wrapper tests never did.
+      await harness.provider.markReadThread("thread_pair", false);
+
+      expect(await labelIdsOf("msg_pair_a")).toContain("UNREAD");
+      expect(await labelIdsOf("msg_pair_b")).toContain("UNREAD");
     });
 
-    test("markReadThread marks a read thread as unread", async () => {
-      const threadId = threadIds.msg_inbox_read;
+    test("a label added to a message can be removed from the whole thread", async () => {
+      const label = await harness.provider.createLabel("RoundTrip");
 
-      // Verify starts without UNREAD
-      const before = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_inbox_read",
+      await harness.provider.labelMessage({
+        messageId: "msg_pair_a",
+        labelId: label.id,
+        labelName: "RoundTrip",
       });
-      expect(before.data.labelIds).not.toContain("UNREAD");
+      expect(await labelIdsOf("msg_pair_a")).toContain(label.id);
 
-      // Mark as unread
-      await markReadThread({ gmail: gmailClient, threadId, read: false });
+      await harness.provider.removeThreadLabel("thread_pair", label.id);
 
-      // Verify UNREAD added
-      const after = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_inbox_read",
-      });
-      expect(after.data.labelIds).toContain("UNREAD");
+      // Nylas replaces the folder set, so removal must leave the rest intact.
+      expect(await labelIdsOf("msg_pair_a")).not.toContain(label.id);
+      expect(await labelIdsOf("msg_pair_a")).toContain("INBOX");
+      expect(await labelIdsOf("msg_pair_b")).not.toContain(label.id);
     });
 
-    test("labelThread adds and removes labels", async () => {
-      const threadId = threadIds.msg_starred;
+    test("archiveThread and unarchiveThread round-trip INBOX", async () => {
+      await harness.provider.archiveThread(
+        "thread_single",
+        "owner@example.com",
+      );
+      expect(await labelIdsOf("msg_single")).not.toContain("INBOX");
 
-      await labelThread({
-        gmail: gmailClient,
-        threadId,
-        addLabelIds: [GmailLabel.IMPORTANT],
-        removeLabelIds: [GmailLabel.STARRED],
-      });
-
-      const after = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_starred",
-      });
-      expect(after.data.labelIds).toContain("IMPORTANT");
-      expect(after.data.labelIds).not.toContain("STARRED");
+      await harness.provider.unarchiveThread("thread_single");
+      expect(await labelIdsOf("msg_single")).toContain("INBOX");
     });
 
-    test("labelThread skips when no valid labels provided", async () => {
-      const threadId = threadIds.msg_inbox_read;
+    test("deleteLabel removes the label from the provider", async () => {
+      const label = await harness.provider.createLabel("Disposable");
+      const created = await harness.provider.getLabelByName("Disposable");
+      expect(created).not.toBeNull();
 
-      // Should not throw — just returns undefined
-      const result = await labelThread({
-        gmail: gmailClient,
-        threadId,
-        addLabelIds: [],
-        removeLabelIds: [],
-      });
-      expect(result).toBeUndefined();
+      await harness.provider.deleteLabel(label.id);
+
+      expect(await harness.provider.getLabelByName("Disposable")).toBeNull();
+      const labels = await harness.provider.getLabels();
+      expect(labels.some((candidate) => candidate.id === label.id)).toBe(false);
     });
 
-    test("archiveThread removes INBOX label", async () => {
-      const threadId = threadIds.msg_inbox_read;
+    test("starMessage marks a message as starred", async () => {
+      await harness.provider.starMessage("msg_pair_a");
 
-      // Verify starts in INBOX
-      const before = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_inbox_read",
-      });
-      expect(before.data.labelIds).toContain("INBOX");
-
-      await archiveThread({
-        gmail: gmailClient,
-        threadId,
-        ownerEmail: TEST_EMAIL,
-        actionSource: "automation",
-      });
-
-      // Verify INBOX removed
-      const after = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_inbox_read",
-      });
-      expect(after.data.labelIds).not.toContain("INBOX");
-    });
-
-    test("createLabel creates a new user label", async () => {
-      const label = await createLabel({
-        gmail: gmailClient,
-        name: "TestLabel",
-      });
-
-      expect(label).toBeDefined();
-      expect(label.name).toBe("TestLabel");
-      expect(label.id).toBeDefined();
-
-      // Verify it shows up in label list
-      const allLabels = await getLabels(gmailClient);
-      const found = allLabels?.find((l) => l.name === "TestLabel");
-      expect(found).toBeDefined();
-    });
-
-    test("getLabel finds label by name", async () => {
-      // Create a label first
-      await createLabel({ gmail: gmailClient, name: "FindMe" });
-
-      const found = await getLabel({ gmail: gmailClient, name: "FindMe" });
-      expect(found).toBeDefined();
-      expect(found?.name).toBe("FindMe");
-    });
-
-    test("getLabel returns undefined for non-existent label", async () => {
-      const found = await getLabel({
-        gmail: gmailClient,
-        name: "DoesNotExist",
-      });
-      expect(found).toBeUndefined();
-    });
-
-    test("labelMessage modifies a single message", async () => {
-      await labelMessage({
-        gmail: gmailClient,
-        messageId: "msg_inbox_unread",
-        addLabelIds: [GmailLabel.STARRED],
-      });
-
-      const after = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_inbox_unread",
-      });
-      expect(after.data.labelIds).toContain("STARRED");
-    });
-
-    test("labelThread with created label applies it to thread", async () => {
-      const label = await createLabel({
-        gmail: gmailClient,
-        name: "AutoApplied",
-      });
-
-      const threadId = threadIds.msg_inbox_unread;
-      await labelThread({
-        gmail: gmailClient,
-        threadId,
-        addLabelIds: [label.id!],
-      });
-
-      const after = await gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_inbox_unread",
-      });
-      expect(after.data.labelIds).toContain(label.id);
+      expect(await labelIdsOf("msg_pair_a")).toContain("STARRED");
     });
   },
 );

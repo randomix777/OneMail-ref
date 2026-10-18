@@ -2,8 +2,14 @@ import {
   getGmailClientForEmail,
   getOutlookClientForEmail,
 } from "@/utils/email-account-client";
+import { getMailboxTransportContext } from "@/utils/email/account-transport";
 import { GmailProvider } from "@/utils/email/google";
 import { OutlookProvider } from "@/utils/email/microsoft";
+import { NylasMailProvider } from "@/utils/email/nylas";
+import {
+  getProviderDefinition,
+  type MailTransport,
+} from "@/utils/email/provider-registry";
 import type { EmailProvider } from "@/utils/email/types";
 import { assertProviderNotRateLimited } from "@/utils/email/rate-limit";
 import { toRateLimitProvider } from "@/utils/email/rate-limit-mode-error";
@@ -31,20 +37,21 @@ export async function createEmailProvider({
       source: "create-email-provider",
     });
 
-    if (rateLimitProvider === "google") {
-      const client = await getGmailClientForEmail({ emailAccountId, logger });
-      return withProviderFailureLogging(
-        new GmailProvider(client, logger, emailAccountId),
-        { emailAccountId, provider: rateLimitProvider, logger },
-      );
-    }
-
-    const client = await getOutlookClientForEmail({ emailAccountId, logger });
-    return withProviderFailureLogging(new OutlookProvider(client, logger), {
+    const { transport, providerAccountId } = await getMailboxTransportContext({
       emailAccountId,
       provider: rateLimitProvider,
-      logger,
     });
+
+    return withProviderFailureLogging(
+      await createProviderForTransport({
+        emailAccountId,
+        provider: rateLimitProvider,
+        transport,
+        providerAccountId,
+        logger,
+      }),
+      { emailAccountId, provider: rateLimitProvider, logger },
+    );
   } catch (error) {
     logger.warn("Failed to create email provider", {
       error,
@@ -70,6 +77,51 @@ export async function createEmailProvider({
       });
     });
     throw error;
+  }
+}
+
+async function createProviderForTransport({
+  emailAccountId,
+  provider,
+  transport,
+  providerAccountId,
+  logger,
+}: {
+  emailAccountId: string;
+  provider: string;
+  transport: MailTransport;
+  providerAccountId: string | null;
+  logger: Logger;
+}): Promise<EmailProvider> {
+  if (transport === "nylas") {
+    if (!providerAccountId) {
+      throw new Error(`Mailbox ${emailAccountId} has no Nylas grant id`);
+    }
+    return new NylasMailProvider({
+      grantId: providerAccountId,
+      emailAccountId,
+      logger,
+    });
+  }
+
+  if (transport !== "oauth") {
+    // A mailbox cannot be talked to over a transport we have not built. Failing
+    // here keeps a misconfigured or half-migrated account from silently falling
+    // back to a client that would act on the wrong provider.
+    throw new Error(`Unsupported transport for ${provider}: ${transport}`);
+  }
+
+  // No default branch on purpose: adding a family to the registry must be a
+  // compile error here rather than a silent fall-through to Outlook.
+  switch (getProviderDefinition(provider).family) {
+    case "google": {
+      const client = await getGmailClientForEmail({ emailAccountId, logger });
+      return new GmailProvider(client, logger, emailAccountId);
+    }
+    case "microsoft": {
+      const client = await getOutlookClientForEmail({ emailAccountId, logger });
+      return new OutlookProvider(client, logger);
+    }
   }
 }
 

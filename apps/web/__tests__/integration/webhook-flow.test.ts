@@ -17,7 +17,11 @@ import {
   afterAll,
   vi,
 } from "vitest";
-import { createGmailTestHarness, type GmailTestHarness } from "./helpers";
+import {
+  createNylasTestHarness,
+  type NylasSeedMessage,
+  type NylasTestHarness,
+} from "./helpers";
 import { processHistoryItem } from "@/utils/webhook/process-history-item";
 import { executeAct } from "@/utils/ai/choose-rule/execute";
 import {
@@ -160,47 +164,76 @@ vi.mock("@/utils/reply-tracker/handle-outbound", () => ({
 
 const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS;
 const TEST_EMAIL = "webhook-flow@example.com";
-const TEST_PORT = 4109;
 
-const SEED_MESSAGES = [
+// `@/env` validates on first evaluation and the Nylas transport reads its URI
+// and key from it, so they have to be in place before the imports above resolve.
+// Guarded so a run that skips these tests never touches the environment.
+vi.hoisted(() => {
+  if (process.env.RUN_INTEGRATION_TESTS) {
+    process.env.NYLAS_API_KEY = "test-nylas-api-key";
+    process.env.NYLAS_API_URI = "https://nylas.test";
+  }
+});
+
+const SEED_MESSAGES: NylasSeedMessage[] = [
   {
     id: "msg_inbound",
-    user_email: TEST_EMAIL,
-    from: "customer@external.com",
-    to: TEST_EMAIL,
+    threadId: "thread_inbound",
+    fromName: "Customer",
+    fromEmail: "customer@external.com",
     subject: "Support request #1234",
-    body_text: "I need help with my account.",
-    body_html: "<p>I need help with my account.</p>",
-    label_ids: ["INBOX", "UNREAD"],
-    internal_date: "1711900000000",
+    body: "I need help with my account.",
+    folders: ["INBOX"],
+    unread: true,
+    receivedAt: new Date(1_711_900_000_000),
   },
   {
     id: "msg_outbound",
-    user_email: TEST_EMAIL,
-    from: TEST_EMAIL,
-    to: "colleague@external.com",
+    threadId: "thread_outbound",
+    fromName: "Me",
+    fromEmail: TEST_EMAIL,
+    toEmail: "colleague@external.com",
     subject: "Meeting notes",
-    body_text: "Here are the notes from today.",
-    label_ids: ["SENT"],
-    internal_date: "1711900060000",
+    body: "Here are the notes from today.",
+    // Mail we sent: SENT and never INBOX, which is what marks it outbound.
+    folders: ["SENT"],
+    receivedAt: new Date(1_711_900_060_000),
   },
   {
     id: "msg_second_inbound",
-    user_email: TEST_EMAIL,
-    from: "newsletter@updates.com",
-    to: TEST_EMAIL,
+    threadId: "thread_second_inbound",
+    fromName: "Newsletter",
+    fromEmail: "newsletter@updates.com",
     subject: "Weekly digest",
-    body_text: "Here is your weekly update.",
-    label_ids: ["INBOX", "UNREAD"],
-    internal_date: "1711900120000",
+    body: "Here is your weekly update.",
+    folders: ["INBOX"],
+    unread: true,
+    receivedAt: new Date(1_711_900_120_000),
   },
 ];
+
+const THREAD_IDS = Object.fromEntries(
+  SEED_MESSAGES.map((seed) => [seed.id, seed.threadId ?? seed.id]),
+);
+
+/**
+ * Label state as the provider derives it, not as the fake stores it: a flag
+ * change patches `unread` without rewriting the folder list, so reading the raw
+ * mailbox would show a stale UNREAD.
+ */
+async function labelIdsOf(
+  provider: NylasTestHarness["provider"],
+  messageId: string,
+) {
+  const message = await provider.getMessage(messageId);
+  return message.labelIds ?? [];
+}
 
 describe.skipIf(!RUN_INTEGRATION_TESTS)(
   "Webhook → processHistoryItem → action execution",
   { timeout: 30_000 },
   () => {
-    let harness: GmailTestHarness;
+    let harness: NylasTestHarness;
 
     const logger = createTestLogger();
 
@@ -218,7 +251,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
       overrides?: Partial<Parameters<typeof processHistoryItem>[1]>,
     ) {
       return processHistoryItem(
-        { messageId, threadId: harness.threadIds[messageId] },
+        { messageId, threadId: THREAD_IDS[messageId] },
         {
           provider: harness.provider,
           rules: [],
@@ -232,11 +265,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
     }
 
     beforeAll(async () => {
-      harness = await createGmailTestHarness({
-        port: TEST_PORT,
-        email: TEST_EMAIL,
-        messages: SEED_MESSAGES,
-      });
+      harness = await createNylasTestHarness({ messages: SEED_MESSAGES });
     });
 
     beforeEach(async () => {
@@ -252,46 +281,41 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
       vi.mocked(handleOutboundMessage).mockClear();
     });
 
-    afterAll(async () => {
-      await harness?.emulator?.close();
+    afterAll(() => {
+      harness?.restoreFetch();
+      if (process.env.RUN_INTEGRATION_TESTS) {
+        delete process.env.NYLAS_API_KEY;
+        delete process.env.NYLAS_API_URI;
+      }
     });
 
-    test("inbound message: fetches from emulator, runs rules, applies LABEL + ARCHIVE", async () => {
+    test("inbound message: fetches from the provider, runs rules, applies LABEL + ARCHIVE", async () => {
       runRulesActions = [
         { type: ActionType.LABEL, label: "Support" },
         { type: ActionType.ARCHIVE },
       ];
 
-      const before = await harness.gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_inbound",
-      });
-      expect(before.data.labelIds).toContain("INBOX");
-      expect(before.data.labelIds).toContain("UNREAD");
+      const before = await labelIdsOf(harness.provider, "msg_inbound");
+      expect(before).toContain("INBOX");
+      expect(before).toContain("UNREAD");
 
       await callProcessHistoryItem("msg_inbound");
 
-      // Verify runRules received the parsed message from the emulator
+      // Verify runRules received the parsed message from the provider
       expect(capturedRunRulesCall).not.toBeNull();
       const capturedMessage = capturedRunRulesCall!.message as any;
       expect(capturedMessage.id).toBe("msg_inbound");
       expect(capturedMessage.headers.from).toContain("customer@external.com");
       expect(capturedMessage.headers.subject).toBe("Support request #1234");
 
-      const after = await harness.gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_inbound",
-      });
-      expect(after.data.labelIds).not.toContain("INBOX");
+      const after = await labelIdsOf(harness.provider, "msg_inbound");
+      expect(after).not.toContain("INBOX");
 
-      const labels = await harness.gmailClient.users.labels.list({
-        userId: "me",
-      });
-      const supportLabel = labels.data.labels?.find(
-        (l) => l.name === "Support",
+      const supportLabel = harness.labels.find(
+        (label) => label.name === "Support",
       );
       expect(supportLabel).toBeDefined();
-      expect(after.data.labelIds).toContain(supportLabel!.id);
+      expect(after).toContain(supportLabel?.id);
     });
 
     test("outbound message: routes to handleOutboundMessage, no rules run", async () => {
@@ -315,11 +339,9 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
 
       expect(capturedRunRulesCall).toBeNull();
 
-      const msg = await harness.gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_second_inbound",
-      });
-      expect(msg.data.labelIds).toContain("UNREAD");
+      // Still unread: nothing ran.
+      const unread = await labelIdsOf(harness.provider, "msg_second_inbound");
+      expect(unread).toContain("UNREAD");
     });
 
     test("no AI access: message fetched but no rules run", async () => {
@@ -331,11 +353,8 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
 
       expect(capturedRunRulesCall).toBeNull();
 
-      const labels = await harness.gmailClient.users.labels.list({
-        userId: "me",
-      });
-      const badLabel = labels.data.labels?.find(
-        (l) => l.name === "ShouldNotApply",
+      const badLabel = harness.labels.find(
+        (label) => label.name === "ShouldNotApply",
       );
       expect(badLabel).toBeUndefined();
     });
@@ -343,19 +362,13 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
     test("MARK_READ action: processes and marks message as read", async () => {
       runRulesActions = [{ type: ActionType.MARK_READ }];
 
-      const before = await harness.gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_second_inbound",
-      });
-      expect(before.data.labelIds).toContain("UNREAD");
+      const before = await labelIdsOf(harness.provider, "msg_second_inbound");
+      expect(before).toContain("UNREAD");
 
       await callProcessHistoryItem("msg_second_inbound");
 
-      const after = await harness.gmailClient.users.messages.get({
-        userId: "me",
-        id: "msg_second_inbound",
-      });
-      expect(after.data.labelIds).not.toContain("UNREAD");
+      const after = await labelIdsOf(harness.provider, "msg_second_inbound");
+      expect(after).not.toContain("UNREAD");
     });
   },
 );

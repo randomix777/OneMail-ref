@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmailProvider } from "@/utils/email/provider";
 import { flushLoggerSafely } from "@/utils/logger-flush";
 import { getGmailClientForEmail } from "@/utils/email-account-client";
+import { getMailboxTransportContext } from "@/utils/email/account-transport";
 import { assertProviderNotRateLimited } from "@/utils/email/rate-limit";
 import { recordEmailAccountProviderIssue } from "@/utils/email/provider-health";
 
@@ -15,6 +16,10 @@ const { gmailGetMessageMock, gmailSearchMessagesMock, providerToken } =
 vi.mock("@/utils/email-account-client", () => ({
   getGmailClientForEmail: vi.fn(),
   getOutlookClientForEmail: vi.fn(),
+}));
+
+vi.mock("@/utils/email/account-transport", () => ({
+  getMailboxTransportContext: vi.fn(),
 }));
 
 vi.mock("@/utils/email/rate-limit", () => ({
@@ -61,6 +66,10 @@ describe("createEmailProvider", () => {
     providerToken.error = null;
     vi.mocked(assertProviderNotRateLimited).mockResolvedValue(undefined);
     vi.mocked(getGmailClientForEmail).mockResolvedValue({} as any);
+    vi.mocked(getMailboxTransportContext).mockResolvedValue({
+      transport: "oauth",
+      providerAccountId: null,
+    });
     vi.mocked(flushLoggerSafely).mockResolvedValue(undefined);
     vi.mocked(recordEmailAccountProviderIssue).mockResolvedValue(undefined);
     gmailGetMessageMock.mockResolvedValue({});
@@ -313,6 +322,33 @@ describe("createEmailProvider", () => {
         }),
       );
     });
+  });
+
+  it("rejects a provider family it does not serve", async () => {
+    await expect(
+      createEmailProvider({
+        emailAccountId: "email-account-1",
+        provider: "carrier-pigeon",
+        logger: createMockLogger(),
+      }),
+    ).rejects.toThrow("Unsupported provider: carrier-pigeon");
+  });
+
+  it("refuses a Nylas mailbox that has no grant id", async () => {
+    vi.mocked(getMailboxTransportContext).mockResolvedValue({
+      transport: "nylas",
+      providerAccountId: null,
+    });
+
+    await expect(
+      createEmailProvider({
+        emailAccountId: "email-account-1",
+        provider: "google",
+        logger: createMockLogger(),
+      }),
+    ).rejects.toThrow("has no Nylas grant id");
+
+    expect(getGmailClientForEmail).not.toHaveBeenCalled();
   });
 });
 
