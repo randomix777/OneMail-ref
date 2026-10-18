@@ -1182,15 +1182,31 @@ Covered by `utils/nylas/calendar.test.ts` (17), `nylas-events.test.ts` (25),
 `nylas-availability.test.ts` (11), `event-provider.test.ts` (6) and a case added
 to `invitations/service.test.ts` — 211 tests across `utils/calendar`, all green.
 
-**Not yet done, and the reason the provider is currently unreachable:** nothing
-creates a `transport: "nylas"` calendar connection. The only creation path is
-`oauth-callback-helpers.ts` behind the calendar OAuth callback, driven by a
-`CalendarOAuthProvider`, and there is no Nylas equivalent. Until that exists, the
-code above is exercised by its tests and reachable only by a row that no flow
-writes — which is exactly the product decision this section has been deferring:
-whether connecting Google mail also connects its calendar from the same grant, or
-whether the user is asked. Nothing else in P1b calendar is blocked on anything
-technical.
+**Activation: connecting the mailbox is what connects the calendar** (decided, not
+assumed — this was the open product question, and the answer is "no second
+consent step"). `utils/calendar/nylas-connection.ts` gives every Nylas Google
+mailbox a calendar connection and syncs its calendars, and the Nylas linking
+callback calls it in its own `after()` alongside `ensureEmailAccountsWatched`.
+
+- It is idempotent and converts in place: the unique key is
+  (emailAccountId, provider, email), so a connection the direct Google flow
+  created is re-pointed at the grant rather than duplicated.
+- A grant whose connector has no calendar scopes answers 403, and that is
+  treated as a missing feature: **no connection row is written at all**, so the
+  calendar features stay absent instead of appearing and then failing.
+- One mailbox failing is logged and skipped rather than propagated — the user is
+  waiting on a redirect, so a calendar problem must not read as a failed linking.
+
+Covered by `utils/calendar/nylas-connection.test.ts` (10 tests: the upsert shape,
+in-place relink, unnamed calendars, cursor paging, timezone seeding, the 403 path,
+a non-403 failure surfacing, multi-mailbox connect, skipping unusable accounts,
+and continuing past a failing mailbox).
+
+**What remains in P1b calendar:** the calendar/events endpoints in the Nylas test
+fake (the calendar path is covered by unit tests but not yet by an integration
+test through `createNylasTestHarness`), the Drive-backed filing UI gate, and the
+scope assertion that our own client stops asking for the calendar and Drive
+scopes.
 
 ### P1c — Deleting the direct Gmail path (audited, not started)
 

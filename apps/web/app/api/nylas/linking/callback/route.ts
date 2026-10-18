@@ -20,6 +20,7 @@ import { handleOAuthCallbackError } from "@/utils/oauth/error-handler";
 import { isDuplicateError } from "@/utils/prisma-helpers";
 import { SafeError } from "@/utils/error";
 import { ensureEmailAccountsWatched } from "@/utils/email/watch-manager";
+import { ensureNylasCalendarConnections } from "@/utils/calendar/nylas-connection";
 import {
   acquireOAuthCodeLock,
   clearOAuthCode,
@@ -364,6 +365,19 @@ async function completeNylasAccountLinking({
           },
         );
       }),
+  );
+
+  // Connecting a mailbox is also what connects its calendar, so this runs on its
+  // own: a calendar that cannot be read must not affect the mail linking the
+  // user is waiting on.
+  after(() =>
+    ensureNylasCalendarConnections({ userId: targetUserId, logger }).catch(
+      (error) => {
+        logger.error("Failed to connect calendars after account linking", {
+          error,
+        });
+      },
+    ),
   );
 
   return createAccountLinkingRedirect({
