@@ -1226,8 +1226,43 @@ autocreated Meet link and the invitee, update, cancel, and free/busy from the
 agenda). It resets the fake's agenda between tests and passes under
 `--sequence.shuffle`, so the tests do not depend on each other's writes.
 
-**What remains in P1b calendar:** the Drive-backed filing UI gate, and the scope
-assertion that our own client stops asking for the calendar and Drive scopes.
+**Drive-backed filing: disabled for Google mailboxes on Nylas, in three places.**
+Nylas brokers mail, calendar and contacts — not files — so filing to Google Drive
+would mean our own OAuth client asking for
+`https://www.googleapis.com/auth/drive.file` again, which is the obligation the
+transport exists to avoid. OneDrive is untouched, because Microsoft mail is not
+on Nylas.
+
+`utils/drive/availability.ts` is the one place that decides, and its answer is
+enforced at the boundary that matters rather than only in the UI:
+
+- **The consent entry point.** `/api/google/drive/auth-url` refuses before it
+  builds the URL, because that request *is* the moment Drive access would be
+  asked for. Refusing at the callback instead would already have shown the user a
+  Google consent screen.
+- **The server action.** `updateFilingEnabledAction` refuses to switch filing on
+  for an account that cannot connect a drive, so the flag cannot be set by any
+  route around the UI — and an account would not be left switched on with nowhere
+  to file.
+- **The UI.** The drive page renders an explanation instead of the setup flow,
+  driven by a `driveFilingAvailable` flag on the email-account response — hidden
+  rather than present-and-failing.
+
+Covered by `utils/drive/availability.test.ts` (7 tests: the Nylas Google refusal,
+the direct Google allowance, both Microsoft cases, the unknown provider, and the
+mailbox lookup including a missing row) and
+`app/api/google/drive/auth-url/route.test.ts` (3 tests: the refusal asserting the
+consent URL was never built, the allowed path with the state cookie, and the
+access-level default).
+
+**The scope assertion this plan asked for is now this gate plus the existing
+identity-only sign-in assertion.** With Nylas configured, our client no longer
+asks for Gmail scopes at sign-in, and neither the calendar nor the Drive consent
+is offered for those mailboxes. The direct flows stay intact for deployments
+without Nylas, which is why `CALENDAR_SCOPES` and `GOOGLE_DRIVE_SCOPES` remain in
+the tree.
+
+**What remains in P1b: nothing that is not listed above.** The next step is P1c.
 
 ### P1c — Deleting the direct Gmail path (audited, not started)
 

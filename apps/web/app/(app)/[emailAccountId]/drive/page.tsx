@@ -64,6 +64,7 @@ export default function DrivePage() {
 
   const hasConnections = (data?.connections?.length ?? 0) > 0;
   const filingEnabled = emailAccount?.filingEnabled ?? false;
+  const driveFilingAvailable = emailAccount?.driveFilingAvailable ?? true;
   const [isSaving, setIsSaving] = useState(false);
 
   const view = getDriveView(
@@ -104,43 +105,74 @@ export default function DrivePage() {
         loading={isLoading || emailLoading}
         error={error || emailError}
       >
-        {view === "onboarding" && <DriveOnboarding />}
-        {view === "setup" && <DriveSetup />}
-        {view === "settings" && (
+        {!driveFilingAvailable ? (
+          <DriveUnavailable />
+        ) : (
           <>
-            <div className="flex items-center justify-between">
-              <PageHeader title="Auto-file attachments" />
-              <div className="flex items-center gap-3">
-                <DeliveryPopover
-                  emailAccountId={emailAccountId}
-                  filingConfirmationSendEmail={
-                    emailAccount?.filingConfirmationSendEmail ?? true
-                  }
-                  onEmailDeliveryUpdated={mutateEmail}
-                />
-                {!filingEnabled && <Badge variant="destructive">Paused</Badge>}
-                <Switch
-                  checked={filingEnabled}
-                  onCheckedChange={handleToggle}
-                  disabled={isSaving}
-                />
-              </div>
-            </div>
+            {view === "onboarding" && <DriveOnboarding />}
+            {view === "setup" && <DriveSetup />}
+            {view === "settings" && (
+              <>
+                <div className="flex items-center justify-between">
+                  <PageHeader title="Auto-file attachments" />
+                  <div className="flex items-center gap-3">
+                    <DeliveryPopover
+                      emailAccountId={emailAccountId}
+                      filingConfirmationSendEmail={
+                        emailAccount?.filingConfirmationSendEmail ?? true
+                      }
+                      onEmailDeliveryUpdated={mutateEmail}
+                    />
+                    {!filingEnabled && (
+                      <Badge variant="destructive">Paused</Badge>
+                    )}
+                    <Switch
+                      checked={filingEnabled}
+                      onCheckedChange={handleToggle}
+                      disabled={isSaving}
+                    />
+                  </div>
+                </div>
 
-            <div
-              className={cn(
-                "mt-6 space-y-4 transition-opacity duration-200",
-                !filingEnabled && "opacity-50 pointer-events-none",
-              )}
-            >
-              <DriveConnections />
-              <FilingPreferences />
-              <FilingActivity />
-            </div>
+                <div
+                  className={cn(
+                    "mt-6 space-y-4 transition-opacity duration-200",
+                    !filingEnabled && "opacity-50 pointer-events-none",
+                  )}
+                >
+                  <DriveConnections />
+                  <FilingPreferences />
+                  <FilingActivity />
+                </div>
+              </>
+            )}
           </>
         )}
       </LoadingContent>
     </PageWrapper>
+  );
+}
+
+/**
+ * Google mail on Nylas has no Drive: Nylas brokers mail, calendar and contacts,
+ * not files, and asking Google for Drive access ourselves is the obligation this
+ * transport exists to avoid. Saying so is better than offering a flow that would
+ * be refused.
+ */
+function DriveUnavailable() {
+  return (
+    <div className="mx-auto max-w-2xl py-8 text-center">
+      <PageHeader title="Auto-file attachments" />
+      <MutedText className="mx-auto mt-3 max-w-xl">
+        Filing to Google Drive is not available for this account. Its mail is
+        reached through Nylas, which does not provide Drive access, and OneMail
+        no longer asks Google for it on its own.
+      </MutedText>
+      <MutedText className="mx-auto mt-3 max-w-xl">
+        OneDrive filing is unaffected, and you can still connect a Microsoft
+        mailbox to file attachments.
+      </MutedText>
+    </div>
   );
 }
 

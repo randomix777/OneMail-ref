@@ -3,6 +3,7 @@ import prisma from "@/utils/prisma";
 import { withEmailAccount } from "@/utils/middleware";
 import { SafeError } from "@/utils/error";
 import { getEmailProviderRateLimitState } from "@/utils/email/rate-limit";
+import { isDriveFilingAvailable } from "@/utils/drive/availability";
 import type { Logger } from "@/utils/logger";
 import { resolveSensitiveDataPolicy } from "@/utils/dlp/policy.server";
 
@@ -56,6 +57,9 @@ async function getEmailAccount({
   });
   return {
     ...emailAccount,
+    // Lets the drive page hide filing entirely for a mailbox that has no drive
+    // to file into, instead of offering a flow that would be refused.
+    driveFilingAvailable: await isDriveFilingAvailable(emailAccountId),
     sensitiveDataPolicy: resolveSensitiveDataPolicy(
       emailAccount.sensitiveDataPolicy,
     ),

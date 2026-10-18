@@ -17,6 +17,7 @@ import {
 import prisma from "@/utils/prisma";
 import { SafeError } from "@/utils/error";
 import { createDriveProviderWithRefresh } from "@/utils/drive/provider";
+import { isDriveFilingAvailable } from "@/utils/drive/availability";
 import { createEmailProvider } from "@/utils/email/provider";
 import {
   getFilableAttachments,
@@ -65,6 +66,15 @@ export const updateFilingEnabledAction = actionClient
   .inputSchema(updateFilingEnabledBody)
   .action(
     async ({ ctx: { emailAccountId }, parsedInput: { filingEnabled } }) => {
+      // Enabling filing on an account that cannot connect a drive would leave it
+      // switched on with nowhere to file, so it is refused here rather than only
+      // being hidden in the UI.
+      if (filingEnabled && !(await isDriveFilingAvailable(emailAccountId))) {
+        throw new SafeError(
+          "Filing to Google Drive is not available for this account, because its mail is reached through Nylas.",
+        );
+      }
+
       await prisma.emailAccount.update({
         where: { id: emailAccountId },
         data: { filingEnabled },
