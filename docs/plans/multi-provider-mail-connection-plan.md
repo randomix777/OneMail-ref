@@ -1202,11 +1202,32 @@ in-place relink, unnamed calendars, cursor paging, timezone seeding, the 403 pat
 a non-403 failure surfacing, multi-mailbox connect, skipping unusable accounts,
 and continuing past a failing mailbox).
 
-**What remains in P1b calendar:** the calendar/events endpoints in the Nylas test
-fake (the calendar path is covered by unit tests but not yet by an integration
-test through `createNylasTestHarness`), the Drive-backed filing UI gate, and the
-scope assertion that our own client stops asking for the calendar and Drive
-scopes.
+**The fake grew a calendar surface**, so the calendar path is now covered through
+`createNylasTestHarness` the way contacts are, not only by unit tests:
+`/calendars`, `/calendars/free-busy`, and `/events` with the by-UID, by-attendee,
+window, `show_cancelled` and paging filters, plus event create/update/delete and
+`send-rsvp`. Two fidelity details the fake has to get right, because the real API
+does:
+
+- `calendar_id=primary` is an alias answered with the account's real calendar id,
+  which on a Google grant is the address itself. Reads use `primary`, free/busy is
+  keyed by address, and both resolve to the same calendar — otherwise the two
+  endpoints would disagree about which calendar belongs to the account.
+- The event window is **overlap**, not containment, matching the examples in
+  Nylas' reference: an event that starts before the window and ends inside it is
+  returned.
+
+`__tests__/integration/nylas-calendar.test.ts` drives the real
+`NylasCalendarEventProvider` and the real availability provider over that fake
+(10 tests: field mapping, cancelled and secondary-calendar exclusion, window
+narrowing, organizer inference, attendee filtering with the request asserted,
+invitation lookup by UID and the RSVP round trip, event creation carrying the
+autocreated Meet link and the invitee, update, cancel, and free/busy from the
+agenda). It resets the fake's agenda between tests and passes under
+`--sequence.shuffle`, so the tests do not depend on each other's writes.
+
+**What remains in P1b calendar:** the Drive-backed filing UI gate, and the scope
+assertion that our own client stops asking for the calendar and Drive scopes.
 
 ### P1c — Deleting the direct Gmail path (audited, not started)
 

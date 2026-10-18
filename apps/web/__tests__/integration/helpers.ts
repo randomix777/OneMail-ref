@@ -340,6 +340,83 @@ export type NylasWireContact = {
   picture_url: string | null;
 };
 
+export type NylasSeedCalendar = {
+  id: string;
+  name?: string;
+  description?: string;
+  timezone?: string;
+  isPrimary?: boolean;
+};
+
+/** A calendar as Nylas v3 returns it. Note `name` and `is_primary`. */
+export type NylasWireCalendar = {
+  id: string;
+  name: string | null;
+  description: string | null;
+  timezone: string | null;
+  is_primary: boolean;
+};
+
+export type NylasSeedEvent = {
+  id: string;
+  /** Defaults to the account's own calendar, which is the address on Google. */
+  calendarId?: string;
+  title?: string;
+  description?: string;
+  /** Nylas' plain-text rendering of an HTML `description`. */
+  textDescription?: string;
+  location?: string;
+  startTime: Date;
+  endTime: Date;
+  timezone?: string;
+  organizerEmail?: string;
+  organizerName?: string;
+  participants?: Array<{
+    email: string;
+    name?: string;
+    status?: "yes" | "no" | "maybe" | "noreply";
+  }>;
+  conferencingUrl?: string;
+  icalUid?: string;
+  status?: "confirmed" | "cancelled";
+  busy?: boolean;
+  masterEventId?: string;
+};
+
+/** An event as Nylas v3 returns it. */
+export type NylasWireEvent = {
+  id: string;
+  calendar_id: string;
+  title: string | null;
+  description: string | null;
+  text_description?: string | null;
+  location: string | null;
+  when: NylasWireEventWhen;
+  organizer: { email: string; name: string | null };
+  participants: Array<{
+    email: string;
+    name: string | null;
+    status: string;
+  }>;
+  conferencing: { provider: string; details: { url: string } } | null;
+  html_link: string;
+  ical_uid: string | null;
+  status: string;
+  busy: boolean;
+  master_event_id: string | null;
+};
+
+export type NylasWireEventWhen = {
+  object: string;
+  start_time?: number;
+  end_time?: number;
+  start_timezone?: string | null;
+  end_timezone?: string | null;
+  start_date?: string;
+  end_date?: string;
+  date?: string;
+};
+
 export type NylasRecordedRequest = {
   method: string;
   url: URL;
@@ -355,6 +432,13 @@ export type NylasTestHarness = {
   labels: NylasWireFolder[];
   /** The fake's address book. */
   contacts: NylasWireContact[];
+  /** The fake's calendars. */
+  calendars: NylasWireCalendar[];
+  /** The fake's agenda: assert calendar writes here. */
+  events: NylasWireEvent[];
+  /** The connected account's address, which is also its calendar's id. */
+  email: string;
+  grantId: string;
   /** Every request the provider made, in order. */
   requests: NylasRecordedRequest[];
   /** Call in afterAll to put globalThis.fetch back. */
@@ -374,10 +458,16 @@ export type NylasTestHarness = {
 export async function createNylasTestHarness({
   messages,
   contacts = [],
+  calendars,
+  events = [],
+  email = "owner@example.com",
   grantId = "grant-abc",
 }: {
   messages: NylasSeedMessage[];
   contacts?: NylasSeedContact[];
+  calendars?: NylasSeedCalendar[];
+  events?: NylasSeedEvent[];
+  email?: string;
   grantId?: string;
 }): Promise<NylasTestHarness> {
   const origin = process.env.NYLAS_API_URI;
@@ -390,6 +480,10 @@ export async function createNylasTestHarness({
   const mailbox = messages.map(toNylasWireMessage);
   const labels = seedNylasLabels();
   const addressBook = contacts.map(toNylasWireContact);
+  const calendarBook = (
+    calendars ?? [{ id: email, name: "Owner", isPrimary: true }]
+  ).map(toNylasWireCalendar);
+  const agenda = events.map((event) => toNylasWireEvent(event, email));
   const requests: NylasRecordedRequest[] = [];
 
   const realFetch = globalThis.fetch;
@@ -398,6 +492,9 @@ export async function createNylasTestHarness({
     mailbox,
     labels,
     addressBook,
+    calendarBook,
+    agenda,
+    email,
     origin,
     grantId,
     realFetch,
@@ -417,6 +514,10 @@ export async function createNylasTestHarness({
     mailbox,
     labels,
     contacts: addressBook,
+    calendars: calendarBook,
+    events: agenda,
+    email,
+    grantId,
     requests,
     restoreFetch,
   };
@@ -489,6 +590,63 @@ function toNylasWireContact(seed: NylasSeedContact): NylasWireContact {
   };
 }
 
+function toNylasWireCalendar(seed: NylasSeedCalendar): NylasWireCalendar {
+  return {
+    id: seed.id,
+    name: seed.name ?? null,
+    description: seed.description ?? null,
+    timezone: seed.timezone ?? null,
+    is_primary: seed.isPrimary ?? false,
+  };
+}
+
+/**
+ * For a Google grant the primary calendar's id *is* the account's address, which
+ * is also what Nylas free/busy is keyed by — so a seeded event defaults to that
+ * id and the two endpoints agree about which calendar is the account's own.
+ */
+function toNylasWireEvent(
+  seed: NylasSeedEvent,
+  ownerEmail: string,
+): NylasWireEvent {
+  return {
+    id: seed.id,
+    calendar_id: seed.calendarId ?? ownerEmail,
+    title: seed.title ?? null,
+    description: seed.description ?? null,
+    text_description: seed.textDescription ?? null,
+    location: seed.location ?? null,
+    when: {
+      object: "timespan",
+      start_time: toUnixSeconds(seed.startTime),
+      end_time: toUnixSeconds(seed.endTime),
+      start_timezone: seed.timezone ?? null,
+      end_timezone: seed.timezone ?? null,
+    },
+    organizer: {
+      email: seed.organizerEmail ?? ownerEmail,
+      name: seed.organizerName ?? null,
+    },
+    participants: (seed.participants ?? []).map((participant) => ({
+      email: participant.email,
+      name: participant.name ?? null,
+      status: participant.status ?? "noreply",
+    })),
+    conferencing: seed.conferencingUrl
+      ? { provider: "Google Meet", details: { url: seed.conferencingUrl } }
+      : null,
+    html_link: `https://calendar.google.com/event?eid=${seed.id}`,
+    ical_uid: seed.icalUid ?? null,
+    status: seed.status ?? "confirmed",
+    busy: seed.busy ?? true,
+    master_event_id: seed.masterEventId ?? null,
+  };
+}
+
+function toUnixSeconds(date: Date) {
+  return Math.floor(date.getTime() / 1000);
+}
+
 /**
  * Enough of the Nylas v3 messages surface to drive a sync and a mutation, plus
  * a record of what was asked for. Anything else 404s, so a retargeted test
@@ -499,6 +657,9 @@ function createNylasFetch({
   mailbox,
   labels,
   addressBook,
+  calendarBook,
+  agenda,
+  email,
   origin,
   grantId,
   realFetch,
@@ -507,6 +668,9 @@ function createNylasFetch({
   mailbox: NylasWireMessage[];
   labels: NylasWireFolder[];
   addressBook: NylasWireContact[];
+  calendarBook: NylasWireCalendar[];
+  agenda: NylasWireEvent[];
+  email: string;
   origin: string;
   grantId: string;
   realFetch: typeof fetch;
@@ -542,6 +706,70 @@ function createNylasFetch({
     const contactsPath = `/v3/grants/${grantId}/contacts`;
     if (method === "GET" && url.pathname === contactsPath) {
       return Response.json(nylasContactPage(url, addressBook));
+    }
+
+    const calendarsPath = `/v3/grants/${grantId}/calendars`;
+    if (method === "GET" && url.pathname === calendarsPath) {
+      return Response.json({ data: calendarBook, next_cursor: null });
+    }
+
+    if (method === "POST" && url.pathname === `${calendarsPath}/free-busy`) {
+      return Response.json({
+        data: nylasFreeBusy(url, rawBody, agenda, email),
+      });
+    }
+
+    const eventsPath = `/v3/grants/${grantId}/events`;
+    if (url.pathname === eventsPath) {
+      if (method === "GET") {
+        return Response.json(nylasEventPage(url, agenda, email));
+      }
+      if (method === "POST") {
+        const event = createNylasEvent({
+          agenda,
+          body: JSON.parse(rawBody ?? "{}") as NylasEventWriteBody,
+          calendarId: resolveCalendarId(url, email),
+          ownerEmail: email,
+        });
+        return Response.json({ data: event });
+      }
+    }
+
+    // Checked before the plain event id, which would otherwise swallow the
+    // action segment as part of the id.
+    if (url.pathname.startsWith(`${eventsPath}/`)) {
+      const [rawId, action] = url.pathname
+        .slice(eventsPath.length + 1)
+        .split("/");
+      const eventId = decodeURIComponent(rawId ?? "");
+      const event = agenda.find((candidate) => candidate.id === eventId);
+
+      if (action === "send-rsvp" && method === "POST") {
+        if (!event) return nylasNotFound(url.pathname);
+        const status = (JSON.parse(rawBody ?? "{}") as { status?: string })
+          .status;
+        const participant = event.participants.find(
+          (candidate) => candidate.email?.toLowerCase() === email.toLowerCase(),
+        );
+        if (participant && status) participant.status = status;
+        return Response.json({ request_id: "1" });
+      }
+
+      if (!action) {
+        if (!event) return nylasNotFound(url.pathname);
+        if (method === "GET") return Response.json({ data: event });
+        if (method === "PUT") {
+          applyNylasEventUpdate(
+            event,
+            JSON.parse(rawBody ?? "{}") as NylasEventWriteBody,
+          );
+          return Response.json({ data: event });
+        }
+        if (method === "DELETE") {
+          agenda.splice(agenda.indexOf(event), 1);
+          return Response.json({ request_id: "1" });
+        }
+      }
     }
 
     const foldersPath = `/v3/grants/${grantId}/folders`;
@@ -812,6 +1040,219 @@ function nylasFolderIdFromPath(pathname: string, foldersPath: string) {
   if (!pathname.startsWith(`${foldersPath}/`)) return null;
   return decodeURIComponent(pathname.slice(foldersPath.length + 1));
 }
+
+/**
+ * Nylas documents `calendar_id=primary` as an alias that is answered with the
+ * real calendar id, which for a Google grant is the account's own address.
+ */
+function resolveCalendarId(url: URL, ownerEmail: string) {
+  const requested = url.searchParams.get("calendar_id");
+  return !requested || requested === "primary" ? ownerEmail : requested;
+}
+
+/**
+ * Events in the window, with the overlap semantics Nylas documents: an event is
+ * returned when it overlaps the window rather than only when it sits inside it.
+ */
+function nylasEventPage(
+  url: URL,
+  agenda: NylasWireEvent[],
+  ownerEmail: string,
+) {
+  const icalUid = url.searchParams.get("ical_uid");
+  const calendarId = resolveCalendarId(url, ownerEmail);
+  const start = numberOrNull(url.searchParams.get("start"));
+  const end = numberOrNull(url.searchParams.get("end"));
+  const attendees = (url.searchParams.get("attendees") ?? "")
+    .split(",")
+    .map((address) => address.trim().toLowerCase())
+    .filter(Boolean);
+  const showCancelled = url.searchParams.get("show_cancelled") === "true";
+  const limit = numberOrNull(url.searchParams.get("limit")) ?? 50;
+  const offset = numberOrNull(url.searchParams.get("page_token")) ?? 0;
+
+  const visible = agenda.filter((event) => {
+    // The UID filter is exclusive of every other one, as Nylas documents.
+    if (icalUid) return event.ical_uid === icalUid;
+
+    if (!showCancelled && event.status === "cancelled") return false;
+    if (event.calendar_id !== calendarId) return false;
+
+    if (attendees.length > 0) {
+      const onEvent = new Set(
+        event.participants.map((participant) =>
+          participant.email?.toLowerCase(),
+        ),
+      );
+      if (!attendees.some((address) => onEvent.has(address))) return false;
+    }
+
+    const window = eventWindowSeconds(event);
+    if (start !== null && window.end <= start) return false;
+    if (end !== null && window.start >= end) return false;
+
+    return true;
+  });
+
+  const page = visible.slice(offset, offset + limit);
+
+  return {
+    data: page,
+    next_cursor:
+      offset + page.length < visible.length
+        ? String(offset + page.length)
+        : null,
+  };
+}
+
+function eventWindowSeconds(event: NylasWireEvent) {
+  return {
+    start: event.when.start_time ?? 0,
+    end: event.when.end_time ?? event.when.start_time ?? 0,
+  };
+}
+
+function createNylasEvent({
+  agenda,
+  body,
+  calendarId,
+  ownerEmail,
+}: {
+  agenda: NylasWireEvent[];
+  body: NylasEventWriteBody;
+  calendarId: string;
+  ownerEmail: string;
+}) {
+  const id = `event-${agenda.length + 1}`;
+  const when = body.when ?? { object: "timespan" };
+
+  const event: NylasWireEvent = {
+    id,
+    calendar_id: calendarId,
+    title: body.title ?? null,
+    description: body.description ?? null,
+    text_description: body.description ?? null,
+    location: body.location ?? null,
+    when,
+    organizer: { email: ownerEmail, name: null },
+    participants: (body.participants ?? []).map((participant) => ({
+      email: participant.email,
+      name: participant.name ?? null,
+      status: "noreply",
+    })),
+    // Only autocreate produces a link; a conference that was merely passed in by
+    // hand is not something Nylas would invent an URL for.
+    conferencing: body.conferencing?.autocreate
+      ? {
+          provider: body.conferencing.provider,
+          details: { url: `https://meet.google.com/${id}` },
+        }
+      : null,
+    html_link: `https://calendar.google.com/event?eid=${id}`,
+    ical_uid: `${id}@google.com`,
+    status: "confirmed",
+    busy: body.busy ?? true,
+    master_event_id: null,
+  };
+
+  agenda.push(event);
+  return event;
+}
+
+/** PUT replaces the nested objects it carries, as Nylas documents. */
+function applyNylasEventUpdate(
+  event: NylasWireEvent,
+  body: NylasEventWriteBody,
+) {
+  if (body.title !== undefined) event.title = body.title;
+  if (body.description !== undefined) {
+    event.description = body.description;
+    event.text_description = body.description ?? null;
+  }
+  if (body.location !== undefined) event.location = body.location ?? null;
+  if (body.when) event.when = body.when;
+  if (body.participants) {
+    event.participants = body.participants.map((participant) => ({
+      email: participant.email,
+      name: participant.name ?? null,
+      status: "noreply",
+    }));
+  }
+  if (body.conferencing?.autocreate) {
+    event.conferencing = {
+      provider: body.conferencing.provider,
+      details: { url: `https://meet.google.com/${event.id}` },
+    };
+  }
+  if (body.busy !== undefined) event.busy = body.busy;
+}
+
+/**
+ * Busy blocks per address, derived from the agenda.
+ *
+ * Free/busy reports the blocks on an address's *primary* calendar, and for a
+ * Google grant that calendar's id is the address itself — which is why this
+ * matches on the calendar id rather than looking at participants.
+ */
+function nylasFreeBusy(
+  url: URL,
+  rawBody: string | undefined,
+  agenda: NylasWireEvent[],
+  ownerEmail: string,
+) {
+  const body = JSON.parse(rawBody ?? "{}") as {
+    start_time?: number;
+    end_time?: number;
+    emails?: string[];
+  };
+  const start = body.start_time ?? 0;
+  const end = body.end_time ?? 0;
+
+  return (body.emails ?? []).map((address) => {
+    const forCalendar = resolveCalendarId(url, ownerEmail);
+    const calendarId = address;
+
+    // Nylas reports the blocks of the calendar being asked about, so only the
+    // requested address's own calendar contributes.
+    const timeSlots = agenda
+      .filter(
+        (event) =>
+          event.status !== "cancelled" &&
+          event.busy &&
+          (event.calendar_id === calendarId ||
+            (calendarId === forCalendar && event.calendar_id === ownerEmail)),
+      )
+      .map((event) => eventWindowSeconds(event))
+      .filter((window) => window.end > start && window.start < end)
+      .map((window) => ({
+        start_time: Math.max(window.start, start),
+        end_time: Math.min(window.end, end),
+        status: "busy",
+        object: "time_slot",
+      }));
+
+    return { email: address, time_slots: timeSlots, object: "free_busy" };
+  });
+}
+
+function numberOrNull(value: string | null) {
+  if (value === null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+type NylasEventWriteBody = {
+  title?: string;
+  description?: string;
+  location?: string;
+  when?: NylasWireEventWhen;
+  participants?: Array<{ email: string; name?: string }>;
+  conferencing?: {
+    provider: string;
+    autocreate?: { conf_grant_id?: string };
+  };
+  busy?: boolean;
+};
 
 function nylasNotFound(pathname: string) {
   return Response.json(
