@@ -1,27 +1,30 @@
 import type { calendar_v3 } from "@googleapis/calendar";
-import {
-  isGoogleProvider,
-  isMicrosoftProvider,
-} from "@/utils/email/provider-types";
+
+export type CalendarAvailabilityProviderName = "google" | "microsoft" | "nylas";
 
 export type CalendarAvailabilityErrorDetail = {
   calendarId: string;
   errors: calendar_v3.Schema$Error[];
 };
 
+const PROVIDER_LABEL: Record<CalendarAvailabilityProviderName, string> = {
+  google: "Google",
+  microsoft: "Microsoft",
+  nylas: "Nylas",
+};
+
 export class CalendarAvailabilityError extends Error {
-  provider: "google" | "microsoft";
+  provider: CalendarAvailabilityProviderName;
   calendarErrors: CalendarAvailabilityErrorDetail[];
 
   constructor({
     provider,
     calendarErrors,
   }: {
-    provider: "google" | "microsoft";
+    provider: CalendarAvailabilityProviderName;
     calendarErrors: CalendarAvailabilityErrorDetail[];
   }) {
-    const providerLabel = provider === "google" ? "Google" : "Microsoft";
-    super(`Failed to fetch ${providerLabel} calendar availability`);
+    super(`Failed to fetch ${PROVIDER_LABEL[provider]} calendar availability`);
     this.name = "CalendarAvailabilityError";
     this.provider = provider;
     this.calendarErrors = calendarErrors;
@@ -54,13 +57,18 @@ function getCalendarAvailabilityError(
   const candidate = error as Partial<CalendarAvailabilityError>;
   if (
     candidate.name === "CalendarAvailabilityError" &&
-    (isGoogleProvider(candidate.provider) ||
-      isMicrosoftProvider(candidate.provider)) &&
+    isCalendarAvailabilityProviderName(candidate.provider) &&
     Array.isArray(candidate.calendarErrors) &&
     candidate.calendarErrors.every(isCalendarAvailabilityErrorDetail)
   ) {
     return candidate as CalendarAvailabilityError;
   }
+}
+
+function isCalendarAvailabilityProviderName(
+  value: unknown,
+): value is CalendarAvailabilityProviderName {
+  return value === "google" || value === "microsoft" || value === "nylas";
 }
 
 function isCalendarAvailabilityErrorDetail(

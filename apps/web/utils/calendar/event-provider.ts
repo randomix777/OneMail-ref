@@ -4,6 +4,7 @@ import type { Logger } from "@/utils/logger";
 import type { CalendarEventProvider } from "@/utils/calendar/event-types";
 import { GoogleCalendarEventProvider } from "@/utils/calendar/providers/google-events";
 import { MicrosoftCalendarEventProvider } from "@/utils/calendar/providers/microsoft-events";
+import { NylasCalendarEventProvider } from "@/utils/calendar/providers/nylas-events";
 import {
   isGoogleProvider,
   isMicrosoftProvider,
@@ -25,6 +26,9 @@ export async function createCalendarEventProviders(
     select: {
       id: true,
       provider: true,
+      transport: true,
+      grantId: true,
+      email: true,
       accessToken: true,
       refreshToken: true,
       expiresAt: true,
@@ -56,8 +60,9 @@ export async function createCalendarEventProviders(
   return providers;
 }
 
-// Same connections createCalendarEventProviders can use. A missing refresh
-// token or unknown provider builds no provider, so the chat tool would fail.
+// Same connections createCalendarEventProviders can use. A connection with no
+// usable credential or an unknown provider builds no provider, so the chat tool
+// would fail.
 export async function hasUsableCalendarConnection(emailAccountId: string) {
   const connections = await prisma.calendarConnection.findMany({
     where: {
@@ -66,6 +71,8 @@ export async function hasUsableCalendarConnection(emailAccountId: string) {
     },
     select: {
       provider: true,
+      transport: true,
+      grantId: true,
       refreshToken: true,
     },
   });
@@ -84,10 +91,31 @@ export function createCalendarEventProvider({
     id: string;
     provider: string;
     refreshToken: string | null;
+    transport?: string | null;
+    grantId?: string | null;
+    email?: string | null;
   };
   emailAccountId: string;
   logger: Logger;
 }) {
+  // The transport decides, not the family: a Google calendar reached through
+  // Nylas has no tokens of ours, only a grant.
+  if (connection.transport === "nylas") {
+    if (!connection.grantId) {
+      throw new SafeError("Nylas calendar connection has no grant.");
+    }
+
+    return new NylasCalendarEventProvider(
+      {
+        connectionId: connection.id,
+        emailAccountId,
+        grantId: connection.grantId,
+        email: connection.email ?? "",
+      },
+      logger,
+    );
+  }
+
   const providerParams = {
     accessToken: connection.accessToken,
     connectionId: connection.id,
@@ -109,8 +137,14 @@ export function createCalendarEventProvider({
 
 function isUsableCalendarConnection(connection: {
   provider: string;
+  transport?: string | null;
+  grantId?: string | null;
   refreshToken: string | null;
 }) {
+  // A Nylas connection holds a grant instead of a refresh token, so requiring a
+  // token here would silently drop every Google calendar on that transport.
+  if (connection.transport === "nylas") return !!connection.grantId;
+
   if (!connection.refreshToken) return false;
 
   return (

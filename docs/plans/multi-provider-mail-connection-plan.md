@@ -1114,9 +1114,83 @@ both methods through `NylasMailProvider` over the fake API). The fake grew a
 `/contacts` endpoint with `search_query_native` narrowing and `page_token` paging,
 plus a `contacts` seed on `createNylasTestHarness`.
 
-**Outstanding in P1b**: everything calendar (provider, `CalendarConnection`,
-free/busy, the Drive-filing UI gate), and the scope assertion that our own client
-stops asking for the calendar and Drive scopes.
+**Calendar: the transport and provider are landed; the connection is not yet created.**
+
+`CalendarConnection` gained `transport` ("oauth" | "nylas", defaulting to "oauth")
+and a nullable `grantId`, mirroring `Account` — migration
+`20261018190000_add_calendar_connection_transport`. A Nylas connection keeps
+`provider: "google"` (the family) and stores no tokens, so everything keyed on the
+family — `getProviderAlignedLocationType` and its Google Meet mapping, the
+invitations provider filter — keeps working unchanged.
+
+- `utils/nylas/calendar.ts` is the transport: calendars, events (list, list by
+  attendee, get, create, update, delete), `send-rsvp`, and free/busy.
+- `NylasCalendarEventProvider` implements the whole surface the factory's union
+  requires, including `findInvitationEvent` and `respondToInvitation`. That was
+  not optional: `event-writer.ts` and `invitations/service.ts` call those methods
+  on the union, so a read-only class would not have compiled.
+- `createNylasAvailabilityProvider` serves free/busy, and
+  `createCalendarEventProvider`, `isUsableCalendarConnection`,
+  `hasUsableCalendarConnection` and `getUnifiedCalendarAvailability` all branch on
+  **transport before family**.
+
+Three decisions worth keeping, all from the Nylas reference rather than taste:
+
+- **Invitation responses are translated, not passed through.** Nylas answers
+  `yes` | `no` | `maybe` | `noreply`; the invitation buttons in
+  `CalendarInvitation.tsx` set `aria-pressed` by comparing against Google's
+  `accepted` | `declined` | `tentative`. Passing Nylas' words through would leave
+  every button unhighlighted for a Nylas account.
+- **The iCal UID lookup sends no `calendar_id`,** even though Nylas documents
+  `calendar_id` as required on that endpoint and documents `ical_uid` as
+  exclusive of every other filter. The two statements contradict each other; the
+  UID alone is sent, because naming a calendar would mean guessing which one the
+  invitation landed on.
+- **`isOrganizer` is inferred from the address.** Nylas exposes no "this is you"
+  flag for a Google grant (`is_owner` is Agent Accounts only), so it compares the
+  organizer's address with the connection's own. Nylas documents that on a primary
+  Google calendar the organizer address *is* the calendar id, which is what makes
+  the inference reasonable rather than invented — but it is an inference.
+
+**Two latent bugs found while wiring this, both the same shape as the watch job's
+R7 fix** — a token check standing in for a transport check:
+
+- `invitations/service.ts` skipped every connection without a `refreshToken`, and
+  `event-provider.ts`'s usable-connection check did the same. A Nylas connection
+  has a grant instead, so both would have silently ignored every Google calendar
+  on that transport: the invitation flow would have emailed the organizer rather
+  than updating the calendar, and the chat tool would have reported no calendar.
+- `getUnifiedCalendarAvailability` grouped by provider family, so a Nylas Google
+  connection would have been handed to the Google client with null tokens.
+
+Deliberate reductions reported rather than hidden:
+
+- **Free/busy is per address, not per calendar.** Nylas returns the blocks on an
+  address's *primary* calendar, so a connection's secondary calendars cannot be
+  included even when they are enabled locally. The direct Google path can include
+  them. This is a real narrowing of availability for a Google user with a second
+  calendar.
+- **No invitation staleness check.** Google exposes a `sequence` and Microsoft
+  carries it in an extended property; Nylas returns no revision, so an invitation
+  that changed after the response was written cannot be detected. The response is
+  applied to the event's current state.
+- **`primary` as a calendar id needs the wider scope.** Reads use
+  `calendar_id=primary`, which Nylas documents as requiring
+  `.../auth/calendar` rather than the narrower `calendar.events*` scopes.
+
+Covered by `utils/nylas/calendar.test.ts` (17), `nylas-events.test.ts` (25),
+`nylas-availability.test.ts` (11), `event-provider.test.ts` (6) and a case added
+to `invitations/service.test.ts` — 211 tests across `utils/calendar`, all green.
+
+**Not yet done, and the reason the provider is currently unreachable:** nothing
+creates a `transport: "nylas"` calendar connection. The only creation path is
+`oauth-callback-helpers.ts` behind the calendar OAuth callback, driven by a
+`CalendarOAuthProvider`, and there is no Nylas equivalent. Until that exists, the
+code above is exercised by its tests and reachable only by a row that no flow
+writes — which is exactly the product decision this section has been deferring:
+whether connecting Google mail also connects its calendar from the same grant, or
+whether the user is asked. Nothing else in P1b calendar is blocked on anything
+technical.
 
 ### P1c — Deleting the direct Gmail path (audited, not started)
 

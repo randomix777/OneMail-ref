@@ -1504,6 +1504,10 @@ model CalendarConnection {
 
   provider     String // "google" or "microsoft"
   email        String // Google account email (e.g., "elie@gmail.com")
+  // How we reach this calendar, mirroring Account.transport. A Nylas connection
+  // stores a grant id instead of tokens, so accessToken/refreshToken stay null.
+  transport    String   @default("oauth") // "oauth" | "nylas"
+  grantId      String?
   accessToken  String?
   refreshToken String?
   expiresAt    DateTime?

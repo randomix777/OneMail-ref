@@ -6,6 +6,7 @@ import type { BusyPeriod } from "./availability-types";
 import { getCalendarAvailabilityErrorLogContext } from "./availability-error";
 import { createGoogleAvailabilityProvider } from "./providers/google-availability";
 import { createMicrosoftAvailabilityProvider } from "./providers/microsoft-availability";
+import { createNylasAvailabilityProvider } from "./providers/nylas-availability";
 import { isGoogleVirtualCalendarId } from "./providers/google-calendar-id";
 import { isGoogleProvider } from "@/utils/email/provider-types";
 
@@ -67,15 +68,53 @@ export async function getUnifiedCalendarAvailability({
     return [];
   }
 
-  // Group calendars by provider
-  const googleConnections = calendarConnections.filter((conn) =>
+  // Group calendars by transport first: a Google calendar reached through Nylas
+  // has a grant instead of tokens, so the family alone would send it to the
+  // Google client with nothing to authenticate with.
+  const nylasConnections = calendarConnections.filter(
+    (conn) => conn.transport === "nylas",
+  );
+  const tokenConnections = calendarConnections.filter(
+    (conn) => conn.transport !== "nylas",
+  );
+  const googleConnections = tokenConnections.filter((conn) =>
     isGoogleProvider(conn.provider),
   );
-  const microsoftConnections = calendarConnections.filter(
+  const microsoftConnections = tokenConnections.filter(
     (conn) => conn.provider === "microsoft",
   );
 
   const promises: Promise<BusyPeriod[]>[] = [];
+
+  for (const connection of nylasConnections) {
+    if (!connection.calendars.length) continue;
+
+    const nylasAvailabilityProvider = createNylasAvailabilityProvider(logger);
+
+    promises.push(
+      nylasAvailabilityProvider
+        .fetchBusyPeriods({
+          grantId: connection.grantId,
+          email: connection.email,
+          emailAccountId,
+          refreshToken: connection.refreshToken,
+          expiresAt: connection.expiresAt?.getTime() || null,
+          calendarIds: connection.calendars.map((cal) => cal.calendarId),
+          timeMin,
+          timeMax,
+          failOnCalendarError: failClosed,
+        })
+        .catch((error) => {
+          logger.error("Error fetching Nylas calendar availability", {
+            error,
+            connectionId: connection.id,
+            ...getCalendarAvailabilityErrorLogContext(error),
+          });
+          if (failClosed) throw error;
+          return [];
+        }),
+    );
+  }
 
   // Fetch Google calendar availability
   for (const connection of googleConnections) {
@@ -166,6 +205,7 @@ export async function getUnifiedCalendarAvailability({
 
   logger.trace("Unified calendar availability results", {
     totalBusyPeriods: convertedBusyPeriods.length,
+    nylasConnectionsCount: nylasConnections.length,
     googleConnectionsCount: googleConnections.length,
     microsoftConnectionsCount: microsoftConnections.length,
   });

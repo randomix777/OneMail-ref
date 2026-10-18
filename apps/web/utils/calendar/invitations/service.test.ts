@@ -75,6 +75,20 @@ describe("responding to calendar invitations", () => {
     expect(sendEmail).not.toHaveBeenCalled();
   });
 
+  it("uses a grant-backed connection, which carries no refresh token", async () => {
+    mocks.connections.mockResolvedValue([
+      { provider: "google", transport: "nylas", grantId: "grant-1" },
+    ]);
+    await expect(respondToCalendarInvitation(params)).resolves.toEqual({
+      response: "accepted",
+      calendarSynced: true,
+    });
+    // Gating on the refresh token alone would email the organizer instead of
+    // touching the calendar, for every Google account moved onto Nylas.
+    expect(mocks.findEvent).toHaveBeenCalledOnce();
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
   it("sends an iMIP reply when no matching calendar is connected", async () => {
     await expect(respondToCalendarInvitation(params)).resolves.toEqual({
       response: "accepted",

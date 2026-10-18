@@ -181,8 +181,11 @@ async function findInvitationEvent({
   });
   const matches = [];
   for (const connection of connections) {
-    if (!connection.refreshToken) continue;
+    // A Nylas connection holds a grant rather than a refresh token, so gating
+    // on the token would skip every Google calendar on that transport.
+    if (!connection.refreshToken && !connection.grantId) continue;
     if (
+      connection.transport !== "nylas" &&
       !isGoogleProvider(connection.provider) &&
       !isMicrosoftProvider(connection.provider)
     )
