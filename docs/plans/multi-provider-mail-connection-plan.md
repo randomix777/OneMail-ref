@@ -1271,8 +1271,9 @@ removed yet; the point of the section is that the cost is not where it looks.
 
 - **Code to delete together, because each piece supports the others.** The
   transport branch in `utils/email/provider.ts` (family `google` + transport
-  `oauth`), `utils/email/google.ts` (2,215 lines) with `google.test.ts` (1,289),
-  `/api/google/linking/{auth-url,callback}`, `/api/google/webhook`,
+  `oauth`), `utils/email/google.ts` (1,989 lines, measured after P1b) with
+  `google.test.ts` (1,166), `/api/google/linking/{auth-url,callback}`,
+  `/api/google/webhook`,
   `validate-webhook-account.ts`'s `GmailProvider` import and its
   `provider: "google"` lookup, and `GMAIL_SCOPES` on our own consent in
   `utils/auth.ts` — where `shouldLinkEmailAccount("google")` becomes
@@ -1429,6 +1430,80 @@ removed yet; the point of the section is that the cost is not where it looks.
   (`emulate.config.yaml`, the emulator seed, the Playwright config, the CLI's
   Pub/Sub setup, and the hosting docs). None of it is test work — the test surface
   is now on the transport that remains.
+
+**Re-audit against the current tree, after P1b (counted, not estimated).** The
+list above is directionally right and wrong in two places that would cost a lot to
+discover mid-deletion.
+
+1. **`utils/gmail/**` cannot be deleted as a directory, because most of it is not
+   the transport.** Counted by whether a module has any importer outside
+   `utils/gmail/**`, `utils/email/google*` and tests:
+
+   - **Transport-only, zero external importers — 18 modules, 3,210 lines**:
+     `mail`, `message`, `message-bodies`, `attachment`, `attachment-stream`,
+     `draft`, `draft-attachments`, `resumable-draft-upload`, `batch`,
+     `batch-with-retry`, `mailbox-sync`, `sync-messages`, `contact`, `filter`,
+     `trash`, `spam`, `settings`, `watch`.
+   - **Shared infrastructure that must survive — 16 modules**, several with wide
+     use: `label.ts` (19 external importers), `oauth.ts` (9), `decode.ts` (7),
+     `client.ts` (6), `retry.ts` (6), `constants.ts` (6), `scopes.ts` (4),
+     `label-validation.ts` (3), `thread.ts` and `forward.ts` (2 each), and
+     `label-colors`, `snippet`, `signature-settings`, `history`, `permissions`,
+     `reply` (1 each).
+
+   The reason is that **`GmailLabel` is the vocabulary the app models mail with,
+   not Gmail transport code**: `/api/messages`, `utils/threads/fetch-page`,
+   `utils/split-inbox/native-categories`, `utils/assess`, `utils/senders/filters`,
+   `utils/calendar/invitations/detection` and `components/EmailMessageCellLabels`
+   all read it, and Nylas Google grants carry Gmail label ids, so it stays true
+   after the deletion. `utils/email/nylas.ts` already treats it that way — it
+   declares its own local `GMAIL_FLAG_LABELS` rather than importing. `decode.ts`,
+   `retry.ts`, `oauth.ts` and `scopes.ts` are pulled in by the UI, error handling
+   and the calendar and Drive clients respectively. **So P1c deletes a transport
+   plus 18 helper modules, not a directory** — and the 16 shared modules need a
+   decision each: keep, or move out of a `gmail/` folder that will no longer
+   describe them.
+
+2. **`app/api/clean/**` is a second direct-Gmail coupling the earlier list
+   missed** (4 files, 412 lines). It does not go through the provider abstraction
+   at all: `app/api/clean/controller.ts` calls `getGmailClientWithRefresh`,
+   `getThreadMessages` and `GmailLabel` directly. It therefore does not survive by
+   being "provider-agnostic" — it has to be retargeted onto `EmailProvider` (the
+   operations it needs, label/archive/trash, all exist there and on Nylas) or
+   disabled for Nylas mailboxes like Drive was. Nothing in the tests would notice
+   if it was silently left calling a Gmail client that no longer has tokens.
+
+**Deleting the transport also makes Nylas mandatory for Google mail, which is a
+product decision rather than a cleanup.** `createProviderForTransport` builds
+`GmailProvider` for family `google` + transport `oauth` and throws for any other
+combination, and `utils/auth.ts` picks `GMAIL_SCOPES` over identity scopes when
+`hasNylasConfig()` is false. Removing both means a deployment without Nylas cannot
+connect a Google mailbox at all. That is a coherent end state — it is what "use
+Nylas for everything" means — but it is the deployment contract, so it should be
+agreed before the first file is deleted, not discovered by a self-hoster.
+
+**Executable order, once that is agreed.** Each step leaves the tree working:
+
+1. Retarget or disable `app/api/clean/**` (independent of everything else).
+2. Retarget the two deletion-candidate tests: delete `gmail-mailbox-history`, and
+   move `draft-attachments` onto the Nylas provider's unsupported-feature
+   contract, or delete it with the `resumable-draft-upload` module it tests.
+3. Move the 16 shared `utils/gmail/**` modules to a folder that says what they
+   are, updating their importers — mechanical, and it shrinks the deletion diff.
+4. Delete the 18 transport-only modules with `utils/gmail/mail.ts`'s dependants.
+5. Delete `utils/email/google.ts` + `google.test.ts`, the `oauth` branch in
+   `provider.ts`, `/api/google/linking/*`, `/api/google/webhook`,
+   `utils/webhook/google/**` (6 files, 1,114 lines), and
+   `validate-webhook-account.ts`'s `GmailProvider` import.
+6. Drop `GMAIL_SCOPES`/`REQUIRED_SCOPES` and the `hasNylasConfig()` fallback in
+   `utils/auth.ts`, making identity-only sign-in unconditional.
+7. Delete the 2 Gmail e2e files and the Gmail test harness.
+8. The outside-`apps/web` drift last: `emulate.config.yaml`, the emulator seed,
+   the Playwright config, the CLI's Pub/Sub setup, and the hosting docs — these
+   are what a self-hoster reads, so they change with the decision in step 6.
+
+Steps 3–6 are one coordinated change; step 1 and step 2 are independent and can
+land first.
 
 ### P2 — IMAP/SMTP + direct OAuth providers (~6–8 weeks)
 
