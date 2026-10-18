@@ -21,8 +21,14 @@ const nylasClient = vi.hoisted(() => ({ nylasFetch: vi.fn() }));
 
 const listNylasFolders = vi.hoisted(() => vi.fn());
 
+const nylasContacts = vi.hoisted(() => ({
+  searchNylasContacts: vi.fn(),
+  listNylasContactPhotos: vi.fn(),
+}));
+
 vi.mock("@/env", () => ({ env: {} }));
 vi.mock("@/utils/nylas/mail", () => nylasMail);
+vi.mock("@/utils/nylas/contacts", () => nylasContacts);
 vi.mock("@/utils/nylas/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/utils/nylas/client")>();
   return { ...actual, nylasFetch: nylasClient.nylasFetch };
@@ -404,14 +410,39 @@ describe("features Nylas does not provide", () => {
     await expect(provider().getFiltersList()).resolves.toEqual([]);
   });
 
-  it("returns no send-as aliases, signatures, forwarding addresses, or photos", async () => {
+  it("returns no send-as aliases, signatures, or forwarding addresses", async () => {
     const mail = provider();
 
     await expect(mail.getSendAsAddresses()).resolves.toEqual([]);
     await expect(mail.getSignatures()).resolves.toEqual([]);
     await expect(mail.getForwardingAddresses()).resolves.toEqual([]);
-    await expect(mail.getContactPhotos()).resolves.toEqual({});
-    await expect(mail.searchContacts("ada")).resolves.toEqual([]);
+  });
+
+  it("reads contacts and their photos from the Nylas Contacts API", async () => {
+    // Contacts are supported by Nylas, so they are not part of the disabled set:
+    // the provider delegates to the contacts module with its own grant.
+    const contact = {
+      emailAddress: "ada@example.com",
+      name: "Ada Lovelace",
+      profilePictureUrl: "https://example.com/ada.png",
+    };
+    nylasContacts.searchNylasContacts.mockResolvedValue([contact]);
+    nylasContacts.listNylasContactPhotos.mockResolvedValue({
+      "ada@example.com": "https://example.com/ada.png",
+    });
+
+    const mail = provider();
+
+    await expect(mail.searchContacts("ada")).resolves.toEqual([contact]);
+    await expect(mail.getContactPhotos()).resolves.toEqual({
+      "ada@example.com": "https://example.com/ada.png",
+    });
+    expect(nylasContacts.searchNylasContacts).toHaveBeenCalledWith(
+      expect.objectContaining({ grantId: GRANT_ID, query: "ada" }),
+    );
+    expect(nylasContacts.listNylasContactPhotos).toHaveBeenCalledWith(
+      expect.objectContaining({ grantId: GRANT_ID }),
+    );
   });
 
   it("refuses draft attachment editing", async () => {

@@ -319,6 +319,27 @@ export type NylasWireFolder = {
   system_folder: boolean;
 };
 
+export type NylasSeedContact = {
+  id: string;
+  givenName?: string;
+  surname?: string;
+  displayName?: string;
+  companyName?: string;
+  emails: string[];
+  pictureUrl?: string;
+};
+
+/** A contact as Nylas v3 returns it. */
+export type NylasWireContact = {
+  id: string;
+  given_name: string | null;
+  surname: string | null;
+  display_name: string | null;
+  company_name: string | null;
+  emails: Array<{ type: string | null; email: string }>;
+  picture_url: string | null;
+};
+
 export type NylasRecordedRequest = {
   method: string;
   url: URL;
@@ -332,6 +353,8 @@ export type NylasTestHarness = {
   mailbox: NylasWireMessage[];
   /** The fake's folders, seeded with the Gmail system labels. */
   labels: NylasWireFolder[];
+  /** The fake's address book. */
+  contacts: NylasWireContact[];
   /** Every request the provider made, in order. */
   requests: NylasRecordedRequest[];
   /** Call in afterAll to put globalThis.fetch back. */
@@ -350,9 +373,11 @@ export type NylasTestHarness = {
  */
 export async function createNylasTestHarness({
   messages,
+  contacts = [],
   grantId = "grant-abc",
 }: {
   messages: NylasSeedMessage[];
+  contacts?: NylasSeedContact[];
   grantId?: string;
 }): Promise<NylasTestHarness> {
   const origin = process.env.NYLAS_API_URI;
@@ -364,6 +389,7 @@ export async function createNylasTestHarness({
 
   const mailbox = messages.map(toNylasWireMessage);
   const labels = seedNylasLabels();
+  const addressBook = contacts.map(toNylasWireContact);
   const requests: NylasRecordedRequest[] = [];
 
   const realFetch = globalThis.fetch;
@@ -371,6 +397,7 @@ export async function createNylasTestHarness({
     requests,
     mailbox,
     labels,
+    addressBook,
     origin,
     grantId,
     realFetch,
@@ -385,7 +412,14 @@ export async function createNylasTestHarness({
     logger: createTestLogger(),
   });
 
-  return { provider, mailbox, labels, requests, restoreFetch };
+  return {
+    provider,
+    mailbox,
+    labels,
+    contacts: addressBook,
+    requests,
+    restoreFetch,
+  };
 }
 
 /** The system labels every Gmail grant carries, with RFC 9051 attributes. */
@@ -443,6 +477,18 @@ function toNylasWireMessage(seed: NylasSeedMessage): NylasWireMessage {
   };
 }
 
+function toNylasWireContact(seed: NylasSeedContact): NylasWireContact {
+  return {
+    id: seed.id,
+    given_name: seed.givenName ?? null,
+    surname: seed.surname ?? null,
+    display_name: seed.displayName ?? null,
+    company_name: seed.companyName ?? null,
+    emails: seed.emails.map((email) => ({ type: "work", email })),
+    picture_url: seed.pictureUrl ?? null,
+  };
+}
+
 /**
  * Enough of the Nylas v3 messages surface to drive a sync and a mutation, plus
  * a record of what was asked for. Anything else 404s, so a retargeted test
@@ -452,6 +498,7 @@ function createNylasFetch({
   requests,
   mailbox,
   labels,
+  addressBook,
   origin,
   grantId,
   realFetch,
@@ -459,6 +506,7 @@ function createNylasFetch({
   requests: NylasRecordedRequest[];
   mailbox: NylasWireMessage[];
   labels: NylasWireFolder[];
+  addressBook: NylasWireContact[];
   origin: string;
   grantId: string;
   realFetch: typeof fetch;
@@ -490,6 +538,11 @@ function createNylasFetch({
       authorization: headers.get("authorization"),
       body: rawBody === undefined ? undefined : JSON.parse(rawBody),
     });
+
+    const contactsPath = `/v3/grants/${grantId}/contacts`;
+    if (method === "GET" && url.pathname === contactsPath) {
+      return Response.json(nylasContactPage(url, addressBook));
+    }
 
     const foldersPath = `/v3/grants/${grantId}/folders`;
     if (url.pathname === foldersPath) {
@@ -709,6 +762,50 @@ function applyNylasUpdate(
 function nylasMessageIdFromPath(pathname: string, messagesPath: string) {
   if (!pathname.startsWith(`${messagesPath}/`)) return null;
   return decodeURIComponent(pathname.slice(messagesPath.length + 1));
+}
+
+/**
+ * The contacts list. `search_query_native` is provider syntax in production; the
+ * fake narrows on a plain term so a search assertion cannot pass on a full
+ * address book.
+ */
+function nylasContactPage(url: URL, contacts: NylasWireContact[]) {
+  const limit = Number(url.searchParams.get("limit") ?? contacts.length);
+  const offset = Number(url.searchParams.get("page_token") ?? 0);
+  const term = url.searchParams
+    .get("search_query_native")
+    ?.trim()
+    .toLowerCase();
+
+  const visible = contacts.filter((contact) =>
+    nylasContactMatches(contact, term),
+  );
+  const page = visible.slice(offset, offset + limit);
+
+  return {
+    data: page,
+    next_cursor:
+      offset + page.length < visible.length
+        ? String(offset + page.length)
+        : null,
+  };
+}
+
+function nylasContactMatches(contact: NylasWireContact, term?: string) {
+  if (!term) return true;
+
+  const haystack = [
+    contact.given_name,
+    contact.surname,
+    contact.display_name,
+    contact.company_name,
+    ...contact.emails.map((email) => email.email),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return haystack.includes(term);
 }
 
 function nylasFolderIdFromPath(pathname: string, foldersPath: string) {

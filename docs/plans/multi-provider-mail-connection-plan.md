@@ -1079,6 +1079,45 @@ Nylas API; availability and booking regression tests proving Google results are
 unchanged; a test that Google accounts no longer request Drive or Calendar scopes
 on our own client; filing UI verified hidden (not broken) for Google accounts.
 
+**Contacts: landed.** `utils/nylas/contacts.ts` implements both halves of the seam
+that `GmailProvider` filled from the People API, and `NylasMailProvider` now
+delegates to them instead of returning `[]`/`{}`:
+
+- `searchContacts` sends the query as `search_query_native` untouched — the same
+  pass-through contract as mail search, because re-implementing the provider's
+  query syntax here would silently change what users' searches match. Results are
+  mapped to `EmailContact` (display name, else given+surname, else company name)
+  and run through the shared `normalizeContactCandidates`, so the picker cap,
+  invalid-address filtering and de-duplication stay identical across transports.
+- `getContactPhotos` walks paged contacts and keys photos by canonical address,
+  bounded by the same 2,000-entry cap as the Gmail implementation.
+
+Two decisions worth keeping:
+
+- **A 403 means "this grant has no contacts scope", and the two paths treat it
+  differently on purpose.** For search it yields no suggestions — compose still
+  works and the user can type an address. For photos it is *re-thrown*, because
+  the photos route caches a successful empty map for 24 hours as "this account
+  has no photos"; swallowing a 403 would pin that on a grant that is merely
+  unpermitted. Letting it through routes it to the existing 15-minute
+  failed-sweep cache, which is what that cache was built for.
+- **No "other contacts" source to merge.** `GmailProvider` had to union saved
+  contacts with Other Contacts to get Gmail-like suggestions; for a Google grant
+  the provider decides which address books a contacts read covers, so one walk is
+  the whole address book.
+
+Covered by `utils/nylas/contacts.test.ts` (11 tests: query pass-through, name
+resolution order, several addresses per contact, invalid-address and duplicate
+handling, the picker cap, the 403 split, canonical photo keys, first-photo-wins,
+cursor paging) and `__tests__/integration/nylas-contacts.test.ts` (5 tests driving
+both methods through `NylasMailProvider` over the fake API). The fake grew a
+`/contacts` endpoint with `search_query_native` narrowing and `page_token` paging,
+plus a `contacts` seed on `createNylasTestHarness`.
+
+**Outstanding in P1b**: everything calendar (provider, `CalendarConnection`,
+free/busy, the Drive-filing UI gate), and the scope assertion that our own client
+stops asking for the calendar and Drive scopes.
+
 ### P1c — Deleting the direct Gmail path (audited, not started)
 
 Measured so the deletion is mechanical when it happens. Nothing here has been

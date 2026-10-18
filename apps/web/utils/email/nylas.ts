@@ -52,6 +52,10 @@ import {
   toOutlookFolder,
   type NylasFolder,
 } from "@/utils/nylas/folder";
+import {
+  listNylasContactPhotos,
+  searchNylasContacts,
+} from "@/utils/nylas/contacts";
 import { toParsedMessage } from "@/utils/nylas/message";
 import {
   decodeMailboxSyncCursor,
@@ -1488,12 +1492,15 @@ export class NylasMailProvider implements EmailProvider {
   }
 
   async getContactPhotos(): Promise<Record<string, string>> {
-    return {};
+    return listNylasContactPhotos({ grantId: this.grantId });
   }
 
-  async searchContacts(_query: string): Promise<EmailContact[]> {
-    // Nylas has a Contacts API; moving Google contacts onto it is P1b.
-    return [];
+  async searchContacts(query: string): Promise<EmailContact[]> {
+    return searchNylasContacts({
+      grantId: this.grantId,
+      query,
+      logger: this.logger,
+    });
   }
 
   /**
