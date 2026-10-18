@@ -943,9 +943,24 @@ Remaining:
   `NylasUnsupportedFeatureError`; `utils/senders/filters.ts` still branches on
   `provider.name`. Needs capability gating plus the user-visible copy and release
   notes.
-- **Docs and CI for Nylas**: `docs/hosting` still describes only the direct Google
-  OAuth client, `packages/cli` setup prompts and the emulator seed register the
-  old linking callback, and no workflow carries placeholder Nylas credentials.
+- **Docs: done** (commit `docs: document the Nylas transport for Google mail`).
+  `/hosting/nylas` covers what Nylas owns, the four variables, the grant-id
+  connection, what is disabled, and sync without a change log; the environment
+  reference gained the `NYLAS_*` rows plus the rule that those variables — not a
+  separate switch — are what put Google mail on Nylas; `google-oauth` and
+  `google-pubsub` now point at that path instead of implying the direct client is
+  the only option.
+- **CI placeholder credentials: not needed, and the reason is worth keeping.**
+  Every test that exercises the Nylas path stubs `NYLAS_API_KEY`/`NYLAS_API_URI`
+  in a `vi.hoisted` block for the duration of that file, and no emulated
+  (Playwright) flow uses Nylas yet — the emulated Google suites drive sign-in and
+  the direct client. Adding placeholders to the workflows would configure Nylas
+  for the whole run and change which transport those suites exercise. Revisit only
+  if an emulated Nylas flow is introduced.
+- **The emulator seed, the Playwright config, and the CLI's Pub/Sub setup are not
+  drift yet.** They register the *direct* Google linking callback and topic, which
+  is exactly what still runs for the emulated suites and for deployments without
+  Nylas. They change with the deletion, not before it.
 - **A live end-to-end pass** on a real Google grant (see Evidence).
 
 **Deviation (integration harness)**: this document proposed MSW handlers plus a
