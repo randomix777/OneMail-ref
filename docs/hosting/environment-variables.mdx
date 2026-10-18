@@ -21,8 +21,13 @@ Reference for environment variables relevant to self-hosting Inbox Zero. Hosted-
 | `EMAIL_ENCRYPT_SECRET` | Yes | Secret for encrypting OAuth tokens. Generate with `openssl rand -hex 32` | — |
 | `EMAIL_ENCRYPT_SALT` | Yes | Salt for encrypting OAuth tokens. Generate with `openssl rand -hex 16` | — |
 | **Google OAuth** ||||
-| `GOOGLE_CLIENT_ID` | Yes | OAuth client ID from Google Cloud Console | — |
+| `GOOGLE_CLIENT_ID` | Yes | OAuth client ID from Google Cloud Console. Used for sign-in, and for mail only as the fallback when Nylas is not configured (see [Google via Nylas](/hosting/nylas)) | — |
 | `GOOGLE_CLIENT_SECRET` | Yes | OAuth client secret from Google Cloud Console | — |
+| **Nylas (Google mail)** ||||
+| `NYLAS_API_KEY` | No* | Nylas application API key. Required to connect Google mailboxes | — |
+| `NYLAS_CLIENT_ID` | No* | Nylas application client ID | — |
+| `NYLAS_API_URI` | No | Nylas API host. Use `https://api.eu.nylas.com` for an EU-region application | `https://api.us.nylas.com` |
+| `NYLAS_WEBHOOK_SECRET` | No* | Secret used to verify `X-Nylas-Signature` on webhook deliveries. Generate with `openssl rand -hex 32` | — |
 | **Microsoft OAuth** ||||
 | `MICROSOFT_CLIENT_ID` | No | OAuth client ID from Azure Portal | — |
 | `MICROSOFT_CLIENT_SECRET` | No | OAuth client secret from Azure Portal | — |
@@ -202,12 +207,14 @@ Reference for environment variables relevant to self-hosting Inbox Zero. Hosted-
 - `TELEGRAM_BOT_SECRET_TOKEN` is required only when `TELEGRAM_BOT_TOKEN` is set.
 - `RECALL_API_KEY` and `RECALL_WEBHOOK_SECRET` are both required when Meeting Recorder is enabled.
 - `GOOGLE_PUBSUB_VERIFICATION_TOKEN` is required when Gmail Pub/Sub push is enabled. If your deployment authenticates `/api/google/webhook` upstream, you can set it to an empty string to intentionally disable query-parameter verification.
+- The `NYLAS_*` variables are required to connect Google mailboxes, and all of them together are what decide that Google mail runs through Nylas. Without them the app falls back to the direct Google client (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`) for Google mail, which requests the restricted Gmail scopes from your own Cloud project. See [Google via Nylas](/hosting/nylas).
 
 ## Setup Guides
 
 For detailed setup instructions, see the [Setup Guides](/hosting/setup-guides):
 
 - [Google OAuth](/hosting/google-oauth)
+- [Google via Nylas](/hosting/nylas)
 - [Microsoft OAuth](/hosting/microsoft-oauth)
 - [Enterprise SSO and SCIM](/hosting/sso)
 - [Google PubSub](/hosting/google-pubsub)

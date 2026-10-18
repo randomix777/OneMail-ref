@@ -114,6 +114,7 @@
             "pages": [
               "hosting/setup-guides",
               "hosting/google-oauth",
+              "hosting/nylas",
               "hosting/google-pubsub",
               "hosting/microsoft-oauth",
               "hosting/sso",

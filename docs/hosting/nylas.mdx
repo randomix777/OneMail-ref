@@ -1,0 +1,55 @@
+---
+title: 'Google via Nylas'
+description: 'Connect Google mailboxes through Nylas, which carries the CASA assessment for restricted Gmail scopes'
+---
+
+Google mail connects through [Nylas](https://developer.nylas.com) rather than a Google OAuth client belonging to your deployment. Nylas owns a verified Google Cloud project and exposes it as its Google Shared App, so the consent screen users see is Nylas'. That is the whole reason for the extra provider: Google's restricted Gmail scopes require an annual CASA assessment from the project whose client asks for them, and with this configuration that project is Nylas'.
+
+Our own Google client therefore keeps only what sign-in needs — `openid`, `userinfo.email`, `userinfo.profile`. It does not request Gmail access, and mailboxes are reached with Nylas' grant model instead.
+
+## What you need
+
+1. A Nylas application with the Google connector enabled. Using Nylas' own Google credentials (the Shared App) requires the Accelerator add-on on an annual Pro plan, or the Enterprise add-on. Without it, Nylas has no Google client it may use on your behalf and a Google connector has to be pointed at your own Google Cloud project instead.
+2. These environment variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `NYLAS_API_KEY` | Application API key. Every Nylas call is authenticated with it. |
+| `NYLAS_CLIENT_ID` | Application client ID, used to build the hosted-auth URL. |
+| `NYLAS_API_URI` | API host. Defaults to `https://api.us.nylas.com`; use `https://api.eu.nylas.com` for an EU-region application. |
+| `NYLAS_WEBHOOK_SECRET` | Verifies the `X-Nylas-Signature` header on webhook deliveries. Generate with `openssl rand -hex 32`. |
+
+All four are optional at boot. When `NYLAS_API_KEY` and `NYLAS_CLIENT_ID` are both present the app treats Nylas as the Google mail transport; when they are absent it falls back to the direct Google client described below.
+
+3. A webhook subscription pointing at `POST {NEXT_PUBLIC_BASE_URL}/api/nylas/webhook`, subscribed to the message and grant triggers. Nylas verifies the endpoint by echoing a `challenge` query parameter, which the route answers verbatim.
+
+## How a mailbox is connected
+
+Connecting a Google mailbox is an explicit action, separate from signing in: the app sends the user to Nylas' hosted authentication with a signed `state`, exchanges the returned one-time code for a **grant id**, and stores that grant as the account's connection. No Google access or refresh token is written to the database, and signing in no longer grants mail access — an account created that way would be a mailbox that cannot read a message.
+
+Two Nylas behaviours are worth knowing:
+
+- One grant per email address per application. Reconnecting updates the existing grant rather than creating a second one.
+- Grant health arrives as a `grant.expired` webhook. The route treats it as a connection event — logged separately from a rate limit or a mail event — rather than as new mail to process.
+
+## What Nylas does not do
+
+Some Gmail features have no Nylas API at all, and they are **disabled** for Google mailboxes rather than reimplemented on a side channel:
+
+- **Gmail server-side filters**, including the auto-archive filter that sender blocking and unsubscribe use. Those actions report that the transport does not support them.
+- **Send-as alias enumeration** and **forwarding addresses**.
+- **Gmail signatures** read from provider settings. OneMail's own stored signature still applies.
+- **Drive-backed document filing** — Google accounts lose it while Outlook keeps OneDrive.
+- **Resumable draft-attachment uploads**.
+
+This asymmetry is a deliberate trade. Keeping any of these on your own Google client would mean that client requesting restricted scopes again, which is the cost this design exists to avoid.
+
+## Sync and new mail
+
+Nylas has no Gmail-style change log, so the local mail engine reads a time window over the mailbox and relies on the app-level webhook for prompt updates. Because push is application-wide, the hourly watch job skips these accounts instead of recording a subscription failure for them.
+
+## Without Nylas configured
+
+The direct Google client still exists: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` drive both sign-in and, when Nylas is absent, mailbox connections through `/api/google/linking`. That path asks Google for the restricted Gmail scopes from **your** Cloud project, so serving real users with it means taking on the Google verification and CASA obligations yourself. It is kept for local development and for deployments that have not moved yet.
+
+For that reason CI leaves `NYLAS_*` unset: the direct path is what the emulated Google suites exercise, and the configured path is covered by unit tests that set the variables for the duration of a test.

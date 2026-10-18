@@ -7,6 +7,14 @@ description: 'Configure Google OAuth credentials, scopes, and required APIs'
   **Quick Setup with CLI:** If you have the `gcloud` CLI installed, run `inbox-zero setup-google` to automate API enabling and Pub/Sub setup. It will guide you through the OAuth steps that require manual console access.
 </Tip>
 
+<Note>
+  This page configures a Google client belonging to **your** project. If you want to connect Google
+  mailboxes without taking on Google's restricted-scope verification and CASA obligations, connect
+  them through Nylas instead — see [Google via Nylas](/hosting/nylas). The credentials below are then
+  used for sign-in only. They remain the mail transport for deployments that have not configured
+  Nylas, and for local development.
+</Note>
+
 Go to [Google Cloud Console](https://console.cloud.google.com/) and create a new project if necessary.
 
 1. **Configure consent screen:**

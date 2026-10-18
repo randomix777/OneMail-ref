@@ -7,6 +7,12 @@ description: 'Configure Gmail push notifications with Google PubSub'
   **Automated Setup:** If you ran `inbox-zero setup-google`, the Pub/Sub topic and subscription were created automatically. Skip to the "For local development" section below.
 </Tip>
 
+<Note>
+  Pub/Sub delivers Gmail notifications for the **direct** Google client. If you connect Google mailboxes
+  through Nylas, new mail arrives on Nylas' application-level webhook instead and no topic is needed —
+  see [Google via Nylas](/hosting/nylas).
+</Note>
+
 Complete [Google OAuth](/hosting/google-oauth) first.
 
 PubSub enables real-time email notifications so Inbox Zero is notified immediately when new emails arrive.
