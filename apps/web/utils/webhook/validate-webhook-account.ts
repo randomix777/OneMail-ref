@@ -39,6 +39,8 @@ const webhookEmailAccountSelect = {
   calendarBookingLink: true,
   draftReplyConfidence: true,
   lastSyncedHistoryId: true,
+  // Read by the IMAP poller; a webhook never touches it.
+  imapSyncCursor: true,
   autoCategorizeSenders: true,
   filingEnabled: true,
   filingPrompt: true,
@@ -84,13 +86,20 @@ type WebhookEmailAccount = Prisma.EmailAccountGetPayload<{
 export async function getWebhookEmailAccount(
   where:
     | { email: string }
+    | { id: string }
     | { watchEmailsSubscriptionId: string }
     | { providerAccountId: string },
   logger: Logger,
 ) {
   let emailAccount: WebhookEmailAccount | null = null;
 
-  if ("email" in where) {
+  if ("id" in where) {
+    // A poller already has the row's id; nothing pushes a message to identify it.
+    emailAccount = await prisma.emailAccount.findUnique({
+      where: { id: where.id },
+      select: webhookEmailAccountSelect,
+    });
+  } else if ("email" in where) {
     emailAccount = await prisma.emailAccount.findUnique({
       where: { email: where.email },
       select: webhookEmailAccountSelect,
