@@ -20,7 +20,7 @@ describe("provider registry", () => {
       defaultTransport: "nylas",
       connection: { kind: "redirect", endpoint: "/api/nylas/linking/auth-url" },
       syncPageSize: 50,
-      capabilities: { labels: true, starred: true },
+      capabilities: { labels: true, starred: true, bulkActions: true },
     },
     microsoft: {
       defaultTransport: "oauth",
@@ -29,7 +29,7 @@ describe("provider registry", () => {
         endpoint: "/api/outlook/linking/auth-url",
       },
       syncPageSize: 20,
-      capabilities: { labels: false, starred: false },
+      capabilities: { labels: false, starred: false, bulkActions: true },
     },
     // Reachable only by submitting an app password: none of these can connect a
     // third-party client through a redirect we could send the user to.
@@ -37,13 +37,13 @@ describe("provider registry", () => {
       defaultTransport: "imap",
       connection: { kind: "credentials" },
       syncPageSize: 50,
-      capabilities: { labels: false, starred: true },
+      capabilities: { labels: false, starred: true, bulkActions: false },
     },
     zoho: {
       defaultTransport: "imap",
       connection: { kind: "credentials" },
       syncPageSize: 50,
-      capabilities: { labels: false, starred: true },
+      capabilities: { labels: false, starred: true, bulkActions: false },
     },
     fastmail: {
       defaultTransport: "imap",
@@ -51,19 +51,19 @@ describe("provider registry", () => {
       syncPageSize: 50,
       // Fastmail's labels are real IMAP folders a message can appear in several
       // of, so it reads as labels rather than a single-folder model.
-      capabilities: { labels: true, starred: true },
+      capabilities: { labels: true, starred: true, bulkActions: false },
     },
     icloud: {
       defaultTransport: "imap",
       connection: { kind: "credentials" },
       syncPageSize: 50,
-      capabilities: { labels: false, starred: true },
+      capabilities: { labels: false, starred: true, bulkActions: false },
     },
     imap: {
       defaultTransport: "imap",
       connection: { kind: "credentials" },
       syncPageSize: 50,
-      capabilities: { labels: false, starred: true },
+      capabilities: { labels: false, starred: true, bulkActions: false },
     },
   } satisfies Record<ProviderFamily, unknown>;
 
@@ -128,6 +128,7 @@ describe("provider registry", () => {
     expect(getProviderCapabilities("carrier-pigeon")).toEqual({
       labels: true,
       starred: true,
+      bulkActions: true,
     });
     expect(getProviderSyncPageSize("carrier-pigeon")).toBe(50);
   });

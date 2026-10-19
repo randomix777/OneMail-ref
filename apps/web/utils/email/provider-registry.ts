@@ -49,6 +49,15 @@ export type ProviderCapabilities = {
   labels: boolean;
   /** Has a star/flag that is independent of read state. */
   starred: boolean;
+  /**
+   * Can act on every message from a sender in one call — the sender lists and
+   * bulk archive/trash screens are built on that.
+   *
+   * False for the IMAP families: a plain IMAP client has no batch-by-sender
+   * operation, so the screens that depend on it are hidden rather than offered
+   * and failing.
+   */
+  bulkActions: boolean;
 };
 
 /**
@@ -89,7 +98,7 @@ const PROVIDER_DEFINITIONS = {
       endpoint: "/api/nylas/linking/auth-url",
     },
     syncPageSize: 50,
-    capabilities: { labels: true, starred: true },
+    capabilities: { labels: true, starred: true, bulkActions: true },
   },
   microsoft: {
     family: "microsoft",
@@ -101,7 +110,7 @@ const PROVIDER_DEFINITIONS = {
     },
     syncPageSize: 20,
     // Outlook organizes mail into folders/categories and has no star.
-    capabilities: { labels: false, starred: false },
+    capabilities: { labels: false, starred: false, bulkActions: true },
   },
   // The families below are reached over IMAP with an app password, which is the
   // path their own documentation supports for third-party clients. Yahoo has an
@@ -115,7 +124,7 @@ const PROVIDER_DEFINITIONS = {
     connection: { kind: "credentials" },
     // No provider documents a per-fetch cap, so this is our own batching choice.
     syncPageSize: 50,
-    capabilities: { labels: false, starred: true },
+    capabilities: { labels: false, starred: true, bulkActions: false },
   },
   zoho: {
     family: "zoho",
@@ -123,7 +132,7 @@ const PROVIDER_DEFINITIONS = {
     defaultTransport: "imap",
     connection: { kind: "credentials" },
     syncPageSize: 50,
-    capabilities: { labels: false, starred: true },
+    capabilities: { labels: false, starred: true, bulkActions: false },
   },
   fastmail: {
     family: "fastmail",
@@ -133,7 +142,7 @@ const PROVIDER_DEFINITIONS = {
     syncPageSize: 50,
     // Fastmail's labels are real IMAP folders and one message can carry several,
     // so it behaves like labels rather than a single-folder model.
-    capabilities: { labels: true, starred: true },
+    capabilities: { labels: true, starred: true, bulkActions: false },
   },
   icloud: {
     family: "icloud",
@@ -141,7 +150,7 @@ const PROVIDER_DEFINITIONS = {
     defaultTransport: "imap",
     connection: { kind: "credentials" },
     syncPageSize: 50,
-    capabilities: { labels: false, starred: true },
+    capabilities: { labels: false, starred: true, bulkActions: false },
   },
   imap: {
     family: "imap",
@@ -149,7 +158,7 @@ const PROVIDER_DEFINITIONS = {
     defaultTransport: "imap",
     connection: { kind: "credentials" },
     syncPageSize: 50,
-    capabilities: { labels: false, starred: true },
+    capabilities: { labels: false, starred: true, bulkActions: false },
   },
 } satisfies Record<ProviderFamily, ProviderDefinition>;
 
@@ -230,9 +239,13 @@ export function getProviderSyncPageSize(provider: string): number {
   );
 }
 
+// What an unrecognised provider value is assumed to be, kept at the historical
+// Gmail-shaped answer so changing it stays a deliberate act. Bulk actions are
+// included because every family that actually exists reports the real value.
 const DEFAULT_PROVIDER_CAPABILITIES: ProviderCapabilities = {
   labels: true,
   starred: true,
+  bulkActions: true,
 };
 
 const DEFAULT_PROVIDER_SYNC_PAGE_SIZE = 50;
