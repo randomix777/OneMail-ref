@@ -59,4 +59,35 @@ describe("getEmailMessageCellActions", () => {
       }),
     ).toBeNull();
   });
+
+  it("does not invent a link for a mailbox with no web URL we can build", () => {
+    // The URL builder's fallback is Gmail's shape, so before this an IMAP message
+    // got a mail.google.com link carrying its own id. Such a mailbox reads in the
+    // app instead, which is why the button is still offered.
+    expect(
+      getEmailMessageCellActions({
+        messageId: "INBOX:42",
+        provider: "fastmail",
+        threadId: "thread-1",
+        userEmail: "ada@fastmail.com",
+      }),
+    ).toEqual({ openUrl: undefined, showViewEmailButton: true });
+  });
+
+  it("still prefers a provider link when the message carries one", () => {
+    // Graph supplies `externalUrl`; a mailbox that hands us a real link needs no
+    // generated fallback regardless of provider.
+    expect(
+      getEmailMessageCellActions({
+        externalUrl: "https://app.fastmail.com/mail/Inbox/thread-1",
+        messageId: "INBOX:42",
+        provider: "fastmail",
+        threadId: "thread-1",
+        userEmail: "ada@fastmail.com",
+      }),
+    ).toEqual({
+      openUrl: "https://app.fastmail.com/mail/Inbox/thread-1",
+      showViewEmailButton: true,
+    });
+  });
 });

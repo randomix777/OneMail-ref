@@ -1,5 +1,4 @@
-import { getEmailUrlForMessage } from "@/utils/url";
-import { isMicrosoftProvider } from "@/utils/email/provider-types";
+import { canGenerateMessageUrl, getEmailUrlForMessage } from "@/utils/url";
 
 type GetEmailMessageCellActionsOptions = {
   externalUrl?: string;
@@ -20,11 +19,16 @@ export function getEmailMessageCellActions({
 }: GetEmailMessageCellActionsOptions) {
   if (hideViewEmailButton) return null;
 
+  // `externalUrl` is the provider's own link, when the message carries one (Graph
+  // does). Otherwise a link is only generated for a provider whose generated form
+  // is trustworthy; the builder's fallback is Gmail's shape, so asking it about an
+  // IMAP mailbox would produce a link to Gmail carrying someone else's id. Those
+  // mailboxes read in the app instead.
   const openUrl =
     externalUrl ||
-    (isMicrosoftProvider(provider)
-      ? undefined
-      : getEmailUrlForMessage(messageId, threadId, userEmail, provider));
+    (canGenerateMessageUrl(provider)
+      ? getEmailUrlForMessage(messageId, threadId, userEmail, provider)
+      : undefined);
 
   return {
     openUrl,

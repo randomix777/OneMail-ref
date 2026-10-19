@@ -2,9 +2,15 @@ import { MailIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDisplayedEmail } from "@/hooks/useDisplayedEmail";
 import { Tooltip } from "@/components/Tooltip";
-import { useAccount } from "@/providers/EmailAccountProvider";
-import { isGoogleProvider } from "@/utils/email/provider-types";
 
+/**
+ * Opens the message in the in-app reader.
+ *
+ * Available for every provider: the reader loads the thread through the provider
+ * interface, so an IMAP mailbox reads here just as a Gmail one does. It used to be
+ * Gmail-only, which left the IMAP families with no way to read a message inside
+ * the app — and, for them, no web link to fall back on either.
+ */
 export function ViewEmailButton({
   threadId,
   messageId,
@@ -16,12 +22,7 @@ export function ViewEmailButton({
   className?: string;
   size?: "icon" | "xs" | "sm";
 }) {
-  const { provider } = useAccount();
   const { showEmail } = useDisplayedEmail();
-
-  if (!isGoogleProvider(provider)) {
-    return null;
-  }
 
   return (
     <Tooltip content="View email">

@@ -252,6 +252,30 @@ export function getOpenInMailboxLabel(provider?: string | null) {
   return OPEN_IN_MAILBOX_LABELS[provider] ?? null;
 }
 
+/**
+ * Whether a message can be handed to the provider's own web UI.
+ *
+ * The URL builders fall back to Gmail's shape for a provider they do not
+ * recognise, which for an IMAP mailbox produces a working-looking link to the
+ * wrong service. Callers check this first and offer the in-app reader instead.
+ */
+export function canOpenInMailbox(provider?: string | null) {
+  return getOpenInMailboxLabel(provider) !== null;
+}
+
+/**
+ * Whether a *generated* message URL can be trusted without the provider's own
+ * link.
+ *
+ * Only Gmail: the builder's fallback shape is Gmail's, and Outlook's generated
+ * `/inbox/id/…` form is unreliable, which is why Outlook relies on the `webLink`
+ * Graph returns with the message. A provider outside this method has no
+ * trustworthy generated link, so the UI must offer the in-app reader instead.
+ */
+export function canGenerateMessageUrl(provider?: string | null) {
+  return provider === "google";
+}
+
 export function getEmailSearchUrl(
   address: string,
   emailAddress?: string | null,
