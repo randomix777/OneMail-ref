@@ -7,6 +7,11 @@ import {
   premiumEntitlementSelect,
 } from "@/utils/premium";
 import { unwatchEmails } from "@/utils/email/watch-manager";
+import {
+  isProviderFamily,
+  resolveMailTransport,
+} from "@/utils/email/provider-registry";
+import { hasTransportCredentials } from "@/utils/email/transport-credentials";
 import { createEmailProvider } from "@/utils/email/provider";
 import {
   getGmailClientForEmail,
@@ -43,12 +48,17 @@ const webhookEmailAccountSelect = {
   account: {
     select: {
       provider: true,
+      transport: true,
+      providerAccountId: true,
       access_token: true,
       refresh_token: true,
       expires_at: true,
       disconnectedAt: true,
     },
   },
+  // Only whether a usable credential exists: a webhook account is skipped when it
+  // has nothing to authenticate with, and what that means differs by transport.
+  mailboxCredential: { select: { active: true } },
   rules: {
     where: { enabled: true },
     include: {
@@ -288,11 +298,24 @@ export async function validateWebhookAccount(
     return { success: false, response: NextResponse.json({ ok: true }) };
   }
 
+  // A row with no account, or a provider the registry does not know, has nothing
+  // to authenticate with; saying so is better than throwing mid-webhook.
+  const providerName = emailAccount.account?.provider;
   if (
-    !emailAccount.account?.access_token ||
-    !emailAccount.account?.refresh_token
+    !providerName ||
+    !isProviderFamily(providerName) ||
+    !hasTransportCredentials({
+      transport: resolveMailTransport(
+        providerName,
+        emailAccount.account?.transport,
+      ),
+      providerAccountId: emailAccount.account?.providerAccountId,
+      accessToken: emailAccount.account?.access_token,
+      refreshToken: emailAccount.account?.refresh_token,
+      mailboxCredential: emailAccount.mailboxCredential,
+    })
   ) {
-    logger.error("Missing access or refresh token");
+    logger.error("Missing credentials for this mailbox's transport");
     return { success: false, response: NextResponse.json({ ok: true }) };
   }
 

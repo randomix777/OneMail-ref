@@ -57,6 +57,10 @@ describe("validateWebhookAccount", () => {
       watchEmailsSubscriptionHistory: [],
       account: {
         provider: "google",
+        // These fixtures describe a token-based mailbox; without saying so the
+        // account falls back to the family default and looks like a Nylas one.
+        transport: "oauth",
+        providerAccountId: null,
         access_token: "access-token",
         refresh_token: "refresh-token",
         expires_at: new Date(),
@@ -152,6 +156,8 @@ describe("validateWebhookAccount", () => {
       const emailAccount = createMockEmailAccount({
         account: {
           provider: "google",
+          transport: "oauth",
+          providerAccountId: null,
           access_token: "access-token",
           refresh_token: "refresh-token",
           expires_at: new Date(),
@@ -263,11 +269,82 @@ describe("validateWebhookAccount", () => {
     });
   });
 
+  describe("when the mailbox authenticates on a non-OAuth transport", () => {
+    it("accepts a Nylas mailbox that has a grant id but no tokens", async () => {
+      // Nylas holds the tokens and the linking callback stores null for both.
+      // Requiring them here skipped every message that transport delivered.
+      const emailAccount = createMockEmailAccount({
+        account: {
+          provider: "google",
+          transport: "nylas",
+          providerAccountId: "grant-1",
+          access_token: null,
+          refresh_token: null,
+          expires_at: null,
+          disconnectedAt: null,
+        },
+      });
+
+      vi.mocked(isPremiumRecord).mockReturnValue(true);
+      vi.mocked(hasAiAccess).mockReturnValue(true);
+
+      const result = await validateWebhookAccount(emailAccount, logger);
+
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts an IMAP mailbox whose credential is active", async () => {
+      const emailAccount = createMockEmailAccount({
+        account: {
+          provider: "fastmail",
+          transport: "imap",
+          providerAccountId: null,
+          access_token: null,
+          refresh_token: null,
+          expires_at: null,
+          disconnectedAt: null,
+        },
+      });
+      emailAccount.mailboxCredential = { active: true };
+
+      vi.mocked(isPremiumRecord).mockReturnValue(true);
+      vi.mocked(hasAiAccess).mockReturnValue(true);
+
+      const result = await validateWebhookAccount(emailAccount, logger);
+
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects an IMAP mailbox whose credential was deactivated", async () => {
+      const emailAccount = createMockEmailAccount({
+        account: {
+          provider: "fastmail",
+          transport: "imap",
+          providerAccountId: null,
+          access_token: null,
+          refresh_token: null,
+          expires_at: null,
+          disconnectedAt: null,
+        },
+      });
+      emailAccount.mailboxCredential = { active: false };
+
+      vi.mocked(isPremiumRecord).mockReturnValue(true);
+      vi.mocked(hasAiAccess).mockReturnValue(true);
+
+      const result = await validateWebhookAccount(emailAccount, logger);
+
+      expect(result.success).toBe(false);
+    });
+  });
+
   describe("when access_token is missing", () => {
     it("should return failure with error logged", async () => {
       const emailAccount = createMockEmailAccount({
         account: {
           provider: "google",
+          transport: "oauth",
+          providerAccountId: null,
           access_token: null,
           refresh_token: "refresh-token",
           expires_at: new Date(),
@@ -292,6 +369,8 @@ describe("validateWebhookAccount", () => {
       const emailAccount = createMockEmailAccount({
         account: {
           provider: "google",
+          transport: "oauth",
+          providerAccountId: null,
           access_token: "access-token",
           refresh_token: null,
           expires_at: new Date(),
