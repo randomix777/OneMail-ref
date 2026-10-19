@@ -1572,6 +1572,22 @@ Fastmail requires an app password (a regular password is refused). Server-side
 search is also still unimplemented, which leaves rules that ask about a sender's
 history unavailable on these mailboxes.
 
+**Two structural gaps found while auditing, neither introduced by this work:**
+
+1. **The mailbox source is not wired.** `createEmailProviderMailboxSource` has no
+   production caller — only its own module and its tests reference it. So no
+   provider's mail is currently pulled into the local mirror through it, and the
+   folder-delta generalization that was done for it is correct but not yet
+   exercised in production. Reads in the mail UI go through the request path
+   (`/api/messages`, the provider interface) rather than the mirror, which is why
+   this is invisible today.
+2. **Nothing polls for new mail.** Watch subscriptions are skipped for transports
+   that need none (`usesPerAccountWatch` is false for both Nylas and IMAP), and
+   there is no cron that syncs a mailbox on a schedule. For IMAP — which has no
+   push at all — that means the rules pipeline only ever sees mail the request
+   path happened to fetch. This is the polling work (G6) the plan already lists as
+   open; it is the difference between "the transport works" and "mail arrives".
+
 ### P3 — Product surface (~1.5–2 weeks)
 
 Registry-driven `AddAccount`, provider logos and copy, accounts-page error
