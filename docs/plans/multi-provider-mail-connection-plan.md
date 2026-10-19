@@ -630,10 +630,10 @@ on our own credentials, we have implicitly accepted our own CASA assessment.
 | --- | --- | --- | --- | --- |
 | Gmail | `google` | Nylas hosted auth | Nylas v3 | Yes |
 | Outlook / M365 | `microsoft` | Existing direct OAuth | Graph | Yes — unchanged |
-| Zoho Mail | `zoho` | OAuth 2.0 | REST Mail API **or** IMAP | OAuth flow verified against Zoho docs (`accounts.zoho.com/oauth/v2/auth`, refresh via `grant_type=refresh_token`, `Authorization: Zoho-oauthtoken`); REST-vs-IMAP is **Gate G4** |
-| Yahoo Mail | `yahoo` | OAuth 2.0 | IMAP/SMTP XOAUTH2 | OAuth 2.0 authorization-code flow confirmed; **mail scopes and IMAP XOAUTH2 endpoints unverified** — confirm before building |
-| Fastmail | `fastmail` | App password (JMAP/OAuth support for IMAP unverified) | IMAP/SMTP | Unverified — treat as app password initially |
-| iCloud | `icloud` | App-specific password | `imap.mail.me.com` / `smtp.mail.me.com` | Endpoints per Nylas' iCloud guide |
+| Zoho Mail | `zoho` | App password (TFA mandates it; free plans have no IMAP) | IMAP/SMTP | `imap.zoho.com` / `smtp.zoho.com`; paid domain accounts use `imappro`/`smtppro`. Zoho's own SMTP files a Sent copy, so we do not append one (P2) |
+| Yahoo Mail | `yahoo` | App password | IMAP/SMTP | **Opened by decision** — its API terms ask for OAuth-only and document no send scope, so this follows its help-centre instructions instead (P2, caveats recorded there) |
+| Fastmail | `fastmail` | App password (16 characters; a regular password is refused) | IMAP/SMTP | `imap.fastmail.com`:993 / `smtp.fastmail.com`:465. Labels are real IMAP folders a message can appear in several of |
+| iCloud | `icloud` | App-specific password (needs 2FA on the Apple ID) | IMAP/SMTP | `imap.mail.me.com`:993 / `smtp.mail.me.com`:587 with STARTTLS |
 | Generic / self-hosted | `imap` | Password or app password | User-supplied host/port | Yes |
 
 Consumer providers in this table (Yahoo, iCloud, 163/QQ, corporate IMAP)
@@ -1517,6 +1517,60 @@ UIDVALIDITY change → `reset_required`, flag round-trips, folder roles, attachm
 streaming, and SMTP send; an end-to-end connect-with-app-password flow; a test
 proving a poll-only account no longer produces hourly watch errors or lapse
 emails; a bounded-poll run showing new mail reaches the rules pipeline.
+
+**Landed: the transport, the provider, and the connect flow.**
+
+- **`MailboxCredential`** holds the connection facts in typed columns and the
+  app password in one, which the existing Prisma extension encrypts exactly as it
+  encrypts OAuth tokens. It carries its own copy of the family, and the provider
+  factory compares that with `Account.provider` so the copy cannot drift.
+- **The engine's `accounts.provider` CHECK is widened** to the new families.
+  SQLite cannot alter a CHECK, so the migration rebuilds the parent table; that
+  needs foreign keys off, and the pragma is a no-op inside a transaction, so the
+  driver grew an explicit deferred-key write. Without it the migration would fail
+  on a constraint instead of widening it. The test opens a legacy-shaped database
+  twice, proves the new families insert, the existing row survives, and an
+  unknown family is still refused.
+- **`apps/web/utils/imap/`**: connection and folder roles (attributes first, name
+  only as a fallback — none of these providers documents RFC 6154 SPECIAL-USE, and
+  Fastmail calls its junk folder `Spam`), MIME mapping onto the app's label
+  conventions, the UID cursor, SMTP send, and the provider itself.
+- **The cursor carries UIDVALIDITY**, so a renumbered mailbox resets instead of
+  reporting an empty delta, and `n:*`'s habit of re-reporting the last UID is
+  filtered rather than trusted to the caller.
+- **Send composes the bytes once** and reuses them for the Sent copy, because a
+  hand-written header block would drop the HTML part and the attachments.
+- **`ImapMailProvider` implements the whole interface.** The sync, read, thread,
+  flag and send paths do real work; everything that needs a provider API
+  (filters, send-as, signatures, forwarding, labels, drafts, server-side search)
+  raises a `SafeError` the user can read. Returning empty is reserved for the
+  cases where "nothing" is the true answer — no address book, no aliases.
+- **The connect form** takes an address and a password for a preset family, and
+  hostnames only for "other mail server". A **preset owns the TLS mode**: iCloud
+  documents STARTTLS on 587, and a form default of "secure" would wrap that port
+  in implicit TLS and fail every send. `resolveConnection` is exported and tested
+  to keep that rule from regressing.
+
+**Yahoo is opened by decision, with two caveats recorded rather than resolved.**
+
+1. **Its API terms ask for OAuth-only.** The same terms carry a competing-product
+   clause and a "delete user data within 24 hours" rule, and Yahoo documents no
+   OAuth scope for *sending* mail — only `mail-r` for reading. So the connection
+   this product offers (IMAP + app password) is the one its help centre
+   describes, and the one its API terms do not. That is a policy position the
+   product has taken, not an oversight.
+2. **Whether Yahoo files its own copy of sent mail is not documented.** The
+   transport therefore appends its own, because losing sent mail is worse than
+   showing a duplicate. If a Yahoo mailbox turns out to double up in Sent, this
+   is the line to change.
+
+**What remains in P2**: a real-account pass. Every claim above is verified by
+types, unit tests against a fake client, and pure-logic tests — **no real mailbox
+has ever been connected**. Two provider-specific facts make that pass necessary
+rather than ceremonial: **Zoho's free plan has no IMAP access at all**, and
+Fastmail requires an app password (a regular password is refused). Server-side
+search is also still unimplemented, which leaves rules that ask about a sender's
+history unavailable on these mailboxes.
 
 ### P3 — Product surface (~1.5–2 weeks)
 

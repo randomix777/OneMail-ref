@@ -63,6 +63,20 @@ describe("connectImapMailboxBody", () => {
     expect(connectImapMailboxBody.safeParse(base).success).toBe(true);
   });
 
+  it("accepts every preset family it offers", () => {
+    // Yahoo is included deliberately: the product decided to offer it even though
+    // its API terms ask for OAuth, so nothing here should quietly exclude it.
+    for (const provider of ["zoho", "fastmail", "yahoo", "icloud"]) {
+      expect(
+        connectImapMailboxBody.safeParse({
+          provider,
+          email: "ada@example.com",
+          secret: "app-password",
+        }).success,
+      ).toBe(true);
+    }
+  });
+
   it("requires hostnames for a generic IMAP server", () => {
     const result = connectImapMailboxBody.safeParse({
       ...base,
