@@ -34,7 +34,11 @@ async function pollAllImapMailboxes(logger: Logger) {
       account: { transport: "imap", disconnectedAt: null },
     },
     select: { id: true, email: true },
-    orderBy: { updatedAt: "asc" },
+    // Ordered by the last attempt rather than by `updatedAt`: a skipped mailbox
+    // writes nothing, so ordering by a column that only changes when work happens
+    // would leave the same skipped accounts at the front of every batch and starve
+    // every mailbox behind them. Nulls first so a new mailbox is looked at once.
+    orderBy: { imapLastPolledAt: { sort: "asc", nulls: "first" } },
     take: BATCH_SIZE,
   });
 
@@ -58,6 +62,11 @@ async function pollAllImapMailboxes(logger: Logger) {
         emailAccountId: account.id,
         error,
       });
+    } finally {
+      // Recorded for every attempt, including a skip and a failure: this is what
+      // moves the mailbox to the back of the queue so the next batch covers the
+      // ones behind it.
+      await recordAttempt(account.id, logger);
     }
   }
 
@@ -69,4 +78,24 @@ async function pollAllImapMailboxes(logger: Logger) {
   });
 
   return { accounts: accounts.length, processed, skipped, failed };
+}
+
+/**
+ * Marks the mailbox as attempted.
+ *
+ * A failure here must not fail the batch: losing one timestamp means the mailbox
+ * is polled again sooner, which is safe.
+ */
+async function recordAttempt(emailAccountId: string, logger: Logger) {
+  try {
+    await prisma.emailAccount.update({
+      where: { id: emailAccountId },
+      data: { imapLastPolledAt: new Date() },
+    });
+  } catch (error) {
+    logger.warn("Failed to record an IMAP poll attempt", {
+      emailAccountId,
+      error,
+    });
+  }
 }

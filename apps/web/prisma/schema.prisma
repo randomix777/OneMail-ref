@@ -170,6 +170,7 @@ model EmailAccount {
   watchEmailsSubscriptionHistory Json? // Historical Outlook subscription IDs: [{ subscriptionId, createdAt, replacedAt }]
   lastSyncedHistoryId            String?
   imapSyncCursor                 String? // opaque folder+UIDVALIDITY+UID cursor for polling an IMAP mailbox
+  imapLastPolledAt               DateTime? // when the poller last looked at this mailbox, skip or not
   behaviorProfile                Json?
   personaAnalysis                Json? // ai analysis of the user's persona
   role                           String? // the role confirmed by the user - previously `User.surveyRole`
