@@ -20,7 +20,12 @@ describe("provider registry", () => {
       defaultTransport: "nylas",
       connection: { kind: "redirect", endpoint: "/api/nylas/linking/auth-url" },
       syncPageSize: 50,
-      capabilities: { labels: true, starred: true, bulkActions: true },
+      capabilities: {
+        labels: true,
+        starred: true,
+        bulkActions: true,
+        viewerReplies: true,
+      },
     },
     microsoft: {
       defaultTransport: "oauth",
@@ -29,7 +34,12 @@ describe("provider registry", () => {
         endpoint: "/api/outlook/linking/auth-url",
       },
       syncPageSize: 20,
-      capabilities: { labels: false, starred: false, bulkActions: true },
+      capabilities: {
+        labels: false,
+        starred: false,
+        bulkActions: true,
+        viewerReplies: false,
+      },
     },
     // Reachable only by submitting an app password: none of these can connect a
     // third-party client through a redirect we could send the user to.
@@ -37,13 +47,23 @@ describe("provider registry", () => {
       defaultTransport: "imap",
       connection: { kind: "credentials" },
       syncPageSize: 50,
-      capabilities: { labels: false, starred: true, bulkActions: false },
+      capabilities: {
+        labels: false,
+        starred: true,
+        bulkActions: false,
+        viewerReplies: false,
+      },
     },
     zoho: {
       defaultTransport: "imap",
       connection: { kind: "credentials" },
       syncPageSize: 50,
-      capabilities: { labels: false, starred: true, bulkActions: false },
+      capabilities: {
+        labels: false,
+        starred: true,
+        bulkActions: false,
+        viewerReplies: false,
+      },
     },
     fastmail: {
       defaultTransport: "imap",
@@ -51,19 +71,34 @@ describe("provider registry", () => {
       syncPageSize: 50,
       // Fastmail's labels are real IMAP folders a message can appear in several
       // of, so it reads as labels rather than a single-folder model.
-      capabilities: { labels: true, starred: true, bulkActions: false },
+      capabilities: {
+        labels: true,
+        starred: true,
+        bulkActions: false,
+        viewerReplies: false,
+      },
     },
     icloud: {
       defaultTransport: "imap",
       connection: { kind: "credentials" },
       syncPageSize: 50,
-      capabilities: { labels: false, starred: true, bulkActions: false },
+      capabilities: {
+        labels: false,
+        starred: true,
+        bulkActions: false,
+        viewerReplies: false,
+      },
     },
     imap: {
       defaultTransport: "imap",
       connection: { kind: "credentials" },
       syncPageSize: 50,
-      capabilities: { labels: false, starred: true, bulkActions: false },
+      capabilities: {
+        labels: false,
+        starred: true,
+        bulkActions: false,
+        viewerReplies: false,
+      },
     },
   } satisfies Record<ProviderFamily, unknown>;
 
@@ -129,6 +164,7 @@ describe("provider registry", () => {
       labels: true,
       starred: true,
       bulkActions: true,
+      viewerReplies: true,
     });
     expect(getProviderSyncPageSize("carrier-pigeon")).toBe(50);
   });

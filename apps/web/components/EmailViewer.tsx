@@ -8,7 +8,7 @@ import { useThread } from "@/hooks/useThread";
 import { LoadingContent } from "@/components/LoadingContent";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAccount } from "@/providers/EmailAccountProvider";
-import { isGoogleProvider } from "@/utils/email/provider-types";
+import { getProviderCapabilities } from "@/utils/email/provider-registry";
 
 export function EmailViewer() {
   const { provider } = useAccount();
@@ -22,7 +22,9 @@ export function EmailViewer() {
   } = useDisplayedEmail();
 
   const hideEmail = useCallback(() => showEmail(null), [showEmail]);
-  const supportsViewerReplies = isGoogleProvider(provider);
+  // A capability rather than a family test: the reader shows any mailbox, but the
+  // reply-draft path it drives is only built for Google today.
+  const supportsViewerReplies = getProviderCapabilities(provider).viewerReplies;
 
   return (
     <Sheet open={!!threadId} onOpenChange={hideEmail}>

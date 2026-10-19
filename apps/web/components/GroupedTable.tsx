@@ -42,7 +42,11 @@ import {
   useArchiveSenderStatus,
   useArchiveSenderQueueActions,
 } from "@/store/archive-sender-queue";
-import { getEmailUrl, getGmailSearchUrl } from "@/utils/url";
+import {
+  canGenerateMessageUrl,
+  getEmailUrl,
+  getGmailSearchUrl,
+} from "@/utils/url";
 import { MessageText } from "@/components/Typography";
 import { CreateCategoryDialog } from "@/app/(app)/[emailAccountId]/smart-categories/CreateCategoryButton";
 import {
@@ -530,13 +534,19 @@ function ExpandedRows({
               <ViewEmailButton threadId={thread.id} messageId={thread.id} />
             </TableCell>
             <TableCell className="py-3">
-              <Link
-                href={getEmailUrl(thread.id, userEmail, provider)}
-                target="_blank"
-                className="hover:underline"
-              >
-                {subject}
-              </Link>
+              {/* Only link out when the provider has a generated URL we trust;
+                  otherwise a Yahoo or IMAP mailbox would link to Gmail. */}
+              {canGenerateMessageUrl(provider) ? (
+                <Link
+                  href={getEmailUrl(thread.id, userEmail, provider)}
+                  target="_blank"
+                  className="hover:underline"
+                >
+                  {subject}
+                </Link>
+              ) : (
+                subject
+              )}
             </TableCell>
             <TableCell className="py-3">
               {decodeSnippet(thread.messages[0].snippet)}

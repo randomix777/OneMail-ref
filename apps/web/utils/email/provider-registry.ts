@@ -58,6 +58,14 @@ export type ProviderCapabilities = {
    * and failing.
    */
   bulkActions: boolean;
+  /**
+   * Can compose and store a reply draft from the in-app reader.
+   *
+   * About the draft path the reader uses, not about sending: Google is the only
+   * family whose reply-draft flow has been built and exercised, so the others show
+   * the message without reply affordances rather than offering buttons that fail.
+   */
+  viewerReplies: boolean;
 };
 
 /**
@@ -98,7 +106,12 @@ const PROVIDER_DEFINITIONS = {
       endpoint: "/api/nylas/linking/auth-url",
     },
     syncPageSize: 50,
-    capabilities: { labels: true, starred: true, bulkActions: true },
+    capabilities: {
+      labels: true,
+      starred: true,
+      bulkActions: true,
+      viewerReplies: true,
+    },
   },
   microsoft: {
     family: "microsoft",
@@ -110,7 +123,12 @@ const PROVIDER_DEFINITIONS = {
     },
     syncPageSize: 20,
     // Outlook organizes mail into folders/categories and has no star.
-    capabilities: { labels: false, starred: false, bulkActions: true },
+    capabilities: {
+      labels: false,
+      starred: false,
+      bulkActions: true,
+      viewerReplies: false,
+    },
   },
   // The families below are reached over IMAP with an app password, which is the
   // path their own documentation supports for third-party clients. Yahoo has an
@@ -124,7 +142,12 @@ const PROVIDER_DEFINITIONS = {
     connection: { kind: "credentials" },
     // No provider documents a per-fetch cap, so this is our own batching choice.
     syncPageSize: 50,
-    capabilities: { labels: false, starred: true, bulkActions: false },
+    capabilities: {
+      labels: false,
+      starred: true,
+      bulkActions: false,
+      viewerReplies: false,
+    },
   },
   zoho: {
     family: "zoho",
@@ -132,7 +155,12 @@ const PROVIDER_DEFINITIONS = {
     defaultTransport: "imap",
     connection: { kind: "credentials" },
     syncPageSize: 50,
-    capabilities: { labels: false, starred: true, bulkActions: false },
+    capabilities: {
+      labels: false,
+      starred: true,
+      bulkActions: false,
+      viewerReplies: false,
+    },
   },
   fastmail: {
     family: "fastmail",
@@ -142,7 +170,12 @@ const PROVIDER_DEFINITIONS = {
     syncPageSize: 50,
     // Fastmail's labels are real IMAP folders and one message can carry several,
     // so it behaves like labels rather than a single-folder model.
-    capabilities: { labels: true, starred: true, bulkActions: false },
+    capabilities: {
+      labels: true,
+      starred: true,
+      bulkActions: false,
+      viewerReplies: false,
+    },
   },
   icloud: {
     family: "icloud",
@@ -150,7 +183,12 @@ const PROVIDER_DEFINITIONS = {
     defaultTransport: "imap",
     connection: { kind: "credentials" },
     syncPageSize: 50,
-    capabilities: { labels: false, starred: true, bulkActions: false },
+    capabilities: {
+      labels: false,
+      starred: true,
+      bulkActions: false,
+      viewerReplies: false,
+    },
   },
   imap: {
     family: "imap",
@@ -158,7 +196,12 @@ const PROVIDER_DEFINITIONS = {
     defaultTransport: "imap",
     connection: { kind: "credentials" },
     syncPageSize: 50,
-    capabilities: { labels: false, starred: true, bulkActions: false },
+    capabilities: {
+      labels: false,
+      starred: true,
+      bulkActions: false,
+      viewerReplies: false,
+    },
   },
 } satisfies Record<ProviderFamily, ProviderDefinition>;
 
@@ -246,6 +289,8 @@ const DEFAULT_PROVIDER_CAPABILITIES: ProviderCapabilities = {
   labels: true,
   starred: true,
   bulkActions: true,
+  // The historical answer: the UI these defaults were written for was Gmail's.
+  viewerReplies: true,
 };
 
 const DEFAULT_PROVIDER_SYNC_PAGE_SIZE = 50;

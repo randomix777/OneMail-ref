@@ -45,7 +45,7 @@ import {
   type BulkActionType,
   getActionLabels,
 } from "@/app/(app)/[emailAccountId]/bulk-archive/BulkArchiveSettingsModal";
-import { getEmailUrl } from "@/utils/url";
+import { canGenerateMessageUrl, getEmailUrl } from "@/utils/url";
 import type { CategoryWithRules } from "@/utils/category.server";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import { getCategoryStyle } from "@/components/bulk-archive/categoryIcons";
@@ -819,44 +819,56 @@ function ExpandedEmails({
           const date = firstMessage.date;
           const snippet = thread.snippet || firstMessage.snippet;
 
+          const row = (
+            <>
+              <MailIcon className="size-4 shrink-0 text-muted-foreground" />
+              <span className="min-w-0 flex-1 truncate text-sm">
+                <span className="font-medium">
+                  {subject.length > 50 ? `${subject.slice(0, 50)}...` : subject}
+                </span>
+                {snippet && (
+                  <span className="ml-2 text-muted-foreground">
+                    {(() => {
+                      // Remove invisible/zero-width chars and normalize whitespace
+                      const cleaned = snippet
+                        .replace(/[\u034F\u200B-\u200D\uFEFF\u00A0]/g, "")
+                        .trim()
+                        .replace(/\s+/g, " ");
+                      return cleaned.length > 80
+                        ? `${cleaned.slice(0, 80).trimEnd()}...`
+                        : cleaned;
+                    })()}
+                  </span>
+                )}
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {formatShortDate(new Date(date))}
+              </span>
+            </>
+          );
+          const rowClassName =
+            "mr-2 flex flex-1 items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-muted/50";
+
           return (
             <div key={thread.id} className="flex">
               <div className="flex items-center pl-[26px]">
                 <div className="h-full w-px bg-border" />
                 <div className="h-px w-4 bg-border" />
               </div>
-              <Link
-                href={getEmailUrl(thread.id, userEmail, provider)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mr-2 flex flex-1 items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-muted/50"
-              >
-                <MailIcon className="size-4 shrink-0 text-muted-foreground" />
-                <span className="min-w-0 flex-1 truncate text-sm">
-                  <span className="font-medium">
-                    {subject.length > 50
-                      ? `${subject.slice(0, 50)}...`
-                      : subject}
-                  </span>
-                  {snippet && (
-                    <span className="ml-2 text-muted-foreground">
-                      {(() => {
-                        // Remove invisible/zero-width chars and normalize whitespace
-                        const cleaned = snippet
-                          .replace(/[\u034F\u200B-\u200D\uFEFF\u00A0]/g, "")
-                          .trim()
-                          .replace(/\s+/g, " ");
-                        return cleaned.length > 80
-                          ? `${cleaned.slice(0, 80).trimEnd()}...`
-                          : cleaned;
-                      })()}
-                    </span>
-                  )}
-                </span>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {formatShortDate(new Date(date))}
-                </span>
-              </Link>
+              {/* Only link out when the provider has a generated URL we trust;
+                  otherwise a Yahoo or IMAP mailbox would link to Gmail. */}
+              {canGenerateMessageUrl(provider) ? (
+                <Link
+                  href={getEmailUrl(thread.id, userEmail, provider)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={rowClassName}
+                >
+                  {row}
+                </Link>
+              ) : (
+                <div className={rowClassName}>{row}</div>
+              )}
             </div>
           );
         })}
