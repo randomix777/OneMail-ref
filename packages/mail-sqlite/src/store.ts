@@ -59,7 +59,7 @@ import {
   readMailboxViewFromSql,
   readMailboxWindowFromSql,
 } from "./mailbox-view-readers";
-import { migrateMailbox } from "./migrations";
+import { migrateAccountProviders, migrateMailbox } from "./migrations";
 import {
   completeSearchIndexIfFull,
   deleteAccountSearchIndex,
@@ -121,6 +121,11 @@ export async function createSqliteMailStore(
   const bodyCodec = options.bodyCodec ?? streamBodyCodec;
   await driver.write(async (tx) => {
     await migrateMailbox(tx, runtime.randomId());
+  });
+  // Its own write, with foreign keys deferred: it rebuilds `accounts`, and
+  // SQLite only honours that pragma outside a transaction.
+  await driver.write((tx) => migrateAccountProviders(tx), {
+    deferForeignKeys: true,
   });
   await migrateCompressedMessageBodies(driver, bodyCodec);
   const capabilities = await probeSqliteCapabilities(driver);

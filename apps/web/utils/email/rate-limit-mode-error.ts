@@ -1,4 +1,5 @@
 import type { EmailProvider } from "@/utils/email/types";
+import { isProviderFamily } from "@/utils/email/provider-registry";
 
 export type EmailProviderRateLimitProvider = EmailProvider["name"];
 
@@ -18,6 +19,34 @@ const EMAIL_PROVIDER_RATE_LIMIT_METADATA = {
     apiErrorType: "Outlook Rate Limit",
     messageProviderLabel: "Microsoft",
     bannerProviderLabel: "Microsoft Outlook",
+  },
+  // The IMAP families do not report rate limits through an HTTP error type, so
+  // `apiErrorType` exists only to keep this map total. Their labels are what the
+  // user sees when a poll is backing off.
+  yahoo: {
+    apiErrorType: "Yahoo Mail Rate Limit",
+    messageProviderLabel: "Yahoo Mail",
+    bannerProviderLabel: "Yahoo Mail",
+  },
+  zoho: {
+    apiErrorType: "Zoho Mail Rate Limit",
+    messageProviderLabel: "Zoho Mail",
+    bannerProviderLabel: "Zoho Mail",
+  },
+  fastmail: {
+    apiErrorType: "Fastmail Rate Limit",
+    messageProviderLabel: "Fastmail",
+    bannerProviderLabel: "Fastmail",
+  },
+  icloud: {
+    apiErrorType: "iCloud Mail Rate Limit",
+    messageProviderLabel: "iCloud Mail",
+    bannerProviderLabel: "iCloud Mail",
+  },
+  imap: {
+    apiErrorType: "IMAP Rate Limit",
+    messageProviderLabel: "this mail server",
+    bannerProviderLabel: "Your mail server",
   },
 } satisfies Record<
   EmailProviderRateLimitProvider,
@@ -48,8 +77,12 @@ export class ProviderRateLimitModeError extends Error {
 export function toRateLimitProvider(
   provider: string | null | undefined,
 ): EmailProviderRateLimitProvider | null {
-  if (provider === "google" || provider === "microsoft") return provider;
-  return null;
+  // Every family in the registry is readable, because `createEmailProvider`
+  // gates on this and would otherwise reject a family it can actually build a
+  // provider for.
+  return typeof provider === "string" && isProviderFamily(provider)
+    ? provider
+    : null;
 }
 
 export function getProviderFromRateLimitApiErrorType(

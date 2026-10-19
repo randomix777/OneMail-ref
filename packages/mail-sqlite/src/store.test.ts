@@ -375,6 +375,55 @@ describe("sqlite mail store", () => {
     await rm(directory, { recursive: true, force: true });
   });
 
+  it("widens the account provider constraint when upgrading an existing mailbox", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "mail-sqlite-"));
+    const path = join(directory, "mailbox.sqlite");
+    createLegacyMailboxWithoutExternalUrl(path);
+
+    // Opening twice proves the rebuild records itself: SQLite cannot alter a
+    // CHECK, so a second run would fail on the already-rebuilt table.
+    const first = await createSqliteMailStore(createNodeSqliteDriver(path));
+    await first.close();
+    const store = await createSqliteMailStore(createNodeSqliteDriver(path));
+    await store.close();
+
+    const db = new DatabaseSync(path);
+    try {
+      const accounts = db
+        .prepare("SELECT account_id, provider FROM accounts")
+        .all() as Array<{ account_id: string; provider: string }>;
+      expect(accounts.map((row) => [row.account_id, row.provider])).toEqual([
+        ["acc-1", "microsoft"],
+      ]);
+
+      // The rebuild drops and recreates the parent table, so the child's rows
+      // are the thing most likely to be lost by it.
+      const messages = db
+        .prepare("SELECT COUNT(*) AS count FROM messages")
+        .get() as { count: number };
+      expect(messages.count).toBe(1);
+
+      for (const provider of ["imap", "yahoo", "zoho", "fastmail", "icloud"]) {
+        db.prepare(
+          "INSERT INTO accounts(account_id, provider, generation) VALUES (?, ?, ?)",
+        ).run(`acc-${provider}`, provider, "g1");
+      }
+
+      // Widened, not removed: an unknown family is still rejected.
+      expect(() =>
+        db
+          .prepare(
+            "INSERT INTO accounts(account_id, provider, generation) VALUES (?, ?, ?)",
+          )
+          .run("acc-nope", "aol", "g1"),
+      ).toThrow();
+    } finally {
+      db.close();
+    }
+
+    await rm(directory, { recursive: true, force: true });
+  });
+
   it("keeps Cc and Bcc recipients on cached messages and filters on Cc", async () => {
     const store = await createSqliteMailStore(createNodeSqliteDriver());
     await store.ensureAccount({

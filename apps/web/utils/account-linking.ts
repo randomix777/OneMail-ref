@@ -22,12 +22,20 @@ export async function getAccountLinkingUrl(
   provider: ProviderFamily,
   options?: { reconnectEmailAccountId?: string },
 ): Promise<string> {
-  const { label, linkingEndpoint } = getProviderDefinition(provider);
+  const { label, connection } = getProviderDefinition(provider);
+
+  // A credentials family has no redirect to send the user to. Saying so beats
+  // fetching an endpoint that does not exist, and the type is what makes the
+  // check impossible to forget.
+  if (connection.kind === "credentials") {
+    throw new Error(`${label} connects with a password, not a redirect`);
+  }
+
   const query = options?.reconnectEmailAccountId
     ? `?emailAccountId=${encodeURIComponent(options.reconnectEmailAccountId)}`
     : "";
 
-  const response = await fetch(`${linkingEndpoint}${query}`, {
+  const response = await fetch(`${connection.endpoint}${query}`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
   });

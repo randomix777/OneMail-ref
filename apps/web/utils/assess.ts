@@ -6,7 +6,16 @@ import { isDefined } from "@/utils/types";
 import type { Logger } from "@/utils/logger";
 import { GmailLabel } from "@/utils/gmail/label";
 
-const DEFAULT_LABEL_COUNT: Record<EmailProvider["name"], number> = {
+/**
+ * How many labels a fresh mailbox of this family already has, so the assessment
+ * can report how many the user added.
+ *
+ * Partial on purpose: these counts are provider-specific and no documentation
+ * states one for the IMAP families, so inventing a baseline for them would be
+ * fabrication. A family with no baseline reports zero added labels, which
+ * understates the signal instead of guessing at it.
+ */
+const DEFAULT_LABEL_COUNT: Partial<Record<EmailProvider["name"], number>> = {
   google: 13,
   microsoft: 8,
 };
@@ -63,7 +72,7 @@ async function getLabelThreadCount(client: EmailProvider, labelId: string) {
 
 async function getLabelCount(client: EmailProvider) {
   const labels = await client.getLabels();
-  return labels.length - DEFAULT_LABEL_COUNT[client.name];
+  return labels.length - (DEFAULT_LABEL_COUNT[client.name] ?? 0);
 }
 
 async function getFiltersCount(client: EmailProvider, logger: Logger) {

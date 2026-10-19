@@ -32,10 +32,32 @@ const nylasCursorSchema = z.object({
   pageToken: z.string().min(1).optional(),
 });
 
+/**
+ * IMAP has no change log either, so a delta is "messages newer than the last UID
+ * I saw in this mailbox".
+ *
+ * IMAP UIDs are only meaningful inside one mailbox and one UIDVALIDITY
+ * generation, so the cursor carries both. A server that renumbers a mailbox (a
+ * new UIDVALIDITY) makes every stored UID meaningless, which is why the
+ * generation is stored rather than assumed: seeing it change is the signal to
+ * reset instead of reporting an empty delta.
+ */
+const imapCursorSchema = z.object({
+  version: z.literal(1),
+  provider: z.literal("imap"),
+  folderId: z.string().min(1),
+  uidValidity: z.string().regex(/^\d+$/),
+  lastUid: z.number().int().nonnegative(),
+  after: z.string().datetime(),
+  phase: z.enum(["snapshot", "delta"]),
+  pageToken: z.string().min(1).optional(),
+});
+
 const cursorSchema = z.discriminatedUnion("provider", [
   gmailCursorSchema,
   microsoftCursorSchema,
   nylasCursorSchema,
+  imapCursorSchema,
 ]);
 
 export type MailboxSyncCursor = z.infer<typeof cursorSchema>;

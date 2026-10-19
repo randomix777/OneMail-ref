@@ -18,7 +18,24 @@
  * it rather than speculating about providers we have not built.
  */
 
-export const PROVIDER_FAMILIES = ["google", "microsoft"] as const;
+/**
+ * How a mailbox of this family is connected. A redirect family has a route that
+ * starts OAuth; a credentials family is connected by submitting an app password
+ * to a form, so there is no URL to redirect to.
+ */
+export type ProviderConnection =
+  | { kind: "redirect"; endpoint: string }
+  | { kind: "credentials" };
+
+export const PROVIDER_FAMILIES = [
+  "google",
+  "microsoft",
+  "yahoo",
+  "zoho",
+  "fastmail",
+  "icloud",
+  "imap",
+] as const;
 
 export type ProviderFamily = (typeof PROVIDER_FAMILIES)[number];
 
@@ -53,8 +70,8 @@ export type ProviderDefinition = {
   label: string;
   /** Used when an account predates `Account.transport` or holds an unknown value. */
   defaultTransport: MailTransport;
-  /** Server route that starts this family's mailbox connection. */
-  linkingEndpoint: string;
+  /** How a mailbox of this family is connected. */
+  connection: ProviderConnection;
   /** Page size the mail engine asks for when reading mailbox deltas. */
   syncPageSize: number;
   capabilities: ProviderCapabilities;
@@ -67,7 +84,10 @@ const PROVIDER_DEFINITIONS = {
     // Google mail goes through Nylas, which carries the CASA assessment we would
     // otherwise owe Google for restricted Gmail scopes.
     defaultTransport: "nylas",
-    linkingEndpoint: "/api/nylas/linking/auth-url",
+    connection: {
+      kind: "redirect",
+      endpoint: "/api/nylas/linking/auth-url",
+    },
     syncPageSize: 50,
     capabilities: { labels: true, starred: true },
   },
@@ -75,10 +95,61 @@ const PROVIDER_DEFINITIONS = {
     family: "microsoft",
     label: "Microsoft",
     defaultTransport: "oauth",
-    linkingEndpoint: "/api/outlook/linking/auth-url",
+    connection: {
+      kind: "redirect",
+      endpoint: "/api/outlook/linking/auth-url",
+    },
     syncPageSize: 20,
     // Outlook organizes mail into folders/categories and has no star.
     capabilities: { labels: false, starred: false },
+  },
+  // The families below are reached over IMAP with an app password, which is the
+  // path their own documentation supports for third-party clients. Yahoo has an
+  // OAuth flow but documents only a read scope for mail; Zoho's OAuth is
+  // region-specific; Fastmail registers OAuth clients by hand. None of them can
+  // therefore be connected by a redirect today.
+  yahoo: {
+    family: "yahoo",
+    label: "Yahoo Mail",
+    defaultTransport: "imap",
+    connection: { kind: "credentials" },
+    // No provider documents a per-fetch cap, so this is our own batching choice.
+    syncPageSize: 50,
+    capabilities: { labels: false, starred: true },
+  },
+  zoho: {
+    family: "zoho",
+    label: "Zoho Mail",
+    defaultTransport: "imap",
+    connection: { kind: "credentials" },
+    syncPageSize: 50,
+    capabilities: { labels: false, starred: true },
+  },
+  fastmail: {
+    family: "fastmail",
+    label: "Fastmail",
+    defaultTransport: "imap",
+    connection: { kind: "credentials" },
+    syncPageSize: 50,
+    // Fastmail's labels are real IMAP folders and one message can carry several,
+    // so it behaves like labels rather than a single-folder model.
+    capabilities: { labels: true, starred: true },
+  },
+  icloud: {
+    family: "icloud",
+    label: "iCloud Mail",
+    defaultTransport: "imap",
+    connection: { kind: "credentials" },
+    syncPageSize: 50,
+    capabilities: { labels: false, starred: true },
+  },
+  imap: {
+    family: "imap",
+    label: "IMAP",
+    defaultTransport: "imap",
+    connection: { kind: "credentials" },
+    syncPageSize: 50,
+    capabilities: { labels: false, starred: true },
   },
 } satisfies Record<ProviderFamily, ProviderDefinition>;
 

@@ -3,12 +3,15 @@ import {
   getOutlookClientForEmail,
 } from "@/utils/email-account-client";
 import { getMailboxTransportContext } from "@/utils/email/account-transport";
+import type { MailboxCredentialContext } from "@/utils/email/account-transport";
+import { ImapMailProvider } from "@/utils/imap/provider";
 import { GmailProvider } from "@/utils/email/google";
 import { OutlookProvider } from "@/utils/email/microsoft";
 import { NylasMailProvider } from "@/utils/email/nylas";
 import {
   getProviderDefinition,
   type MailTransport,
+  type ProviderFamily,
 } from "@/utils/email/provider-registry";
 import type { EmailProvider } from "@/utils/email/types";
 import { assertProviderNotRateLimited } from "@/utils/email/rate-limit";
@@ -37,10 +40,11 @@ export async function createEmailProvider({
       source: "create-email-provider",
     });
 
-    const { transport, providerAccountId } = await getMailboxTransportContext({
-      emailAccountId,
-      provider: rateLimitProvider,
-    });
+    const { transport, providerAccountId, credential, email } =
+      await getMailboxTransportContext({
+        emailAccountId,
+        provider: rateLimitProvider,
+      });
 
     return withProviderFailureLogging(
       await createProviderForTransport({
@@ -48,6 +52,8 @@ export async function createEmailProvider({
         provider: rateLimitProvider,
         transport,
         providerAccountId,
+        credential,
+        email,
         logger,
       }),
       { emailAccountId, provider: rateLimitProvider, logger },
@@ -85,12 +91,16 @@ async function createProviderForTransport({
   provider,
   transport,
   providerAccountId,
+  credential,
+  email,
   logger,
 }: {
   emailAccountId: string;
   provider: string;
   transport: MailTransport;
   providerAccountId: string | null;
+  credential: MailboxCredentialContext | null;
+  email: string | null;
   logger: Logger;
 }): Promise<EmailProvider> {
   if (transport === "nylas") {
@@ -104,6 +114,44 @@ async function createProviderForTransport({
     });
   }
 
+  if (transport === "imap") {
+    if (!credential) {
+      throw new Error(`Mailbox ${emailAccountId} has no IMAP credentials`);
+    }
+    if (!credential.active) {
+      throw new Error(`Mailbox ${emailAccountId} has deactivated credentials`);
+    }
+    if (credential.secret === null) {
+      throw new Error(`Mailbox ${emailAccountId} has no IMAP secret`);
+    }
+
+    const { family, label } = getProviderDefinition(provider);
+    // The credential carries its own copy of the family so it can interpret its
+    // provider's quirks; comparing them is what keeps the copy from drifting.
+    if (credential.provider !== family) {
+      throw new Error(
+        `Mailbox ${emailAccountId} is ${family} but its credentials say ${credential.provider}`,
+      );
+    }
+
+    if (!email) throw new Error(`Mailbox ${emailAccountId} has no address`);
+
+    return new ImapMailProvider({
+      family,
+      emailAccountId,
+      email,
+      username: credential.username,
+      secret: credential.secret,
+      imapHost: credential.imapHost,
+      imapPort: credential.imapPort,
+      imapSecure: credential.imapSecure,
+      smtpHost: credential.smtpHost,
+      smtpPort: credential.smtpPort,
+      smtpSecure: credential.smtpSecure,
+      logger,
+    });
+  }
+
   if (transport !== "oauth") {
     // A mailbox cannot be talked to over a transport we have not built. Failing
     // here keeps a misconfigured or half-migrated account from silently falling
@@ -111,9 +159,12 @@ async function createProviderForTransport({
     throw new Error(`Unsupported transport for ${provider}: ${transport}`);
   }
 
-  // No default branch on purpose: adding a family to the registry must be a
-  // compile error here rather than a silent fall-through to Outlook.
-  switch (getProviderDefinition(provider).family) {
+  // Only the OAuth families have a client to build here. Every other family is
+  // reached over a transport handled above, so reaching this point means the
+  // stored transport and the family disagree — say so rather than falling
+  // through to an Outlook-shaped default.
+  const { family } = getProviderDefinition(provider);
+  switch (family) {
     case "google": {
       const client = await getGmailClientForEmail({ emailAccountId, logger });
       return new GmailProvider(client, logger, emailAccountId);
@@ -122,6 +173,10 @@ async function createProviderForTransport({
       const client = await getOutlookClientForEmail({ emailAccountId, logger });
       return new OutlookProvider(client, logger);
     }
+    default:
+      throw new Error(
+        `${family} is not reached over the oauth transport (got ${transport})`,
+      );
   }
 }
 
@@ -133,7 +188,7 @@ function withProviderFailureLogging(
     logger,
   }: {
     emailAccountId: string;
-    provider: "google" | "microsoft";
+    provider: ProviderFamily;
     logger: Logger;
   },
 ): EmailProvider {
@@ -205,7 +260,7 @@ async function logProviderOperationFailure({
 }: {
   error: unknown;
   emailAccountId: string;
-  provider: "google" | "microsoft";
+  provider: ProviderFamily;
   logger: Logger;
   operation: string;
   failedAccessToken?: string;
@@ -260,7 +315,7 @@ async function recordProviderIssueSafely({
 type ProviderOperationFailureLogInput = {
   error: unknown;
   emailAccountId: string;
-  provider: "google" | "microsoft";
+  provider: ProviderFamily;
   logger: Logger;
   operation: string;
   failedAccessToken?: string;

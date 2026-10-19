@@ -7,6 +7,26 @@ import {
 } from "./conversation-index";
 import { migrateMessageSearchIndex } from "./message-search-index";
 
+/**
+ * The provider families the local mirror may hold. Keep in step with the app's
+ * provider registry: the engine records which family a mailbox belongs to, since
+ * how it is reached (OAuth, Nylas, IMAP) is the app's business rather than the
+ * mirror's.
+ */
+const ACCOUNT_PROVIDERS = [
+  "google",
+  "microsoft",
+  "yahoo",
+  "zoho",
+  "fastmail",
+  "icloud",
+  "imap",
+] as const;
+
+const ACCOUNT_PROVIDER_CHECK = `CHECK (provider IN (${ACCOUNT_PROVIDERS.map(
+  (provider) => `'${provider}'`,
+).join(", ")}))`;
+
 export const MAILBOX_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS schema_migrations (
   id INTEGER PRIMARY KEY,
@@ -22,7 +42,7 @@ CREATE TABLE IF NOT EXISTS profile_state (
 
 CREATE TABLE IF NOT EXISTS accounts (
   account_id TEXT PRIMARY KEY,
-  provider TEXT NOT NULL CHECK (provider IN ('google', 'microsoft')),
+  provider TEXT NOT NULL ${ACCOUNT_PROVIDER_CHECK},
   generation TEXT NOT NULL,
   assistant_cursor TEXT
 );
@@ -438,5 +458,65 @@ export async function migrateEmptyMeetingInvitationBodies(tx: SqlTransaction) {
   `);
   await tx.execute(
     "INSERT INTO schema_migrations(id, name) VALUES (9, '0009-empty-meeting-invitation-bodies')",
+  );
+}
+
+/**
+ * Widens `accounts.provider` beyond Google and Microsoft.
+ *
+ * SQLite cannot alter a CHECK constraint, so this rebuilds the table. Two things
+ * make that safe here:
+ *
+ * - **Foreign keys must be off**, and the pragma is a silent no-op inside a
+ *   transaction, so this is deliberately *not* called from `migrateMailbox`.
+ *   The store runs it as its own deferred-key write (see `createSqliteMailStore`).
+ * - **Only the parent is rebuilt.** `accounts` holds one row per connected
+ *   mailbox while `messages` holds every message, and the copy is a single
+ *   `INSERT ... SELECT`; rebuilding the child too would rewrite the whole mirror
+ *   for a constraint change.
+ *
+ * The column list must match `MAILBOX_SCHEMA_SQL` plus the columns `migrateMailbox`
+ * adds afterwards, which is why this runs after it.
+ */
+export async function migrateAccountProviders(tx: SqlTransaction) {
+  const applied = await tx.query(
+    "SELECT 1 FROM schema_migrations WHERE id = 11",
+  );
+  if (applied.length) return;
+
+  await tx.exec(`
+    CREATE TABLE accounts_rebuilt (
+      account_id TEXT PRIMARY KEY,
+      provider TEXT NOT NULL ${ACCOUNT_PROVIDER_CHECK},
+      generation TEXT NOT NULL,
+      assistant_cursor TEXT,
+      connection TEXT
+    )
+  `);
+  await tx.exec(`
+    INSERT INTO accounts_rebuilt(account_id, provider, generation, assistant_cursor, connection)
+    SELECT account_id, provider, generation, assistant_cursor, connection FROM accounts
+  `);
+
+  // What the rebuild can break is losing a row, so check exactly that. A global
+  // `PRAGMA foreign_key_check` would be wrong here: orphaned children are a
+  // supported state (the purge path exists to clean them up), so it would fail
+  // on databases that were already fine.
+  const [{ count: before }] = (await tx.query(
+    "SELECT COUNT(*) AS count FROM accounts",
+  )) as Array<{ count: number }>;
+  const [{ count: after }] = (await tx.query(
+    "SELECT COUNT(*) AS count FROM accounts_rebuilt",
+  )) as Array<{ count: number }>;
+  if (before !== after) {
+    throw new Error(
+      `account provider migration copied ${after} of ${before} accounts`,
+    );
+  }
+
+  await tx.exec("DROP TABLE accounts");
+  await tx.exec("ALTER TABLE accounts_rebuilt RENAME TO accounts");
+  await tx.execute(
+    "INSERT INTO schema_migrations(id, name) VALUES (11, '0011-account-providers')",
   );
 }

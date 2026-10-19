@@ -48,14 +48,15 @@ export function createNodeSqliteDriver(path = ":memory:"): SqliteDriver {
     queue: TransactionQueue,
     work: (tx: SqlTransaction) => Promise<T>,
     begin: string,
+    options?: { deferForeignKeys?: boolean },
   ) {
     if (closed) return Promise.reject(new Error("sqlite driver is closed"));
-    return queue.run(work, begin);
+    return queue.run(work, begin, options);
   }
 
   return {
     read: (work) => run(reads, work, "BEGIN"),
-    write: (work) => run(writes, work, "BEGIN IMMEDIATE"),
+    write: (work, options) => run(writes, work, "BEGIN IMMEDIATE", options),
     async close() {
       closed = true;
       await Promise.all([reads.idle(), writes.idle()]);
@@ -105,20 +106,33 @@ type TransactionQueue = ReturnType<typeof createTransactionQueue>;
 function createTransactionQueue(database: DatabaseSync) {
   let tail = Promise.resolve();
   return {
-    run<T>(work: (tx: SqlTransaction) => Promise<T>, begin: string) {
+    run<T>(
+      work: (tx: SqlTransaction) => Promise<T>,
+      begin: string,
+      options?: { deferForeignKeys?: boolean },
+    ) {
+      const deferForeignKeys = options?.deferForeignKeys === true;
       const run = tail.then(async () => {
-        database.exec(begin);
+        // Must be outside the transaction: the pragma is a no-op once one is
+        // open, which would turn a table rebuild into a silent constraint
+        // failure instead.
+        if (deferForeignKeys) database.exec("PRAGMA foreign_keys=OFF");
         try {
-          const result = await work(createTransaction(database));
-          database.exec("COMMIT");
-          return result;
-        } catch (error) {
+          database.exec(begin);
           try {
-            database.exec("ROLLBACK");
-          } catch {
-            // already rolled back
+            const result = await work(createTransaction(database));
+            database.exec("COMMIT");
+            return result;
+          } catch (error) {
+            try {
+              database.exec("ROLLBACK");
+            } catch {
+              // already rolled back
+            }
+            throw error;
           }
-          throw error;
+        } finally {
+          if (deferForeignKeys) database.exec("PRAGMA foreign_keys=ON");
         }
       });
       tail = run.then(

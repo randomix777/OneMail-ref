@@ -2,13 +2,14 @@ import chunk from "lodash/chunk";
 import type { Attachment as MailAttachment } from "nodemailer/lib/mailer";
 import { mapWithConcurrency } from "@/utils/async";
 import { splitRecipientList } from "@/utils/email";
+import type { EmailContact } from "@/utils/email/contact";
+import type { SendAsAddress } from "@/utils/email/send-as";
 import type {
   BulkArchiveResult,
   BulkArchiveThread,
   DraftAttachmentUploadStart,
   DraftAttachmentsResult,
   DraftReference,
-  EmailContact,
   EmailFilter,
   EmailFolderCount,
   EmailLabel,
@@ -19,7 +20,6 @@ import type {
   GetThreadOptions,
   MailboxSyncPage,
   ProviderMailboxSearch,
-  SendAsAddress,
   SendEmailOptions,
   SentMessagePage,
 } from "@/utils/email/types";
@@ -1804,7 +1804,12 @@ function mailerAttachments(attachments: MailAttachment[] | undefined) {
     }
 
     return {
-      filename: attachment.filename ?? "attachment",
+      // `filename` is `string | false` in nodemailer's types, and `??` would let
+      // `false` through.
+      filename:
+        typeof attachment.filename === "string"
+          ? attachment.filename
+          : "attachment",
       contentType:
         typeof attachment.contentType === "string"
           ? attachment.contentType

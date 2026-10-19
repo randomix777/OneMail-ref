@@ -16,6 +16,9 @@ const ENCRYPTED_FIELDS = {
   account: ["access_token", "refresh_token"],
   calendarConnection: ["accessToken", "refreshToken"],
   driveConnection: ["accessToken", "refreshToken"],
+  // An IMAP/SMTP app password is a bearer credential exactly like an OAuth
+  // token, so it gets the same treatment at rest.
+  mailboxCredential: ["secret"],
   messagingChannel: ["accessToken", "refreshToken"],
   mcpConnection: ["accessToken", "refreshToken", "apiKey"],
   mcpIntegration: ["oauthClientSecret"],

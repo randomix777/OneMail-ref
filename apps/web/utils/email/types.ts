@@ -144,7 +144,9 @@ export type BulkArchiveResult = {
   failedThreadIds: string[];
 };
 
-type DraftReference = {
+// Exported because an implementation has to name the return type of
+// `getDraftReferenceForMessage`.
+export type DraftReference = {
   id: string;
   version?: string;
 };

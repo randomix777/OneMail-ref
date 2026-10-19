@@ -18,15 +18,52 @@ describe("provider registry", () => {
       // Google mail is reached only through Nylas so we inherit its CASA
       // assessment instead of running our own.
       defaultTransport: "nylas",
-      linkingEndpoint: "/api/nylas/linking/auth-url",
+      connection: { kind: "redirect", endpoint: "/api/nylas/linking/auth-url" },
       syncPageSize: 50,
       capabilities: { labels: true, starred: true },
     },
     microsoft: {
       defaultTransport: "oauth",
-      linkingEndpoint: "/api/outlook/linking/auth-url",
+      connection: {
+        kind: "redirect",
+        endpoint: "/api/outlook/linking/auth-url",
+      },
       syncPageSize: 20,
       capabilities: { labels: false, starred: false },
+    },
+    // Reachable only by submitting an app password: none of these can connect a
+    // third-party client through a redirect we could send the user to.
+    yahoo: {
+      defaultTransport: "imap",
+      connection: { kind: "credentials" },
+      syncPageSize: 50,
+      capabilities: { labels: false, starred: true },
+    },
+    zoho: {
+      defaultTransport: "imap",
+      connection: { kind: "credentials" },
+      syncPageSize: 50,
+      capabilities: { labels: false, starred: true },
+    },
+    fastmail: {
+      defaultTransport: "imap",
+      connection: { kind: "credentials" },
+      syncPageSize: 50,
+      // Fastmail's labels are real IMAP folders a message can appear in several
+      // of, so it reads as labels rather than a single-folder model.
+      capabilities: { labels: true, starred: true },
+    },
+    icloud: {
+      defaultTransport: "imap",
+      connection: { kind: "credentials" },
+      syncPageSize: 50,
+      capabilities: { labels: false, starred: true },
+    },
+    imap: {
+      defaultTransport: "imap",
+      connection: { kind: "credentials" },
+      syncPageSize: 50,
+      capabilities: { labels: false, starred: true },
     },
   } satisfies Record<ProviderFamily, unknown>;
 
@@ -37,11 +74,25 @@ describe("provider registry", () => {
 
       expect(definition.family).toBe(family);
       expect(definition.defaultTransport).toBe(declarations.defaultTransport);
-      expect(definition.linkingEndpoint).toBe(declarations.linkingEndpoint);
+      expect(definition.connection).toEqual(declarations.connection);
       expect(definition.syncPageSize).toBe(declarations.syncPageSize);
       expect(definition.capabilities).toEqual(declarations.capabilities);
     });
   }
+
+  it("only offers a redirect for a family reached over OAuth", () => {
+    for (const family of PROVIDER_FAMILIES) {
+      const { connection, defaultTransport } = getProviderDefinition(family);
+
+      // A credentials family reached over `oauth` would have no redirect to
+      // start and no credential form either, leaving it connectable by neither.
+      if (connection.kind === "credentials") {
+        expect(defaultTransport).toBe("imap");
+      } else {
+        expect(connection.endpoint.startsWith("/api/")).toBe(true);
+      }
+    }
+  });
 
   it("names every family for the copy that has to show it", () => {
     for (const family of PROVIDER_FAMILIES) {
@@ -64,7 +115,9 @@ describe("provider registry", () => {
   });
 
   it("does not report an unknown provider as a family", () => {
-    expect(isProviderFamily("imap")).toBe(false);
+    // Not "imap": that is a family of its own now, which is the point of the
+    // transport/family split rather than an implementation detail.
+    expect(isProviderFamily("carrier-pigeon")).toBe(false);
     expect(isProviderFamily("")).toBe(false);
   });
 

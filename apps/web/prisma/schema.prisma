@@ -261,6 +261,7 @@ model EmailAccount {
   meetings               Meeting[]
   meetingRecordings      MeetingRecording[]
   driveConnections       DriveConnection[]
+  mailboxCredential      MailboxCredential?
   messagingChannels      MessagingChannel[]
   documentFilings        DocumentFiling[]
   filingFolders          FilingFolder[]
@@ -1906,6 +1907,47 @@ model DriveConnection {
 
   @@unique([emailAccountId, provider])
   @@index([emailAccountId])
+}
+
+// How we authenticate to a mailbox we reach directly rather than through an
+// OAuth provider: IMAP/SMTP with an app password, or XOAUTH2 once a provider
+// needing it is supported.
+//
+// This is not on `Account` because that row is better-auth's sign-in identity,
+// and an IMAP mailbox has no social provider that could ever authenticate a
+// session through it. Keeping the secrets here also leaves `Account` meaning
+// what it claims to, and the Prisma extension encrypts `secret` exactly as it
+// already encrypts OAuth tokens.
+model MailboxCredential {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // The family this mailbox was set up as ("zoho", "yahoo", "fastmail",
+  // "icloud", "imap"). `Account.provider` remains the authoritative family;
+  // this copy exists because the credential has to interpret its own provider
+  // quirks (folder names, whether SMTP files a copy in Sent) and duplicating it
+  // is cheaper than a join on every read. The transport factory compares the two
+  // and reports a mismatch rather than letting them drift.
+  provider String
+  active   Boolean @default(true)
+
+  imapHost   String
+  imapPort   Int
+  imapSecure Boolean @default(true)
+  smtpHost   String
+  smtpPort   Int
+  smtpSecure Boolean @default(true)
+
+  // Usually the full address; a few hosts want a bare username.
+  username String
+  // "password" for an app password, "xoauth2" when tokens on `Account` are the
+  // credential instead. Null under XOAUTH2, so this cannot be required.
+  authType String  @default("password")
+  secret   String? @db.Text
+
+  emailAccountId String       @unique
+  emailAccount   EmailAccount @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
 }
 
 model FilingFolder {
