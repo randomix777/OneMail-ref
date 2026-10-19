@@ -9,6 +9,7 @@ import {
 } from "@inboxzero/mail-core/engine";
 import { OFFLINE_DISPATCH_HOLD_MS } from "@inboxzero/mail-core/operations";
 import { providerSchema } from "@inboxzero/mail-core/identities";
+import type { Provider } from "@inboxzero/mail-core/identities";
 import type {
   ClaimedWork,
   MailStore,
@@ -35,6 +36,43 @@ const inboxQuery = {
 };
 
 describe("sqlite mail store", () => {
+  it("stores a sync page for a provider the engine used to reject", async () => {
+    // An integration fact rather than a guard: this calls the store directly, so
+    // it bypasses the protocol schema that decides which families may exist. The
+    // guard for that is in mail-core's IPC test.
+    const store = await createSqliteMailStore(createNodeSqliteDriver());
+    const session = { accountId: "acc-1", generation: "g1" };
+
+    await store.ensureAccount({
+      accountId: "acc-1",
+      provider: "fastmail",
+      generation: "g1",
+    });
+    await store.applySyncPage({
+      ownerId: "owner",
+      page: {
+        session,
+        requestId: "seed",
+        from: { streamId: "INBOX", generation: "g1", checkpoint: null },
+        to: { streamId: "INBOX", generation: "g1", checkpoint: "1" },
+        changes: [
+          messagePatch("m-1", "c-1", 1000, ["inbox"], {
+            provider: "fastmail",
+          }),
+        ],
+        requiredHydration: [],
+        roundComplete: true,
+      },
+    });
+
+    const conversation = await store.readConversation(
+      { accountId: "acc-1", conversationId: "c-1" },
+      { pageSize: 10, after: null },
+    );
+    expect(conversation.view.messages).toHaveLength(1);
+    await store.close();
+  });
+
   it("drops inbox unread when a message leaves its inbox folder", async () => {
     const store = await createSqliteMailStore(createNodeSqliteDriver());
     const session = { accountId: "acc-1", generation: "g1" };
@@ -4929,7 +4967,7 @@ function messagePatch(
   receivedAtMs: number,
   roles: Array<"inbox" | "sent" | "draft" | "trash" | "spam">,
   options: {
-    provider?: "google" | "microsoft";
+    provider?: Provider;
     inboxSection?: "focused" | "other" | null;
   } = {},
 ): Extract<ProviderChange, { kind: "message_patch" }> {
