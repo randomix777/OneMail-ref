@@ -1,3 +1,4 @@
+import type { Provider } from "@inboxzero/mail-core/identities";
 import type { MailEngine, WorkAdmission } from "@inboxzero/mail-core/engine";
 import type {
   MailboxView,
@@ -18,7 +19,7 @@ import { MailEngineStartupError } from "./startup-error";
 export type BrowserMailEngine = MailEngine & {
   ensureAccount(input: {
     accountId: string;
-    provider: "google" | "microsoft";
+    provider: Provider;
     generation?: string;
   }): Promise<void>;
 };

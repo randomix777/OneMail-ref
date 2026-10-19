@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { EmailSendOperationStatus } from "@/generated/prisma/enums";
 import { classifyEmailAccountProviderIssue } from "@/utils/email/provider-health";
+import { isProviderFamily } from "@/utils/email/provider-registry";
 import { isEmailProviderRateLimitError } from "@/utils/email/is-provider-rate-limit-error";
 import type { EmailProvider } from "@/utils/email/types";
 import { MAIL_MUTATION_RETRY_WINDOW_MS } from "@/utils/email/send-operation-policy";
@@ -107,10 +108,10 @@ export async function executeDurableEmailSend({
     }
     if (
       stage !== "persist_result" &&
-      classifyEmailAccountProviderIssue({
-        error,
-        provider: provider as "google" | "microsoft",
-      })
+      // A real narrowing rather than a cast: a provider value the registry does
+      // not know is not something to match against Gmail/Graph error text.
+      isProviderFamily(provider) &&
+      classifyEmailAccountProviderIssue({ error, provider })
     ) {
       await prisma.emailSendOperation.deleteMany({
         where: { id: existing.id },

@@ -1,3 +1,4 @@
+import type { Provider } from "@inboxzero/mail-core/identities";
 import type { MailClient, WorkAdmission } from "@inboxzero/mail-core/engine";
 import type {
   MailboxView,
@@ -18,7 +19,7 @@ export type TabMailMessage =
   | {
       type: "hello";
       accountId: string;
-      provider?: "google" | "microsoft";
+      provider?: Provider;
     }
   | { type: "ready" }
   | { type: "owner"; accountId: string; ownerId: string }
@@ -66,7 +67,7 @@ export function bindTabMailOwner(input: {
   bus: TabMailBus;
   ensureAccount?: (input: {
     accountId: string;
-    provider: "google" | "microsoft";
+    provider: Provider;
   }) => Promise<void>;
 }): () => void {
   const ownerId = crypto.randomUUID();
@@ -162,7 +163,7 @@ export function disposeTabFollowerClient(client: MailClient) {
 
 export function createTabFollowerClient(input: {
   accountId: string;
-  provider?: "google" | "microsoft";
+  provider?: Provider;
   bus: TabMailBus;
 }): MailClient {
   let ownerId: string | undefined;
@@ -370,7 +371,7 @@ function announceOwner(
     bus: TabMailBus;
     ensureAccount?: (account: {
       accountId: string;
-      provider: "google" | "microsoft";
+      provider: Provider;
     }) => Promise<void>;
   },
   message: Extract<TabMailMessage, { type: "hello" }>,

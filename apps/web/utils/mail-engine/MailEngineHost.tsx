@@ -40,7 +40,7 @@ import {
   selectMailEngineRuntimeMode,
   shouldStartMailEngine,
 } from "@/utils/mail-engine/runtime-mode";
-import { isMicrosoftProvider } from "@/utils/email/provider-types";
+import { isProviderFamily } from "@/utils/email/provider-registry";
 import { fetchEmailAccounts } from "@/utils/fetch-email-accounts";
 import { followMailboxChanges } from "@/utils/mail-engine/follow-mailbox-changes";
 import { browserMailEngineCapabilities } from "@/utils/mail-engine/worker-protocol";
@@ -179,7 +179,10 @@ function MailEngineRuntimeInner({ children }: { children: ReactNode }) {
     if (mode === "unavailable") {
       return;
     }
-    const mailProvider = isMicrosoftProvider(provider) ? "microsoft" : "google";
+    // The account's own family, not "is this Outlook?". A Yahoo or Zoho mailbox
+    // recorded as "google" here would put the wrong provider into the local
+    // mirror that every later read of it reports.
+    const mailProvider = isProviderFamily(provider) ? provider : "google";
     const abort = new AbortController();
     let published: MailClient | undefined;
     let stage: MailEngineStartupStage =

@@ -82,6 +82,9 @@ describe("mail engine account lifecycle", () => {
   it.each([
     "google",
     "microsoft",
+    // A family that is neither: the host used to collapse everything that was not
+    // Outlook to "google", which recorded the wrong provider in the local mirror.
+    "fastmail",
   ])("closes the old browser engine and starts the switched %s account", async (provider) => {
     mocks.account.provider = "google";
     const view = render(<MailEngineRuntime>{null}</MailEngineRuntime>);
