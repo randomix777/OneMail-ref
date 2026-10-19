@@ -88,7 +88,7 @@ export const MailShellSidebar = memo(function MailShellSidebar({
   const isOutlook = isMicrosoftProvider(provider);
   const terminology = getEmailTerminology(provider);
   const { userLabels: allLabels, mutate: mutateLabels } = useLabels();
-  const { folders, mutate: mutateFolders } = useFolders(provider);
+  const { folders, mutate: mutateFolders } = useFolders();
   const { countsById, mutate: mutateCounts } = useLabelCounts({
     emailAccountId,
     labels: allLabels,

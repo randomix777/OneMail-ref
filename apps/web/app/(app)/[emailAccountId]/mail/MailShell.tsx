@@ -131,7 +131,7 @@ export function MailShell() {
   const isOutlook = isMicrosoftProvider(provider);
   const { userLabels } = useEmailLabels();
   const { userLabels: allLabels, mutate: mutateLabels } = useLabels();
-  const { folders } = useFolders(provider);
+  const { folders } = useFolders();
   const { data: settings, mutate: mutateSettings } = useMailSettings();
   const { toggleSidebar } = useSidebar();
   const isPaletteOpen = useAtomValue(commandPaletteOpenAtom);

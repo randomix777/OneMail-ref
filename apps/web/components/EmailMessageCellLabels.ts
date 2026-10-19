@@ -1,8 +1,6 @@
 import type { EmailLabel, EmailLabels } from "@/providers/email-label-types";
-import {
-  isGoogleProvider,
-  isMicrosoftProvider,
-} from "@/utils/email/provider-types";
+import { isMicrosoftProvider } from "@/utils/email/provider-types";
+import { isProviderFamily } from "@/utils/email/provider-registry";
 import { isDefined } from "@/utils/types";
 import { getRuleLabel } from "@/utils/rule/consts";
 import { SystemType } from "@/generated/prisma/enums";
@@ -98,14 +96,14 @@ function shouldShowArchivedLabel({
 }) {
   if (!labelIds) return false;
   if (labels?.some((label) => label.id === OutlookLabel.ARCHIVE)) return false;
+  if (typeof provider !== "string" || !isProviderFamily(provider)) return false;
 
-  if (isGoogleProvider(provider)) {
-    return !labelIds.includes(GmailLabel.INBOX);
-  }
-
+  // Outlook tracks archive as a folder of its own. Gmail and the IMAP families
+  // both express it as "no longer in the inbox", which is also what an IMAP
+  // mailbox that has been left for another folder looks like.
   if (isMicrosoftProvider(provider)) {
     return labelIds.includes(OutlookLabel.ARCHIVE);
   }
 
-  return false;
+  return !labelIds.includes(GmailLabel.INBOX);
 }

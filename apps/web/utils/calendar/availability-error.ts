@@ -1,10 +1,23 @@
-import type { calendar_v3 } from "@googleapis/calendar";
-
 export type CalendarAvailabilityProviderName = "google" | "microsoft" | "nylas";
+
+/**
+ * The shape of one provider error inside an availability failure.
+ *
+ * Deliberately ours rather than Google's SDK type: Google fills `domain` and
+ * `reason`, while Nylas reports a `message` per address, and a type that only
+ * allowed Google's fields would force the Nylas path to drop its reason.
+ */
+export type CalendarAvailabilityProviderError = {
+  // Google's SDK types these as `string | null`, so null has to be allowed or
+  // its errors stop being assignable to this shape.
+  domain?: string | null;
+  reason?: string | null;
+  message?: string | null;
+};
 
 export type CalendarAvailabilityErrorDetail = {
   calendarId: string;
-  errors: calendar_v3.Schema$Error[];
+  errors: CalendarAvailabilityProviderError[];
 };
 
 const PROVIDER_LABEL: Record<CalendarAvailabilityProviderName, string> = {
@@ -85,14 +98,18 @@ function isCalendarAvailabilityErrorDetail(
 
 function isCalendarAvailabilityProviderError(
   value: unknown,
-): value is calendar_v3.Schema$Error {
+): value is CalendarAvailabilityProviderError {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false;
   }
 
-  const error = value as Partial<calendar_v3.Schema$Error>;
+  const error = value as CalendarAvailabilityProviderError;
+  const isStringOrEmpty = (field: unknown) =>
+    field === undefined || field === null || typeof field === "string";
+
   return (
-    (error.domain === undefined || typeof error.domain === "string") &&
-    (error.reason === undefined || typeof error.reason === "string")
+    isStringOrEmpty(error.domain) &&
+    isStringOrEmpty(error.reason) &&
+    isStringOrEmpty(error.message)
   );
 }

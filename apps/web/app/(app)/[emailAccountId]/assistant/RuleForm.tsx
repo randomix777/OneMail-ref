@@ -179,7 +179,7 @@ export function RuleForm({
 
   const { userLabels, isLoading, mutate: mutateLabels } = useLabels();
   const { data: messagingChannelsData } = useMessagingChannels(emailAccountId);
-  const { folders, isLoading: foldersLoading } = useFolders(provider);
+  const { folders, isLoading: foldersLoading } = useFolders();
   const router = useRouter();
 
   const posthog = usePostHog();

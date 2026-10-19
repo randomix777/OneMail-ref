@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { withEmailProvider } from "@/utils/middleware";
-import { isMicrosoftProvider } from "@/utils/email/provider-types";
 import type { EmailProvider } from "@/utils/email/types";
 
 export type GetFoldersResponse = Awaited<ReturnType<typeof getFolders>>;
@@ -8,13 +7,10 @@ export type GetFoldersResponse = Awaited<ReturnType<typeof getFolders>>;
 export const GET = withEmailProvider("user/folders", async (request) => {
   const emailProvider = request.emailProvider;
 
-  if (!isMicrosoftProvider(emailProvider.name)) {
-    return NextResponse.json(
-      { error: "Only Microsoft email providers are supported" },
-      { status: 400 },
-    );
-  }
-
+  // Each provider answers for itself: Microsoft and Nylas report real folders,
+  // the IMAP families report their mailboxes, and the direct Gmail client has no
+  // folders and returns an empty list. Gating on the family here used to exclude
+  // everything except Microsoft, which also hid Nylas-backed Google mailboxes.
   const result = await getFolders({ emailProvider });
   return NextResponse.json(result);
 });

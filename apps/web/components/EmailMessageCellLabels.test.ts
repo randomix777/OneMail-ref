@@ -93,6 +93,55 @@ describe("getEmailMessageCellLabels", () => {
       { id: "label-newsletter", name: "Newsletter" },
     ]);
   });
+
+  it("infers archive for an IMAP message that left the inbox", () => {
+    // An IMAP folder other than the inbox is what "archived" looks like there,
+    // and before this the family fall-through returned false, so these messages
+    // never showed as archived at all.
+    const labels = getEmailMessageCellLabels({
+      labelIds: ["Archive", "label-newsletter"],
+      userLabels: {
+        "label-newsletter": {
+          id: "label-newsletter",
+          name: "Newsletter",
+        },
+      },
+      provider: "fastmail",
+    });
+
+    expect(labels).toEqual([
+      { id: "ARCHIVE", name: "Archived" },
+      { id: "label-newsletter", name: "Newsletter" },
+    ]);
+  });
+
+  it("does not call an inbox message archived on an IMAP mailbox", () => {
+    const labels = getEmailMessageCellLabels({
+      labelIds: ["INBOX", "label-newsletter"],
+      userLabels: {
+        "label-newsletter": {
+          id: "label-newsletter",
+          name: "Newsletter",
+        },
+      },
+      provider: "zoho",
+    });
+
+    expect(labels).toEqual([{ id: "label-newsletter", name: "Newsletter" }]);
+  });
+
+  it("does not infer anything for a provider it cannot place", () => {
+    // Inference on an unknown name would be a guess about mailbox semantics.
+    const labels = getEmailMessageCellLabels({
+      labelIds: ["label-newsletter"],
+      userLabels: {
+        "label-newsletter": { id: "label-newsletter", name: "Newsletter" },
+      },
+      provider: "carrier-pigeon",
+    });
+
+    expect(labels).toEqual([{ id: "label-newsletter", name: "Newsletter" }]);
+  });
 });
 
 describe("getEmailThreadLabels", () => {
