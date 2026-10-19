@@ -7,7 +7,7 @@ const IMAP_FAMILIES = PROVIDER_FAMILIES.filter(
 );
 
 const host = z.string().trim().min(1).max(255);
-const port = z.coerce.number().int().min(1).max(65_535);
+const port = z.number().int().min(1).max(65_535);
 
 /**
  * Connecting a mailbox with an app password.

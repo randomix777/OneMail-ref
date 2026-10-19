@@ -9,6 +9,7 @@ import { MutedText } from "@/components/Typography";
 import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { isGoogleProvider } from "@/utils/email/provider-types";
 import { redirectToSafeUrl } from "@/utils/redirect";
+import { ConnectImapAccount } from "./ConnectImapAccount";
 
 export function AddAccount({
   helperText = "You will be billed for each account.",
@@ -75,6 +76,10 @@ export function AddAccount({
           />
           <span className="ml-2">Add Microsoft</span>
         </Button>
+      </div>
+
+      <div className="flex w-full items-center gap-2">
+        <ConnectImapAccount />
       </div>
 
       <MutedText>{helperText}</MutedText>

@@ -106,7 +106,7 @@ type ResolvedConnection = {
   username: string;
 };
 
-function resolveConnection({
+export function resolveConnection({
   input,
   family,
 }: {
@@ -132,10 +132,13 @@ function resolveConnection({
     secret: input.secret,
     imapHost,
     imapPort,
-    imapSecure: input.imapSecure ?? preset?.imapSecure ?? true,
+    // A preset owns the TLS mode, because the port and the mode have to agree:
+    // iCloud documents STARTTLS on 587 for SMTP, and a form default of "secure"
+    // would silently wrap that port in implicit TLS and fail every send.
+    imapSecure: preset ? preset.imapSecure : (input.imapSecure ?? true),
     smtpHost,
     smtpPort,
-    smtpSecure: input.smtpSecure ?? preset?.smtpSecure ?? true,
+    smtpSecure: preset ? preset.smtpSecure : (input.smtpSecure ?? true),
     // Most hosts accept the full address; a few want a bare username, which the
     // form lets the user override.
     username: input.username ?? input.email,
