@@ -8,7 +8,23 @@ export const conversationIdSchema = z.string().min(1).max(256);
 export const operationIdSchema = z.string().min(1).max(128);
 export const draftIdSchema = z.string().min(1).max(128);
 
-export const providerSchema = z.enum(["google", "microsoft"]);
+/**
+ * The families the engine protocol carries.
+ *
+ * Keep in step with the app's provider registry and with the `accounts.provider`
+ * CHECK that the SQLite mirror applies. A family missing here cannot be synced at
+ * all: every change is parsed against this enum, so widening the mirror's CHECK
+ * without widening this one fails validation instead of storing the row.
+ */
+export const providerSchema = z.enum([
+  "google",
+  "microsoft",
+  "yahoo",
+  "zoho",
+  "fastmail",
+  "icloud",
+  "imap",
+]);
 export type Provider = z.infer<typeof providerSchema>;
 
 export const messageKeySchema = z.object({

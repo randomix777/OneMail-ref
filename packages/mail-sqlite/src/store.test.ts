@@ -8,6 +8,7 @@ import {
   createHostRuntime,
 } from "@inboxzero/mail-core/engine";
 import { OFFLINE_DISPATCH_HOLD_MS } from "@inboxzero/mail-core/operations";
+import { providerSchema } from "@inboxzero/mail-core/identities";
 import type {
   ClaimedWork,
   MailStore,
@@ -403,7 +404,11 @@ describe("sqlite mail store", () => {
         .get() as { count: number };
       expect(messages.count).toBe(1);
 
-      for (const provider of ["imap", "yahoo", "zoho", "fastmail", "icloud"]) {
+      // Driven off the protocol enum rather than a copy of it: adding a family
+      // there without widening this CHECK fails here instead of at runtime, when
+      // the first sync change for that family would be rejected.
+      for (const provider of providerSchema.options) {
+        if (provider === "microsoft") continue;
         db.prepare(
           "INSERT INTO accounts(account_id, provider, generation) VALUES (?, ?, ?)",
         ).run(`acc-${provider}`, provider, "g1");

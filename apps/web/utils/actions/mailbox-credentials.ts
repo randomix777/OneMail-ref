@@ -33,13 +33,25 @@ export const connectImapMailboxAction = actionClientUser
 
     const existing = await prisma.emailAccount.findUnique({
       where: { email: parsedInput.email },
-      select: { id: true, userId: true },
+      select: {
+        id: true,
+        userId: true,
+        account: { select: { provider: true } },
+      },
     });
 
     if (existing) {
       if (existing.userId !== userId) {
         throw new SafeError(
           "This mailbox is already connected to another account.",
+        );
+      }
+
+      // The same address cannot be two providers at once here, but a row that
+      // disagrees is a state we should not quietly change the credentials of.
+      if (existing.account?.provider !== family) {
+        throw new SafeError(
+          `This mailbox is already connected as ${existing.account?.provider ?? "another provider"}. Remove it before connecting it as ${family}.`,
         );
       }
 

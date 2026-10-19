@@ -81,11 +81,31 @@ export class ImapMailProvider implements EmailProvider {
 
   private readonly options: ImapMailProviderOptions;
   private readonly logger: Logger;
+  /**
+   * The mailbox the server files sent mail in, once something has asked.
+   *
+   * Cached because `isSentMessage` is synchronous and has no connection to make,
+   * and because resolving it means listing every mailbox.
+   */
+  private sentFolderId: string | null = null;
 
   constructor(options: ImapMailProviderOptions) {
     this.options = options;
     this.name = options.family;
     this.logger = options.logger;
+  }
+
+  /** Resolves and caches the Sent mailbox, or null when the server has none. */
+  private async resolveSentFolderId() {
+    if (this.sentFolderId) return this.sentFolderId;
+
+    const resolved = await this.withClient(async (client) => {
+      const folders = await resolveImapFolders(client);
+      return folders.sent ?? null;
+    });
+
+    this.sentFolderId = resolved;
+    return resolved;
   }
 
   // ------------------------------------------------------------------ transport
@@ -349,8 +369,23 @@ export class ImapMailProvider implements EmailProvider {
     return Boolean(message.headers["in-reply-to"]);
   }
 
+  /**
+   * Whether the message sits in the mailbox the server files sent mail in.
+   *
+   * IMAP has no sent flag, so this compares the message's mailbox with the role
+   * the folder resolver chose. That resolver needs a connection, and this method
+   * is synchronous, so the answer is only available once something (a Sent
+   * listing, a folder listing) has resolved it. Before that it says false rather
+   * than guessing at a mailbox name.
+   */
   isSentMessage(message: ParsedMessage) {
-    return message.labelIds?.includes("SENT") ?? false;
+    const sentFolderId = this.sentFolderId;
+    if (!sentFolderId) return false;
+
+    return (
+      message.parentFolderId === sentFolderId ||
+      (message.labelIds?.includes(sentFolderId) ?? false)
+    );
   }
 
   async getAttachmentStream(
@@ -593,8 +628,9 @@ export class ImapMailProvider implements EmailProvider {
       cc: args.cc,
       bcc: args.bcc,
       subject: args.subject,
+      // Plain text only. Sending the same string as the HTML part would let a
+      // `<` in the body start markup and would collapse the newlines.
       text: args.messageText,
-      html: args.messageText,
       attachments: args.attachments,
     });
   }
@@ -887,8 +923,11 @@ export class ImapMailProvider implements EmailProvider {
     before?: Date;
     pageToken?: string;
   }): Promise<SentMessagePage> {
+    const sentFolderId = await this.resolveSentFolderId();
+    if (!sentFolderId) return { messages: [], nextPageToken: undefined };
+
     const page = await this.getMessagesWithPagination({
-      folderId: "SENT",
+      folderId: sentFolderId,
       maxResults: options.maxResults,
       pageToken: options.pageToken,
     });
@@ -904,8 +943,11 @@ export class ImapMailProvider implements EmailProvider {
 
   async getSentMessages(maxResults?: number) {
     try {
+      const sentFolderId = await this.resolveSentFolderId();
+      if (!sentFolderId) return [];
+
       const { messages } = await this.getMessagesWithPagination({
-        folderId: "SENT",
+        folderId: sentFolderId,
         maxResults,
       });
       return messages;

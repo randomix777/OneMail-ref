@@ -165,7 +165,7 @@ async function processNylasNotification({
       emailAccount: validated.emailAccount,
       hasAutomationRules: validated.hasAutomationRules,
       hasAiAccess: validated.hasAiAccess,
-      rules: validated.rules,
+      rules: validated.emailAccount.rules,
       logger,
     },
   );
