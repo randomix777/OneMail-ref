@@ -1,0 +1,20 @@
+{
+  // Type-checks what `next build` type-checks: the app's own source.
+  //
+  // Test files are excluded on purpose and not out of laziness. `next.config.ts`
+  // keeps `experimental.useTypeScriptCli` false so that builds keep filtering
+  // test/mock diagnostics, and the suite carries a large amount of that drift; a
+  // config that included it would fail on debt CI does not fail on, which makes
+  // the script useless as a pre-push check. This mirrors the CI gate instead:
+  // source errors are zero, and a change that breaks one fails here in seconds.
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "public/sw.js",
+    "__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__mocks__/**",
+    "**/*.stories.tsx"
+  ]
+}

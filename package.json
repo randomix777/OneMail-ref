@@ -12,6 +12,8 @@
     "test-db": "pnpm --filter inbox-zero-ai test-db",
     "test-integration": "pnpm --filter inbox-zero-ai test-integration",
     "test:packages": "pnpm -r --filter '!inbox-zero-ai' --if-present test",
+    "typecheck": "pnpm typecheck:app && pnpm typecheck:packages",
+    "typecheck:app": "pnpm -F inbox-zero-ai typecheck",
     "typecheck:packages": "pnpm -r --filter '!inbox-zero-ai' --if-present typecheck",
     "lint": "turbo lint",
     "postinstall": "sh clone-marketing.sh",

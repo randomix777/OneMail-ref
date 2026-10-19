@@ -232,7 +232,6 @@ export function getEmailAccount(
     sensitiveDataPolicy: overrides.sensitiveDataPolicy ?? "ALLOW",
     timezone: null,
     calendarBookingLink: null,
-    draftReplyConfidence: overrides.draftReplyConfidence ?? "MEDIUM",
     user: {
       aiModel: null,
       aiProvider: null,
@@ -342,6 +341,7 @@ export function getAction(overrides: Partial<Action> = {}): Action {
     updatedAt: new Date(),
     type: overrides.type ?? ActionType.LABEL,
     ruleId: "rule-id",
+    emailAccountId: "email-account-id",
     to: null,
     subject: null,
     label: null,
@@ -353,8 +353,12 @@ export function getAction(overrides: Partial<Action> = {}): Action {
     folderName: null,
     folderId: null,
     messagingChannelId: null,
+    messagingChannelEmailAccountId: null,
     delayInMinutes: null,
     staticAttachments: null,
+    integrationName: null,
+    integrationToolName: null,
+    integrationArgs: null,
     ...overrides,
   };
 }
@@ -507,6 +511,10 @@ export function getCalendarConnection({
     id: `conn-${provider}`,
     provider,
     email: `test@${isGoogleProvider(provider) ? "gmail" : "outlook"}.com`,
+    // A token-based connection; the Nylas transport stores a grant id instead and
+    // leaves both tokens null.
+    transport: "oauth",
+    grantId: null,
     accessToken: "token",
     refreshToken: "refresh",
     expiresAt: new Date(),
