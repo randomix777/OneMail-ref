@@ -28,7 +28,6 @@ import {
   getAppleSubscriptionTier,
   getStripePriceId,
   hasLegacyStripePriceId,
-  hasIncludedEmailAccountsStripePriceId,
   shouldShowLegacyStripePricingNotice,
 } from "./config";
 
@@ -139,26 +138,6 @@ describe("monthly pricing config", () => {
     expect(getStripePriceId({ tier: "PROFESSIONAL_MONTHLY" })).toBe(
       "price_current_professional_monthly",
     );
-  });
-
-  it("marks only the active monthly prices for special seat billing", () => {
-    expect(
-      hasIncludedEmailAccountsStripePriceId("price_1S5u73KGf8mwZWHn8VYFdALA"),
-    ).toBe(false);
-    expect(
-      hasIncludedEmailAccountsStripePriceId("price_current_plus_monthly"),
-    ).toBe(true);
-    expect(
-      hasIncludedEmailAccountsStripePriceId(
-        "price_current_professional_monthly",
-      ),
-    ).toBe(true);
-    expect(
-      hasIncludedEmailAccountsStripePriceId("price_current_starter_annual"),
-    ).toBe(false);
-    expect(
-      hasIncludedEmailAccountsStripePriceId("price_1S5u6NKGf8mwZWHnZCfy4D5n"),
-    ).toBe(false);
   });
 });
 

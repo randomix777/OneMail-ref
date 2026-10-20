@@ -46,11 +46,6 @@ export const BRIEF_MY_MEETING_PRICE_ID_MONTHLY =
 export const BRIEF_MY_MEETING_PRICE_ID_ANNUALLY =
   "price_1SjoawKGf8mwZWHnfAeShYhb";
 
-const INCLUDED_EMAIL_ACCOUNT_PRICE_IDS = [
-  env.NEXT_PUBLIC_STRIPE_PLUS_MONTHLY_PRICE_ID,
-  env.NEXT_PUBLIC_STRIPE_BUSINESS_PLUS_MONTHLY_PRICE_ID,
-];
-
 const STRIPE_PRICE_ID_CONFIG: Record<
   PremiumTier,
   {
@@ -150,14 +145,6 @@ export function getStripePriceId({
   tier: PremiumTier;
 }): string | null {
   return STRIPE_PRICE_ID_CONFIG[tier]?.priceId ?? null;
-}
-
-export function hasIncludedEmailAccountsStripePriceId(
-  priceId: string | null | undefined,
-): boolean {
-  if (!priceId) return false;
-
-  return INCLUDED_EMAIL_ACCOUNT_PRICE_IDS?.includes(priceId) ?? false;
 }
 
 export function getAppleSubscriptionTier({

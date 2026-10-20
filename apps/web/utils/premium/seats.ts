@@ -1,7 +1,7 @@
 import sumBy from "lodash/sumBy";
-import { hasIncludedEmailAccountsStripePriceId } from "@/app/(app)/premium/config";
 import { updateSubscriptionItemQuantity } from "@/ee/billing/lemon/index";
 import { updateStripeSubscriptionItemQuantity } from "@/ee/billing/stripe/index";
+import { env } from "@/env";
 import prisma from "@/utils/prisma";
 import { createScopedLogger } from "@/utils/logger";
 
@@ -14,6 +14,17 @@ const logger = createScopedLogger("premium");
  * read. The rest connect straight to the provider.
  */
 const BILLABLE_PROVIDER = "google";
+
+/**
+ * How many Google mailboxes the allowance covers.
+ *
+ * Nylas' plan includes a number of connected accounts, and that allowance is
+ * ours to give away. The accounts beyond it are billed at Nylas' own
+ * per-account rate.
+ */
+export function getIncludedGoogleMailboxes() {
+  return env.GOOGLE_MAILBOXES_INCLUDED;
+}
 
 export async function updateAccountSeats({ userId }: { userId: string }) {
   const user = await prisma.user.findUnique({
@@ -54,8 +65,8 @@ export async function syncPremiumSeats(premiumId: string) {
   }
 
   const totalSeats = getStripeBillingQuantity({
-    priceId: premium.stripePriceId,
     users: premium.users,
+    includedMailboxes: getIncludedGoogleMailboxes(),
   });
   await updateAccountSeatsForPremium(premium, totalSeats);
 }
@@ -154,32 +165,31 @@ export async function updateAccountSeatsForPremium(
  * How many billable mailboxes a premium has.
  *
  * Only Google mailboxes count. They are the ones reached through Nylas, and
- * that cost is passed straight through to the user, so the subscription's
- * quantity is the number of Google mailboxes. Every other family connects
- * directly and costs us nothing, so it is not billed.
+ * that cost is passed straight through to the user.
+ *
+ * Nylas does not charge a flat price per mailbox: a plan has a monthly base
+ * that covers a number of connected accounts, and a per-account rate on top of
+ * that. The allowance is therefore ours to give away, and only the accounts
+ * beyond it are billed.
  */
 export function getStripeBillingQuantity({
-  priceId,
   users,
+  includedMailboxes = 0,
 }: {
-  priceId: string | null | undefined;
+  priceId?: string | null;
   users: {
     emailAccounts: { account: { provider: string } }[];
   }[];
+  /** Google mailboxes covered by the allowance, so not billed. */
+  includedMailboxes?: number;
 }): number {
-  const billable = (user: {
-    emailAccounts: { account: { provider: string } }[];
-  }) =>
-    user.emailAccounts.filter(
-      (emailAccount) => emailAccount.account.provider === BILLABLE_PROVIDER,
-    ).length;
+  const googleMailboxes = sumBy(
+    users,
+    (user) =>
+      user.emailAccounts.filter(
+        (emailAccount) => emailAccount.account.provider === BILLABLE_PROVIDER,
+      ).length,
+  );
 
-  const totalSeats = hasIncludedEmailAccountsStripePriceId(priceId)
-    ? sumBy(users, (user) => {
-        const count = billable(user);
-        return count <= 1 ? count : count - 1;
-      })
-    : sumBy(users, billable);
-
-  return Math.max(1, totalSeats);
+  return Math.max(1, googleMailboxes - includedMailboxes);
 }

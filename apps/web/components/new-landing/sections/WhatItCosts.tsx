@@ -39,15 +39,15 @@ const COSTS: Row[] = [
   },
   {
     title: "Google mail",
-    price: "Per mailbox",
+    price: "Per account",
     detail:
-      "Every Google mailbox is reached through Nylas, because that is the only way to hold the scopes Google requires. Nylas's price for each mailbox is passed straight through to you, with no markup on top.",
+      "Google mail is reached through Nylas, because that is the only way to hold the scopes Google requires. Nylas bills a monthly base that covers a number of accounts and a per-account rate on top of it: the accounts inside the allowance are on us, and the rest are billed at Nylas's own rate, passed straight through.",
   },
   {
     title: "The assistant",
     price: "Per token",
     detail:
-      "Assistant calls go through the JYI gateway, and you pay for the tokens the model uses. Point it at your own provider and even this disappears.",
+      "Assistant calls go through the JYI gateway, and you pay for the tokens the model uses. Nothing for the mail itself.",
   },
 ];
 
@@ -56,9 +56,9 @@ export function WhatItCosts() {
     <Section id="pricing">
       <SectionHeading>What it actually costs</SectionHeading>
       <SectionSubtitle>
-        The client is free. Two things are not: Google mailboxes, which we reach
-        through Nylas and bill per mailbox at Nylas's own price, and the tokens
-        the assistant spends.
+        The client is free. Two things are not: Google mail, which is reached
+        through Nylas and billed at Nylas's own rate once it is past the
+        allowance, and the tokens the assistant spends.
       </SectionSubtitle>
       <SectionContent noMarginTop className="mt-10">
         <CardWrapper>
@@ -97,8 +97,8 @@ export function WhatItCosts() {
       </SectionContent>
       <SectionContent className="mt-6 flex justify-center">
         <Paragraph size="sm" color="light" className="text-center">
-          Running it yourself is free too, and with your own model key the
-          assistant costs nothing at all.
+          Running it yourself is free too. The assistant still runs on the JYI
+          gateway, so you pay for the tokens it uses and nothing else.
         </Paragraph>
       </SectionContent>
     </Section>

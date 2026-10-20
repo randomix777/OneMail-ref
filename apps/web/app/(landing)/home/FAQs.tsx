@@ -92,7 +92,7 @@ const faqs: {
   {
     question: `Can I try ${BRAND_NAME} for free?`,
     answer:
-      "Yes. The client is free, and every mailbox except Google mail connects for free. The two things that cost money are Google mailboxes, which we reach through Nylas and bill per mailbox at Nylas's own price, and the tokens the assistant spends. Point the assistant at your own model provider and even that disappears.",
+      "Yes. The client is free, and every mailbox except Google mail connects for free. The two things that cost money are Google mail, which is reached through Nylas and billed at Nylas's own rate once it is past the allowance, and the tokens the assistant spends through the JYI gateway.",
   },
 ];
 

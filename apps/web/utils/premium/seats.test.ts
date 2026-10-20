@@ -38,51 +38,30 @@ vi.mock("@/ee/billing/stripe/index", () => ({
 
 import { getStripeBillingQuantity } from "./seats";
 
-/** A user's mailboxes, `count` of them on Google. */
+/** `count` mailboxes on Google, which are the billable ones. */
 function accounts(count: number) {
-  return [
-    ...Array.from({ length: count }, () => ({
-      account: { provider: "google" },
-    })),
-    { account: { provider: "microsoft" } },
-  ];
+  return Array.from({ length: count }, () => ({
+    account: { provider: "google" },
+  }));
 }
 
 describe("getStripeBillingQuantity", () => {
-  it("does not include an extra email account on starter monthly", () => {
+  it("bills every Google mailbox", () => {
     expect(
       getStripeBillingQuantity({
-        priceId: "price_current_starter_monthly",
         users: [{ emailAccounts: accounts(2) }],
+        includedMailboxes: 0,
       }),
     ).toBe(2);
   });
 
-  it("includes one email account on plus monthly", () => {
+  it("does not bill the mailboxes the allowance covers", () => {
     expect(
       getStripeBillingQuantity({
-        priceId: "price_current_plus_monthly",
         users: [{ emailAccounts: accounts(2) }],
+        includedMailboxes: 2,
       }),
     ).toBe(1);
-  });
-
-  it("does not discount additional seats on annual prices", () => {
-    expect(
-      getStripeBillingQuantity({
-        priceId: "price_current_starter_annual",
-        users: [{ emailAccounts: accounts(2) }],
-      }),
-    ).toBe(2);
-  });
-
-  it("counts shared users separately", () => {
-    expect(
-      getStripeBillingQuantity({
-        priceId: "price_current_professional_monthly",
-        users: [{ emailAccounts: accounts(2) }, { emailAccounts: accounts(1) }],
-      }),
-    ).toBe(2);
   });
 
   it("only bills mailboxes reached through the paid provider", () => {
@@ -90,7 +69,6 @@ describe("getStripeBillingQuantity", () => {
     // not billed.
     expect(
       getStripeBillingQuantity({
-        priceId: "price_current_starter_monthly",
         users: [
           {
             emailAccounts: [
@@ -100,22 +78,28 @@ describe("getStripeBillingQuantity", () => {
             ],
           },
         ],
+        includedMailboxes: 0,
       }),
     ).toBe(1);
   });
 
-  it("keeps legacy monthly prices on raw account counts", () => {
+  it("counts shared users separately", () => {
     expect(
       getStripeBillingQuantity({
-        priceId: "price_1S5u73KGf8mwZWHn8VYFdALA",
-        users: [{ emailAccounts: accounts(2) }],
+        users: [{ emailAccounts: accounts(2) }, { emailAccounts: accounts(1) }],
+        includedMailboxes: 0,
       }),
-    ).toBe(2);
+    ).toBe(3);
+  });
+
+  it("keeps a subscription at one unit when nothing is billable", () => {
+    // A subscription item cannot have a quantity of zero, so a plan always
+    // bills at least one.
     expect(
       getStripeBillingQuantity({
-        priceId: "price_1S5u6NKGf8mwZWHnZCfy4D5n",
-        users: [{ emailAccounts: accounts(2) }],
+        users: [{ emailAccounts: accounts(1) }],
+        includedMailboxes: 5,
       }),
-    ).toBe(2);
+    ).toBe(1);
   });
 });
