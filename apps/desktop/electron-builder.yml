@@ -1,7 +1,7 @@
 appId: com.getinboxzero.desktop
-productName: Inbox Zero
-copyright: Copyright © Inbox Zero
-artifactName: Inbox-Zero-${version}-${os}-${arch}.${ext}
+productName: OneMail
+copyright: Copyright © JYI Solutions
+artifactName: OneMail-${version}-${os}-${arch}.${ext}
 directories:
   output: release
   buildResources: build
@@ -11,7 +11,7 @@ files:
 asar: true
 npmRebuild: false
 protocols:
-  - name: Inbox Zero
+  - name: OneMail
     schemes:
       - inboxzero
 linux:

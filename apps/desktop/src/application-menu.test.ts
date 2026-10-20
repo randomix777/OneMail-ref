@@ -41,12 +41,12 @@ describe("desktop application menu", () => {
     const update = submenu.find((item) => item.label === "Check for Updates…");
     expect(update?.click).toBe(checkForUpdates);
 
-    const about = submenu.find((item) => item.label === "About Inbox Zero");
+    const about = submenu.find((item) => item.label === "About OneMail");
     expect(about?.click).toEqual(expect.any(Function));
     about?.click?.({} as never, {} as never, {} as never);
 
     expect(app.setAboutPanelOptions).toHaveBeenCalledWith({
-      applicationName: "Inbox Zero",
+      applicationName: "OneMail",
       applicationVersion: "0.2.0",
     });
     expect(app.showAboutPanel).toHaveBeenCalledOnce();
@@ -85,7 +85,7 @@ describe("desktop application menu", () => {
 
     const template: MenuItemConstructorOptions[] =
       Menu.buildFromTemplate.mock.results[0].value;
-    const appMenu = template.find((item) => item.label === "Inbox Zero");
+    const appMenu = template.find((item) => item.label === "OneMail");
     const submenu = appMenu?.submenu as MenuItemConstructorOptions[];
     const update = submenu.find((item) => item.label === "Restart to Update");
     expect(update?.click).toBe(checkForUpdates);
@@ -103,7 +103,7 @@ describe("desktop application menu", () => {
 
     const template: MenuItemConstructorOptions[] =
       Menu.buildFromTemplate.mock.results[0].value;
-    const appMenu = template.find((item) => item.label === "Inbox Zero");
+    const appMenu = template.find((item) => item.label === "OneMail");
     const submenu = appMenu?.submenu as MenuItemConstructorOptions[];
     expect(
       submenu.some((item) => item.label === "Downloading update… 42%"),
@@ -132,7 +132,7 @@ describe("desktop application menu", () => {
   });
 
   it.each([
-    { platform: "darwin", menu: "Inbox Zero" },
+    { platform: "darwin", menu: "OneMail" },
     { platform: "win32", menu: "File" },
   ] as const)("offers Settings with Cmd/Ctrl+, in the $menu menu on $platform", ({
     platform,

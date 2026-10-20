@@ -1,6 +1,6 @@
 # Desktop app
 
-Electron shell for the hosted Inbox Zero web app.
+Electron shell for the hosted OneMail web app.
 
 ## Run
 
