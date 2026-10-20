@@ -26,8 +26,16 @@ const selfHostedFooter = {
     { name: "Discord", href: "/discord", target: "_blank" },
   ],
   legal: [
-    { name: "Terms", href: "/terms" },
-    { name: "Privacy", href: "/privacy" },
+    {
+      name: "Terms",
+      href: "https://www.jyisolutions.com/terms",
+      target: "_blank",
+    },
+    {
+      name: "Privacy",
+      href: "https://www.jyisolutions.com/privacy",
+      target: "_blank",
+    },
   ],
 };
 
@@ -56,6 +64,10 @@ export function Footer({ className, variant = "default" }: FooterProps) {
               <Link
                 key={item.name}
                 href={item.href}
+                target={item.target}
+                rel={
+                  item.target === "_blank" ? "noopener noreferrer" : undefined
+                }
                 prefetch={false}
                 className="text-sm leading-6 text-gray-500 hover:text-gray-900"
               >
@@ -89,33 +101,18 @@ export function Footer({ className, variant = "default" }: FooterProps) {
         className={cn("overflow-hidden px-6 py-20 sm:py-24 lg:px-8", className)}
       >
         <nav aria-label="Footer">
-          <div className="mt-16 grid grid-cols-2 gap-8 lg:grid-cols-5 xl:col-span-2 xl:mt-0">
+          <div className="mt-16 grid grid-cols-2 gap-8 lg:grid-cols-4 xl:mt-0">
             <div>
               <FooterList title="Product" items={footerNavigation.main} />
             </div>
             <div>
-              <FooterList title="Use Cases" items={footerNavigation.useCases} />
-              <div className="mt-6">
-                <FooterList
-                  title="Industries"
-                  items={footerNavigation.industries}
-                />
-              </div>
-            </div>
-            <div>
               <FooterList title="Support" items={footerNavigation.support} />
-              <div className="mt-6">
-                <FooterList title="Free Tools" items={footerNavigation.tools} />
-              </div>
             </div>
             <div>
               <FooterList title="Company" items={footerNavigation.company} />
             </div>
             <div>
               <FooterList title="Legal" items={footerNavigation.legal} />
-              <div className="mt-6">
-                <FooterList title="Compare" items={footerNavigation.compare} />
-              </div>
             </div>
           </div>
         </nav>
