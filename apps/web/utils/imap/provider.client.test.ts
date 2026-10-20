@@ -1,5 +1,6 @@
 import type { ImapFlow } from "imapflow";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DraftNotFoundError } from "@/utils/error";
 import { ImapMailProvider, ImapUnsupportedFeatureError } from "./provider";
 
 /**
@@ -16,6 +17,8 @@ let mailboxes: Array<{
   specialUse?: string;
 }> = [];
 let messagesByUid = new Map<number, ReturnType<typeof summary>>();
+/** The mailbox the fake client currently has open, which its reads follow. */
+let openFolder = "INBOX";
 
 function summary(uid: number, overrides: Record<string, unknown> = {}) {
   return {
@@ -30,6 +33,7 @@ function summary(uid: number, overrides: Record<string, unknown> = {}) {
     internalDate: new Date("2026-03-01T00:00:00.000Z"),
     size: 100,
     flags: new Set<string>(),
+    folderId: "INBOX",
     source: Buffer.from(
       "From: ada@example.com\r\nTo: owner@example.com\r\nSubject: Message\r\nMessage-ID: <m1@example.com>\r\nDate: Sun, 1 Mar 2026 00:00:00 +0000\r\n\r\nHello\r\n",
     ),
@@ -44,13 +48,27 @@ function fakeClient(): ImapFlow {
     status: async () => ({ messages: 2, unseen: 1, path: "INBOX" }),
     getMailboxLock: async (path: string) => {
       locks.push(path);
+      openFolder = path;
       return { release: () => undefined };
     },
     fetch: async function* () {
-      for (const message of messagesByUid.values()) yield message;
+      for (const message of messagesByUid.values()) {
+        if (message.folderId && message.folderId !== openFolder) continue;
+        yield message;
+      }
     },
     fetchOne: async (uid: string) => messagesByUid.get(Number(uid)) ?? false,
-    search: async () => [...messagesByUid.keys()],
+    search: async (query: unknown) => {
+      const wanted = (query as { header?: { "message-id"?: string } }).header?.[
+        "message-id"
+      ];
+      if (!wanted) return [...messagesByUid.keys()];
+      const found: number[] = [];
+      for (const message of messagesByUid.values()) {
+        if (message.envelope?.messageId === wanted) found.push(message.uid);
+      }
+      return found;
+    },
     messageFlagsAdd: async (
       range: string,
       flags: string[],
@@ -75,9 +93,33 @@ function fakeClient(): ImapFlow {
       operations.push(`move ${range} -> ${destination}`);
       return true;
     },
-    append: async (path: string) => {
-      operations.push(`append ${path}`);
-      return { destination: path, uid: 1 };
+    messageDelete: async (range: string, options: unknown) => {
+      operations.push(
+        `delete ${range} uid=${String((options as { uid?: boolean }).uid)}`,
+      );
+      return true;
+    },
+    append: async (path: string, content: string, flags?: string[]) => {
+      operations.push(`append ${path} ${flags?.join(",") ?? ""}`.trim());
+      const source = String(content);
+      const messageId = source.match(/Message-ID: <([^>]+)>/)?.[1];
+      const to = source.match(/To: (.*)\r?\n/)?.[1] ?? "someone@example.com";
+      const uid = messagesByUid.size + 1;
+      messagesByUid.set(
+        uid,
+        summary(uid, {
+          envelope: {
+            subject: source.match(/Subject: (.*)\r?\n/)?.[1] ?? "Draft",
+            messageId: `<${messageId ?? `m${uid}@example.com`}>`,
+            date: new Date("2026-03-01T00:00:00.000Z"),
+            from: [{ address: "owner@example.com" }],
+            to: to.split(",").map((entry) => ({ address: entry.trim() })),
+          },
+          source: Buffer.from(source),
+          folderId: path,
+        }),
+      );
+      return { destination: path, uid };
     },
   } as unknown as ImapFlow;
 }
@@ -139,10 +181,12 @@ beforeEach(() => {
     // Named the way Fastmail names it, to prove the role comes from the
     // attribute or a known name rather than a hardcoded "SENT".
     { path: "Sent Items", name: "Sent Items", specialUse: "\\Sent" },
+    { path: "Drafts", name: "Drafts", specialUse: "\\Drafts" },
     { path: "Trash", name: "Trash", specialUse: "\\Trash" },
     { path: "Archive", name: "Archive", specialUse: "\\Archive" },
   ];
   messagesByUid = new Map([[1, summary(1)]]);
+  openFolder = "INBOX";
 });
 
 describe("ImapMailProvider folders and labels", () => {
@@ -150,6 +194,7 @@ describe("ImapMailProvider folders and labels", () => {
     expect(await provider().getFolders()).toEqual([
       { id: "INBOX", displayName: "INBOX" },
       { id: "Sent Items", displayName: "Sent Items" },
+      { id: "Drafts", displayName: "Drafts" },
       { id: "Trash", displayName: "Trash" },
       { id: "Archive", displayName: "Archive" },
     ]);
@@ -221,6 +266,178 @@ describe("ImapMailProvider mutations", () => {
   });
 });
 
+describe("ImapMailProvider drafts", () => {
+  it("writes a draft into the Drafts mailbox", async () => {
+    const created = await provider().createDraft({
+      to: "ada@example.com",
+      subject: "Hello",
+      messageHtml: "<p>Hi</p>",
+    });
+
+    expect(created.id.endsWith("@example.com")).toBe(true);
+    expect(operations).toContain("append Drafts \\Draft");
+  });
+
+  it("refuses to write a draft when the server has no Drafts mailbox", async () => {
+    // A draft written somewhere the user will not look for it is a lost draft.
+    mailboxes = [{ path: "INBOX", name: "INBOX", specialUse: "\\Inbox" }];
+
+    await expect(
+      provider().createDraft({
+        to: "ada@example.com",
+        subject: "Hello",
+        messageHtml: "<p>Hi</p>",
+      }),
+    ).rejects.toThrow(ImapUnsupportedFeatureError);
+  });
+
+  it("reads a draft back by the id it was given", async () => {
+    const created = await provider().createDraft({
+      to: "ada@example.com",
+      subject: "Hello",
+      messageHtml: "<p>Hi</p>",
+    });
+
+    const draft = await provider().getDraft(created.id);
+
+    expect(draft?.subject).toBe("Hello");
+    expect(draft?.headers.to).toContain("ada@example.com");
+  });
+
+  it("keeps the same draft id when the draft is rewritten", async () => {
+    const created = await provider().createDraft({
+      to: "ada@example.com",
+      subject: "Hello",
+      messageHtml: "<p>Hi</p>",
+    });
+
+    await provider().updateDraft(created.id, {
+      to: "ada@example.com",
+      subject: "Hello again",
+      messageHtml: "<p>Hi again</p>",
+    });
+
+    const draft = await provider().getDraft(created.id);
+    expect(draft?.subject).toBe("Hello again");
+  });
+
+  it("removes the copy a rewrite replaced", async () => {
+    const created = await provider().createDraft({
+      to: "ada@example.com",
+      subject: "Hello",
+      messageHtml: "<p>Hi</p>",
+    });
+
+    await provider().updateDraft(created.id, {
+      to: "ada@example.com",
+      subject: "Hello again",
+      messageHtml: "<p>Hi again</p>",
+    });
+
+    // The old copy would otherwise sit next to the new one in Drafts.
+    expect(operations.some((entry) => entry.startsWith("move "))).toBe(true);
+  });
+
+  it("lists the drafts in the Drafts mailbox", async () => {
+    await provider().createDraft({
+      to: "ada@example.com",
+      subject: "Hello",
+      messageHtml: "<p>Hi</p>",
+    });
+
+    const drafts = await provider().getDrafts();
+
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0].subject).toBe("Hello");
+  });
+
+  it("throws away a draft that is gone", async () => {
+    expect(await provider().getDraft("missing@example.com")).toBeNull();
+    expect(await provider().deleteDraft("missing@example.com")).toBe(false);
+  });
+});
+
+describe("ImapMailProvider draft attachments", () => {
+  async function draftWithFile() {
+    const created = await provider().createDraft({
+      to: "ada@example.com",
+      subject: "Hello",
+      messageHtml: "<p>Hi</p>",
+    });
+
+    const added = await provider().addDraftAttachment(created.id, {
+      id: "file-1",
+      filename: "notes.txt",
+      mimeType: "text/plain",
+      size: 5,
+      disposition: "attachment",
+      content: Buffer.from("hello", "utf8"),
+    });
+
+    return { draftId: created.id, added };
+  }
+
+  it("puts the file on the draft", async () => {
+    const { added } = await draftWithFile();
+
+    expect(added.attachments).toHaveLength(1);
+    expect(added.attachments[0].filename).toBe("notes.txt");
+    expect(added.attachments[0].size).toBe(5);
+  });
+
+  it("gives the file an id that survives a rewrite", async () => {
+    const { draftId, added } = await draftWithFile();
+
+    // Rewriting the text replaces the message, so the id has to come from
+    // something the rewrite carries over.
+    await provider().updateDraft(draftId, {
+      to: "ada@example.com",
+      subject: "Hello again",
+      messageHtml: "<p>Hi again</p>",
+    });
+
+    const listed = await provider().getDraftAttachments(draftId);
+    expect(listed?.attachments[0].id).toBe(added.attachmentId);
+  });
+
+  it("keeps the file when the text is rewritten", async () => {
+    const { draftId } = await draftWithFile();
+
+    await provider().updateDraft(draftId, {
+      to: "ada@example.com",
+      subject: "Hello again",
+      messageHtml: "<p>Hi again</p>",
+    });
+
+    const listed = await provider().getDraftAttachments(draftId);
+    expect(listed?.attachments).toHaveLength(1);
+  });
+
+  it("removes a file from the draft", async () => {
+    const { draftId, added } = await draftWithFile();
+
+    const removed = await provider().removeDraftAttachment(
+      draftId,
+      added.attachmentId,
+    );
+
+    expect(removed.attachments).toHaveLength(0);
+  });
+
+  it("refuses to attach to a draft that is gone", async () => {
+    await expect(
+      provider().addDraftAttachment("missing@example.com", {
+        id: "file-1",
+        filename: "notes.txt",
+        mimeType: "text/plain",
+        size: 5,
+        disposition: "attachment",
+        content: Buffer.from("hello", "utf8"),
+      }),
+    ).rejects.toThrow(DraftNotFoundError);
+  });
+});
+
 describe("ImapMailProvider sending", () => {
   it("appends its own Sent copy for a mailbox that does not file one", async () => {
     const result = await provider("fastmail").sendEmail({
@@ -231,7 +448,7 @@ describe("ImapMailProvider sending", () => {
 
     expect(result.messageId).toBe("<sent@example.com>");
     // Fastmail does not file a copy, so dropping the append would lose sent mail.
-    expect(operations).toEqual(["append Sent Items"]);
+    expect(operations).toEqual(["append Sent Items \\Seen"]);
   });
 
   it("lets the provider file the copy for Zoho, whose SMTP already does", async () => {

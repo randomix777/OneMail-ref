@@ -61,9 +61,11 @@ export type ProviderCapabilities = {
   /**
    * Can compose and store a reply draft from the in-app reader.
    *
-   * About the draft path the reader uses, not about sending: Google is the only
-   * family whose reply-draft flow has been built and exercised, so the others show
-   * the message without reply affordances rather than offering buttons that fail.
+   * About the draft path the reader uses, not about sending: Google and
+   * Microsoft both implement the whole draft surface (create, update, read,
+   * delete, send, attachments), and the IMAP families keep drafts as ordinary
+   * messages in the Drafts mailbox, which is enough to write one, read it back
+   * and send it.
    */
   viewerReplies: boolean;
 };
@@ -127,7 +129,9 @@ const PROVIDER_DEFINITIONS = {
       labels: false,
       starred: false,
       bulkActions: true,
-      viewerReplies: false,
+      // Graph implements the whole draft surface, so the reader can reply
+      // against an Outlook mailbox and the draft syncs to it.
+      viewerReplies: true,
     },
   },
   // The families below are reached over IMAP with an app password, which is the
@@ -146,7 +150,7 @@ const PROVIDER_DEFINITIONS = {
       labels: false,
       starred: true,
       bulkActions: false,
-      viewerReplies: false,
+      viewerReplies: true,
     },
   },
   zoho: {
@@ -159,7 +163,7 @@ const PROVIDER_DEFINITIONS = {
       labels: false,
       starred: true,
       bulkActions: false,
-      viewerReplies: false,
+      viewerReplies: true,
     },
   },
   fastmail: {
@@ -174,7 +178,7 @@ const PROVIDER_DEFINITIONS = {
       labels: true,
       starred: true,
       bulkActions: false,
-      viewerReplies: false,
+      viewerReplies: true,
     },
   },
   icloud: {
@@ -187,7 +191,7 @@ const PROVIDER_DEFINITIONS = {
       labels: false,
       starred: true,
       bulkActions: false,
-      viewerReplies: false,
+      viewerReplies: true,
     },
   },
   imap: {
@@ -200,7 +204,7 @@ const PROVIDER_DEFINITIONS = {
       labels: false,
       starred: true,
       bulkActions: false,
-      viewerReplies: false,
+      viewerReplies: true,
     },
   },
 } satisfies Record<ProviderFamily, ProviderDefinition>;

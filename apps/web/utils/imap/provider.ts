@@ -23,10 +23,24 @@ import type {
 import type { OutlookFolder } from "@/utils/outlook/folders";
 import type { ParsedMessage } from "@/utils/types";
 import type { SendEmailBody } from "@/utils/types/mail";
-import { SafeError } from "@/utils/error";
+import { SafeError, DraftNotFoundError } from "@/utils/error";
 import type { Logger } from "@/utils/logger";
 import type { ProviderFamily } from "@/utils/email/provider-registry";
+import {
+  assertDraftAttachmentLimits,
+  DRAFT_ATTACHMENT_DIRECT_UPLOAD_LIMIT_BYTES,
+} from "@/utils/email/draft-attachment-upload";
+import type { DraftAttachmentMetadata } from "@/utils/actions/draft-attachments.validation";
 import { listImapMailboxes, withImapConnection } from "./client";
+import {
+  appendImapDraft,
+  buildImapDraftSource,
+  createImapDraftMessageId,
+  findImapDraftUid,
+  readImapDraftAttachments,
+  type ImapDraftAddress,
+  type ImapDraftAttachment,
+} from "./draft";
 import {
   getImapMailboxSyncPage,
   hydrateImapMessage,
@@ -72,8 +86,8 @@ export type ImapMailProviderOptions = {
  * IMAP families (Zoho, Yahoo, Fastmail, iCloud, plain IMAP) expose no server-side
  * filters, no send-as aliases, no signature sync and no forwarding settings to a
  * plain IMAP client, so those methods refuse rather than pretend. Drafts are
- * stored as ordinary messages in the Drafts mailbox, which is enough to read them
- * and not enough to edit attachments in place.
+ * stored as ordinary messages in the Drafts mailbox, which is enough to read
+ * them, write them and send them.
  */
 export class ImapMailProvider implements EmailProvider {
   readonly name: ProviderFamily;
@@ -88,6 +102,13 @@ export class ImapMailProvider implements EmailProvider {
    * and because resolving it means listing every mailbox.
    */
   private sentFolderId: string | null = null;
+  /**
+   * The mailbox the server keeps drafts in, once something has asked.
+   *
+   * Cached for the same reason the sent mailbox is, and because a draft is
+   * written and read on every keystroke the user saves.
+   */
+  private draftFolderId: string | null = null;
 
   constructor(options: ImapMailProviderOptions) {
     this.options = options;
@@ -105,6 +126,24 @@ export class ImapMailProvider implements EmailProvider {
     });
 
     this.sentFolderId = resolved;
+    return resolved;
+  }
+
+  /**
+   * Resolves and caches the Drafts mailbox, or null when the server has none.
+   *
+   * A server without one cannot hold a draft, so the draft methods refuse
+   * rather than writing a message somewhere the user will not find it.
+   */
+  private async resolveDraftFolderId() {
+    if (this.draftFolderId) return this.draftFolderId;
+
+    const resolved = await this.withClient(async (client) => {
+      const folders = await resolveImapFolders(client);
+      return folders.drafts ?? null;
+    });
+
+    this.draftFolderId = resolved;
     return resolved;
   }
 
@@ -759,10 +798,6 @@ export class ImapMailProvider implements EmailProvider {
 
   // ------------------------------------------------------------------ not available
 
-  async addDraftAttachment(): ReturnType<EmailProvider["addDraftAttachment"]> {
-    throw new ImapUnsupportedFeatureError("editing attachments on a draft");
-  }
-
   async blockUnsubscribedEmail(): Promise<void> {
     throw new ImapUnsupportedFeatureError("server-side filters");
   }
@@ -802,8 +837,467 @@ export class ImapMailProvider implements EmailProvider {
     throw new ImapUnsupportedFeatureError("server-side filters");
   }
 
-  async createDraft(): ReturnType<EmailProvider["createDraft"]> {
-    throw new ImapUnsupportedFeatureError("creating drafts");
+  async createDraft(params: {
+    to: string;
+    from?: string;
+    cc?: string;
+    bcc?: string;
+    subject: string;
+    messageHtml: string;
+    replyToMessageId?: string;
+    forwardedMessageId?: string;
+  }): Promise<{ id: string }> {
+    const folderId = await this.resolveDraftFolderId();
+    if (!folderId) {
+      throw new ImapUnsupportedFeatureError(
+        "a Drafts mailbox to keep drafts in",
+      );
+    }
+
+    const thread = await this.resolveDraftThread(params.replyToMessageId);
+    const messageId = createImapDraftMessageId(this.options.email);
+    const source = buildImapDraftSource({
+      from: { address: params.from ?? this.options.email },
+      to: splitAddresses(params.to)?.map(toDraftAddress) ?? [],
+      cc: splitAddresses(params.cc)?.map(toDraftAddress),
+      bcc: splitAddresses(params.bcc)?.map(toDraftAddress),
+      subject: params.subject,
+      html: params.messageHtml,
+      messageId,
+      inReplyTo: thread.inReplyTo,
+      references: thread.references,
+    });
+
+    await this.withClient((client) =>
+      appendImapDraft({ client, folderId, source }),
+    );
+
+    return { id: messageId };
+  }
+
+  async updateDraft(
+    draftId: string,
+    params: {
+      messageHtml?: string;
+      subject?: string;
+      to?: string;
+      from?: string;
+      cc?: string;
+      bcc?: string;
+    },
+  ): Promise<void> {
+    const current = await this.readImapDraft(draftId);
+    if (!current) throw new SafeError(`Draft ${draftId} was not found`);
+
+    await this.rewriteImapDraft({
+      draftId,
+      message: current,
+      to: params.to,
+      from: params.from,
+      cc: params.cc,
+      bcc: params.bcc,
+      subject: params.subject ?? current.subject,
+      html: params.messageHtml ?? current.textHtml ?? "",
+      attachments: await this.readImapDraftFiles(draftId),
+    });
+  }
+
+  async addDraftAttachment(
+    draftId: string,
+    attachment: DraftAttachmentMetadata & { content: Buffer },
+  ): Promise<DraftAttachmentsResult & { attachmentId: string }> {
+    const current = await this.readImapDraft(draftId);
+    if (!current) {
+      throw new DraftNotFoundError(
+        "Could not find this draft in your mailbox.",
+      );
+    }
+
+    const listed = await this.getDraftAttachments(draftId);
+    assertDraftAttachmentLimits(
+      listed?.attachments.map((file) => ({ size: file.size })) ?? [],
+      attachment.size,
+    );
+
+    // The Content-ID is what identifies the file across a rewrite, so the one
+    // the app sent is kept when it has one.
+    const contentId = attachment.contentId ?? `${attachment.id}@draft`;
+
+    await this.rewriteImapDraft({
+      draftId,
+      message: current,
+      to: current.headers.to,
+      subject: current.subject,
+      html: current.textHtml ?? "",
+      attachments: [
+        ...(await this.readImapDraftFiles(draftId)),
+        {
+          filename: attachment.filename,
+          contentType: attachment.mimeType,
+          content: attachment.content,
+          contentId,
+        },
+      ],
+    });
+
+    const result = await this.getDraftAttachments(draftId);
+    if (!result) {
+      throw new DraftNotFoundError(
+        "Could not find this draft in your mailbox.",
+      );
+    }
+
+    return { ...result, attachmentId: contentId };
+  }
+
+  async removeDraftAttachment(
+    draftId: string,
+    attachmentId: string,
+  ): Promise<DraftAttachmentsResult> {
+    const current = await this.readImapDraft(draftId);
+    if (!current) {
+      throw new DraftNotFoundError(
+        "Could not find this draft in your mailbox.",
+      );
+    }
+
+    const files = (await this.readImapDraftFiles(draftId)).filter(
+      (file) => file.contentId !== attachmentId,
+    );
+
+    await this.rewriteImapDraft({
+      draftId,
+      message: current,
+      to: current.headers.to,
+      subject: current.subject,
+      html: current.textHtml ?? "",
+      attachments: files,
+    });
+
+    const result = await this.getDraftAttachments(draftId);
+    if (!result) {
+      throw new DraftNotFoundError(
+        "Could not find this draft in your mailbox.",
+      );
+    }
+
+    return result;
+  }
+
+  async deleteDraft(draftId: string): Promise<boolean> {
+    const draft = await this.readImapDraft(draftId);
+    if (!draft) return false;
+
+    await this.withClient(async (client) => {
+      const folderId = await this.resolveDraftFolderId();
+      if (!folderId) return;
+      await this.removeImapDraftCopy(client, folderId, draft.id);
+    });
+
+    return true;
+  }
+
+  async getDraft(
+    draftId: string,
+    options?: { includeAttachments?: boolean },
+  ): Promise<ParsedMessage | null> {
+    const draft = await this.readImapDraft(draftId);
+    if (!draft) return null;
+    if (options?.includeAttachments === false) {
+      return { ...draft, attachments: undefined, inline: [] };
+    }
+    return draft;
+  }
+
+  async getDrafts(options?: { maxResults?: number }): Promise<ParsedMessage[]> {
+    const folderId = await this.resolveDraftFolderId();
+    if (!folderId) return [];
+
+    return this.withClient(async (client) => {
+      const { messages } = await listImapMessages({
+        client,
+        folderId,
+        limit: options?.maxResults ?? 50,
+        accountEmail: this.options.email,
+      });
+
+      return messages;
+    });
+  }
+
+  async getDraftReferenceForMessage(
+    messageId: string,
+  ): Promise<DraftReference | null> {
+    // Only a message in the Drafts mailbox is a draft, and only then does the
+    // app get a reference it can act on.
+    const { folderId } = parseImapMessageId(messageId);
+    const draftsFolder = await this.resolveDraftFolderId();
+    if (!draftsFolder || folderId !== draftsFolder) return null;
+
+    const message = await this.getMessage(messageId);
+    const messageIdHeader = message.headers["message-id"];
+    if (!messageIdHeader) return null;
+
+    return { id: stripMessageIdBrackets(messageIdHeader) };
+  }
+
+  async getDraftAttachments(
+    draftId: string,
+  ): Promise<DraftAttachmentsResult | null> {
+    const draft = await this.readImapDraft(draftId);
+    if (!draft) return null;
+
+    // The files are read from the source rather than from the parsed message,
+    // because the Content-ID is what identifies a file across a rewrite.
+    const files = await this.readImapDraftFiles(draftId);
+
+    return {
+      messageId: draftId,
+      attachments: files.map((file, index) => ({
+        id: file.contentId ?? `${draftId}-${index}`,
+        filename: file.filename,
+        mimeType: file.contentType ?? "application/octet-stream",
+        size: file.content.byteLength,
+        disposition: "attachment" as const,
+        contentId: file.contentId,
+        messageId: draftId,
+        providerAttachmentId: file.contentId ?? `${draftId}-${index}`,
+      })),
+    };
+  }
+
+  async sendDraft(
+    draftId: string,
+  ): Promise<{ messageId: string; threadId: string }> {
+    const draft = await this.readImapDraft(draftId);
+    if (!draft) throw new SafeError(`Draft ${draftId} was not found`);
+
+    const sent = await this.deliver({
+      to: draft.headers.to ?? "",
+      cc: draft.headers.cc,
+      bcc: draft.headers.bcc,
+      subject: draft.subject,
+      html: draft.textHtml ?? draft.textPlain ?? "",
+      text: draft.textPlain,
+      inReplyTo: draft.headers["in-reply-to"],
+      references: splitMessageIds(draft.headers.references),
+    });
+
+    // The sent copy replaces the draft, as it does in every mail client.
+    await this.deleteDraft(draftId);
+
+    return { messageId: sent.messageId, threadId: sent.threadId };
+  }
+
+  async draftEmail(
+    email: ParsedMessage,
+    args: {
+      to?: string;
+      subject?: string;
+      content: string;
+      cc?: string;
+      bcc?: string;
+      attachments?: MailAttachment[];
+    },
+    _userEmail: string,
+    _executedRule?: { id: string; threadId: string; emailAccountId: string },
+  ): Promise<{ draftId: string }> {
+    const created = await this.createDraft({
+      to: args.to || email.headers["reply-to"] || email.headers.from,
+      cc: args.cc,
+      bcc: args.bcc,
+      subject:
+        args.subject ||
+        (email.subject.toLowerCase().startsWith("re:")
+          ? email.subject
+          : `Re: ${email.subject}`),
+      messageHtml: args.content,
+      replyToMessageId: email.id,
+    });
+
+    return { draftId: created.id };
+  }
+
+  /**
+   * Rewrites a draft and removes the copy it replaces.
+   *
+   * IMAP cannot edit a message, so a changed draft is a new message with the
+   * same Message-ID. The app holds the draft by that Message-ID, so the id
+   * survives the rewrite and the user sees one draft rather than two.
+   */
+  private async rewriteImapDraft({
+    draftId,
+    message,
+    to,
+    from,
+    cc,
+    bcc,
+    subject,
+    html,
+    attachments,
+  }: {
+    draftId: string;
+    message: ParsedMessage;
+    to?: string;
+    from?: string;
+    cc?: string;
+    bcc?: string;
+    subject: string;
+    html: string;
+    attachments: ImapDraftAttachment[];
+  }) {
+    const folderId = await this.resolveDraftFolderId();
+    if (!folderId) {
+      throw new ImapUnsupportedFeatureError(
+        "a Drafts mailbox to keep drafts in",
+      );
+    }
+
+    const source = buildImapDraftSource({
+      from: { address: from ?? this.options.email },
+      to: splitAddresses(to)?.map(toDraftAddress) ?? [],
+      cc: splitAddresses(cc)?.map(toDraftAddress),
+      bcc: splitAddresses(bcc)?.map(toDraftAddress),
+      subject,
+      html,
+      messageId: draftId,
+      inReplyTo: message.headers["in-reply-to"],
+      references: splitMessageIds(message.headers.references),
+      attachments,
+    });
+
+    await this.withClient(async (client) => {
+      await appendImapDraft({ client, folderId, source });
+      await this.removeImapDraftCopy(client, folderId, message.id);
+    });
+  }
+
+  /**
+   * Reads a draft by the Message-ID the app holds it by.
+   *
+   * The draft is found in the Drafts mailbox and hydrated, so the body and the
+   * attachments are there.
+   */
+  private async readImapDraft(draftId: string): Promise<ParsedMessage | null> {
+    const folderId = await this.resolveDraftFolderId();
+    if (!folderId) return null;
+
+    return this.withClient(async (client) => {
+      const uid = await findImapDraftUid({
+        client,
+        folderId,
+        messageId: draftId,
+      });
+      if (!uid) return null;
+
+      return hydrateImapMessage({
+        client,
+        folderId,
+        uid,
+        accountEmail: this.options.email,
+      });
+    });
+  }
+
+  /**
+   * The files already on a draft, as bytes.
+   *
+   * A draft the user made in another client can carry attachments, and
+   * rewriting the text of such a draft must not drop them. The parsed message
+   * only carries their metadata, so the source is read for the bytes.
+   */
+  private async readImapDraftFiles(
+    draftId: string,
+  ): Promise<ImapDraftAttachment[]> {
+    const folderId = await this.resolveDraftFolderId();
+    if (!folderId) return [];
+
+    return this.withClient(async (client) => {
+      const uid = await findImapDraftUid({
+        client,
+        folderId,
+        messageId: draftId,
+      });
+      if (!uid) return [];
+
+      const source = await this.readImapDraftSource(client, folderId, uid);
+      if (!source) return [];
+
+      return readImapDraftAttachments(source);
+    });
+  }
+
+  /** The raw source of a draft, which is where its attachments live. */
+  private async readImapDraftSource(
+    client: ImapFlow,
+    folderId: string,
+    uid: number,
+  ): Promise<Buffer | null> {
+    const lock = await client.getMailboxLock(folderId);
+
+    try {
+      const fetched = await client.fetchOne(
+        String(uid),
+        { source: true },
+        { uid: true },
+      );
+      // Two checks rather than an optional chain: the fetched value is a union
+      // that includes `false`, which an optional chain does not narrow.
+      if (!fetched) return null;
+      if (!fetched.source) return null;
+      return Buffer.isBuffer(fetched.source)
+        ? fetched.source
+        : Buffer.from(fetched.source as Uint8Array);
+    } finally {
+      lock.release();
+    }
+  }
+
+  /**
+   * Removes a copy of a draft.
+   *
+   * IMAP cannot rewrite a message, so the copy that was replaced is moved to
+   * the trash like any other message the user deletes. A server with no trash
+   * mailbox falls back to the deleted flag, which is what the specification
+   * asks for and what mail clients hide.
+   */
+  private async removeImapDraftCopy(
+    client: ImapFlow,
+    folderId: string,
+    messageId: string,
+  ) {
+    const { uid } = parseImapMessageId(messageId);
+    const lock = await client.getMailboxLock(folderId);
+
+    try {
+      const folders = await resolveImapFolders(client);
+      if (folders.trash && folders.trash !== folderId) {
+        await client.messageMove(String(uid), folders.trash, { uid: true });
+        return;
+      }
+      await client.messageDelete(String(uid), { uid: true });
+    } finally {
+      lock.release();
+    }
+  }
+
+  /**
+   * The threading headers a reply draft has to carry.
+   *
+   * The message being replied to is a message id here, so its own Message-ID
+   * has to be read before the draft can point at it.
+   */
+  private async resolveDraftThread(replyToMessageId?: string) {
+    if (!replyToMessageId) return {};
+
+    const message = await this.getMessage(replyToMessageId);
+    const inReplyTo = message.headers["message-id"];
+    if (!inReplyTo) return {};
+
+    return {
+      inReplyTo,
+      references: [...splitMessageIds(message.headers.references), inReplyTo],
+    };
   }
 
   async createFilter(): Promise<{ status: number }> {
@@ -812,10 +1306,6 @@ export class ImapMailProvider implements EmailProvider {
 
   async createLabel(): Promise<EmailLabel> {
     throw new ImapUnsupportedFeatureError("creating folders");
-  }
-
-  async deleteDraft(): Promise<boolean> {
-    throw new ImapUnsupportedFeatureError("deleting drafts");
   }
 
   async deleteFilter(): Promise<{ status: number }> {
@@ -830,10 +1320,6 @@ export class ImapMailProvider implements EmailProvider {
     throw new ImapUnsupportedFeatureError("deleting folders");
   }
 
-  async draftEmail(): ReturnType<EmailProvider["draftEmail"]> {
-    throw new ImapUnsupportedFeatureError("creating drafts");
-  }
-
   async forwardEmail(): Promise<{ messageId: string }> {
     throw new ImapUnsupportedFeatureError("forwarding as its own message");
   }
@@ -841,22 +1327,6 @@ export class ImapMailProvider implements EmailProvider {
   async getContactPhotos(): Promise<Record<string, string>> {
     // IMAP carries no address book, so there are no photos to read.
     return {};
-  }
-
-  async getDraft(): Promise<ParsedMessage | null> {
-    throw new ImapUnsupportedFeatureError("reading a draft by id");
-  }
-
-  async getDraftAttachments(): Promise<DraftAttachmentsResult | null> {
-    throw new ImapUnsupportedFeatureError("reading draft attachments");
-  }
-
-  async getDraftReferenceForMessage(): Promise<DraftReference | null> {
-    throw new ImapUnsupportedFeatureError("draft references");
-  }
-
-  async getDrafts(): Promise<ParsedMessage[]> {
-    throw new ImapUnsupportedFeatureError("listing drafts");
   }
 
   async getFiltersList(): Promise<EmailFilter[]> {
@@ -900,7 +1370,7 @@ export class ImapMailProvider implements EmailProvider {
     throw new ImapUnsupportedFeatureError("creating folders");
   }
 
-  async getOrCreateInboxZeroLabel(): Promise<EmailLabel> {
+  async getOrCreateBrandLabel(): Promise<EmailLabel> {
     throw new ImapUnsupportedFeatureError("creating folders");
   }
 
@@ -1009,10 +1479,6 @@ export class ImapMailProvider implements EmailProvider {
     throw new ImapUnsupportedFeatureError("moving to an arbitrary folder");
   }
 
-  async removeDraftAttachment(): Promise<DraftAttachmentsResult> {
-    throw new ImapUnsupportedFeatureError("editing attachments on a draft");
-  }
-
   async removeThreadLabel(): Promise<void> {
     throw new ImapUnsupportedFeatureError("labels");
   }
@@ -1041,16 +1507,12 @@ export class ImapMailProvider implements EmailProvider {
     throw new ImapUnsupportedFeatureError("searching conversations");
   }
 
-  async sendDraft(): Promise<{ messageId: string; threadId: string }> {
-    throw new ImapUnsupportedFeatureError("sending a stored draft");
-  }
-
   async startDraftAttachmentUpload(): Promise<DraftAttachmentUploadStart> {
-    throw new ImapUnsupportedFeatureError("uploading draft attachments");
-  }
-
-  async updateDraft(): Promise<void> {
-    throw new ImapUnsupportedFeatureError("editing drafts");
+    // IMAP has no upload session, so a file can only be attached by sending
+    // its bytes with the rest of the draft.
+    throw new ImapUnsupportedFeatureError(
+      `attaching files larger than ${Math.round(DRAFT_ATTACHMENT_DIRECT_UPLOAD_LIMIT_BYTES / (1024 * 1024))} MB`,
+    );
   }
 
   async updateLabel(): Promise<void> {
@@ -1087,4 +1549,24 @@ function splitAddresses(value?: string) {
     .map((entry) => entry.trim())
     .filter(Boolean);
   return addresses.length ? addresses : undefined;
+}
+
+/** An address for a draft header, split into its name and its address. */
+function toDraftAddress(value: string): ImapDraftAddress {
+  const match = value.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
+  if (!match) return { address: value };
+  return { name: match[1].replace(/^"|"$/g, ""), address: match[2] };
+}
+
+/** The message ids in a `References` header, without their angle brackets. */
+function splitMessageIds(value?: string) {
+  if (!value) return [];
+  return (value.match(/<[^>]+>/g) ?? []).map((entry) =>
+    stripMessageIdBrackets(entry),
+  );
+}
+
+/** A Message-ID without the angle brackets the header carries it in. */
+function stripMessageIdBrackets(value: string) {
+  return value.replace(/^</, "").replace(/>$/, "");
 }

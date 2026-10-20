@@ -1541,10 +1541,15 @@ emails; a bounded-poll run showing new mail reaches the rules pipeline.
 - **Send composes the bytes once** and reuses them for the Sent copy, because a
   hand-written header block would drop the HTML part and the attachments.
 - **`ImapMailProvider` implements the whole interface.** The sync, read, thread,
-  flag and send paths do real work; everything that needs a provider API
-  (filters, send-as, signatures, forwarding, labels, drafts, server-side search)
-  raises a `SafeError` the user can read. Returning empty is reserved for the
-  cases where "nothing" is the true answer — no address book, no aliases.
+  flag, send and draft paths do real work; everything that needs a provider API
+  (filters, send-as, signatures, forwarding, labels, server-side search) raises a
+  `SafeError` the user can read. Returning empty is reserved for the cases where
+  "nothing" is the true answer - no address book, no aliases.
+  Drafts are the exception that needed no provider API: a draft is an ordinary
+  message in the Drafts mailbox, so it is written, read, rewritten and sent by
+  hand. Rewriting appends a new message with the same `Message-ID` and removes
+  the old copy, which is why the `Message-ID` and not the UID is the draft's
+  identity.
 - **The connect form** takes an address and a password for a preset family, and
   hostnames only for "other mail server". A **preset owns the TLS mode**: iCloud
   documents STARTTLS on 587, and a form default of "secure" would wrap that port

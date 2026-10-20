@@ -38,7 +38,7 @@ describe("provider registry", () => {
         labels: false,
         starred: false,
         bulkActions: true,
-        viewerReplies: false,
+        viewerReplies: true,
       },
     },
     // Reachable only by submitting an app password: none of these can connect a
@@ -51,7 +51,7 @@ describe("provider registry", () => {
         labels: false,
         starred: true,
         bulkActions: false,
-        viewerReplies: false,
+        viewerReplies: true,
       },
     },
     zoho: {
@@ -62,7 +62,7 @@ describe("provider registry", () => {
         labels: false,
         starred: true,
         bulkActions: false,
-        viewerReplies: false,
+        viewerReplies: true,
       },
     },
     fastmail: {
@@ -75,7 +75,7 @@ describe("provider registry", () => {
         labels: true,
         starred: true,
         bulkActions: false,
-        viewerReplies: false,
+        viewerReplies: true,
       },
     },
     icloud: {
@@ -86,7 +86,7 @@ describe("provider registry", () => {
         labels: false,
         starred: true,
         bulkActions: false,
-        viewerReplies: false,
+        viewerReplies: true,
       },
     },
     imap: {
@@ -97,7 +97,7 @@ describe("provider registry", () => {
         labels: false,
         starred: true,
         bulkActions: false,
-        viewerReplies: false,
+        viewerReplies: true,
       },
     },
   } satisfies Record<ProviderFamily, unknown>;
