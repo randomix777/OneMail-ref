@@ -85,11 +85,11 @@ function MailboxCard({ mailbox }: { mailbox: Mailbox }) {
 export function MailboxSupport() {
   return (
     <Section>
-      <SectionHeading>Every mailbox you already have</SectionHeading>
+      <SectionHeading>What works where</SectionHeading>
       <SectionSubtitle>
-        One assistant across Gmail, Outlook, Yahoo, Fastmail, iCloud, Zoho and
-        any other IMAP server. Connect as many as you like and work from a
-        single inbox.
+        Every mailbox family the client connects, and what each one really
+        supports. Where a provider has no equivalent operation, that affordance
+        is hidden rather than shown and failing.
       </SectionSubtitle>
       <SectionContent
         noMarginTop

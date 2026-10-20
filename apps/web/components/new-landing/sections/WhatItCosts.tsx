@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { Card, CardContent } from "@/components/new-landing/common/Card";
 import { CardWrapper } from "@/components/new-landing/common/CardWrapper";
-import { Button } from "@/components/new-landing/common/Button";
 import {
   Section,
   SectionContent,
@@ -33,7 +31,7 @@ const COSTS = [
   },
 ];
 
-export function SelfHostedPricing() {
+export function WhatItCosts() {
   return (
     <Section id="pricing">
       <SectionHeading>What it actually costs</SectionHeading>
@@ -63,13 +61,6 @@ export function SelfHostedPricing() {
             </Card>
           </CardWrapper>
         ))}
-      </SectionContent>
-      <SectionContent className="mt-8 flex justify-center">
-        <Button size="xl" asChild>
-          <Link href="/login">
-            <span className="relative z-10">Get started</span>
-          </Link>
-        </Button>
       </SectionContent>
     </Section>
   );

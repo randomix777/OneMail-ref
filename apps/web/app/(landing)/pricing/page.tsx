@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { BasicLayout } from "@/components/layouts/BasicLayout";
-import { SelfHostedPricing } from "@/components/new-landing/sections/SelfHostedPricing";
+import { GetStartedBand } from "@/components/new-landing/sections/GetStartedBand";
+import { WhatItCosts } from "@/components/new-landing/sections/WhatItCosts";
 import { getBrandTitle } from "@/utils/branding";
 
 export const metadata: Metadata = {
@@ -13,7 +14,8 @@ export const metadata: Metadata = {
 export default function PricingPage() {
   return (
     <BasicLayout>
-      <SelfHostedPricing />
+      <WhatItCosts />
+      <GetStartedBand />
     </BasicLayout>
   );
 }

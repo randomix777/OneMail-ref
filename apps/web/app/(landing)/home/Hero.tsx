@@ -24,6 +24,8 @@ interface HeroProps {
   badgeVariant?: BadgeVariant;
   children?: React.ReactNode;
   cta?: React.ReactNode;
+  /** The one quiet fact under the call to action. */
+  ctaNote?: React.ReactNode;
   icon?: React.ReactNode;
   subtitle?: React.ReactNode;
   title?: React.ReactNode;
@@ -36,6 +38,7 @@ export function Hero({
   badgeVariant = "blue",
   children,
   cta,
+  ctaNote,
   icon,
 }: HeroProps) {
   return (
@@ -60,7 +63,16 @@ export function Hero({
       </HeroReveal>
       <SectionContent noMarginTop className="mt-8 md:mt-10">
         <div className="mb-10 space-y-6">
-          <HeroReveal delay={0.125 * 7}>{cta ?? <CallToAction />}</HeroReveal>
+          <HeroReveal delay={0.125 * 7}>
+            <div className="flex flex-col items-center gap-3">
+              {cta ?? <CallToAction />}
+              {ctaNote ? (
+                <Paragraph size="sm" color="light">
+                  {ctaNote}
+                </Paragraph>
+              ) : null}
+            </div>
+          </HeroReveal>
           <HeroReveal delay={0.125 * 8}>
             <MailboxRow />
           </HeroReveal>

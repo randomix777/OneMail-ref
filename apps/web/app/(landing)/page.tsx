@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ClientShowcase, Hero, HeroContent } from "@/app/(landing)/home/Hero";
+import { ClientShowcase, Hero } from "@/app/(landing)/home/Hero";
 import { EverythingElseSection } from "@/components/new-landing/sections/EverythingElseSection";
 import { StartedInMinutes } from "@/components/new-landing/sections/StartedInMinutes";
 import { BulkUnsubscribe } from "@/components/new-landing/sections/BulkUnsubscribe";
@@ -10,15 +10,12 @@ import {
   EMAIL_CLIENT_SECTION_ID,
   EmailClient,
 } from "@/components/new-landing/sections/EmailClient";
-import { KeyboardFirst } from "@/components/new-landing/sections/KeyboardFirst";
+import { ClientCapabilities } from "@/components/new-landing/sections/ClientCapabilities";
+import { GetStartedBand } from "@/components/new-landing/sections/GetStartedBand";
 import { MailboxSupport } from "@/components/new-landing/sections/MailboxSupport";
-import { SelfHostedHighlights } from "@/components/new-landing/sections/SelfHostedHighlights";
-import { SelfHostedPricing } from "@/components/new-landing/sections/SelfHostedPricing";
-import { SelfHostedWhy } from "@/components/new-landing/sections/SelfHostedWhy";
-import { WhyAClient } from "@/components/new-landing/sections/WhyAClient";
+import { CallToAction } from "@/components/new-landing/CallToAction";
 import { BasicLayout } from "@/components/layouts/BasicLayout";
 import { FAQs } from "@/app/(landing)/home/FAQs";
-import { FinalCTA } from "@/app/(landing)/home/FinalCTA";
 import { WordReveal } from "@/components/new-landing/common/WordReveal";
 import { SectionLink } from "@/components/new-landing/common/SectionLink";
 import { env } from "@/env";
@@ -33,15 +30,14 @@ export default function NewLanding() {
         <Hero
           title="One client for every mailbox you have"
           subtitle={`${BRAND_NAME} is a mail client that runs on your own infrastructure. It reads Gmail, Outlook, Yahoo, Fastmail, iCloud, Zoho and any IMAP server, keeps a local index of all of them, and puts them in one window. The assistant lives one click away when you want it.`}
+          cta={<CallToAction showSalesButton={false} />}
+          ctaNote="Free to self-host · macOS, Windows and the web"
         >
           <ClientShowcase />
         </Hero>
+        <ClientCapabilities />
         <MailboxSupport />
-        <WhyAClient />
-        <KeyboardFirst />
-        <SelfHostedHighlights />
-        <SelfHostedPricing />
-        <FAQs />
+        <GetStartedBand />
       </BasicLayout>
     );
   }
@@ -70,12 +66,9 @@ export default function NewLanding() {
           />
         }
         subtitle={`${BRAND_NAME} organizes your inbox and calendar, drafts replies in your voice, and helps you reach inbox zero fast. Never miss an important email again.`}
-      >
-        <HeroContent />
-      </Hero>
+      />
+      <ClientCapabilities />
       <MailboxSupport />
-      <WhyAClient />
-      <KeyboardFirst />
       <OrganizedInbox
         title={
           <>
@@ -97,9 +90,7 @@ export default function NewLanding() {
       />
       <BulkUnsubscribe />
       <EverythingElseSection />
-      <SelfHostedWhy />
-      <SelfHostedPricing />
-      <FinalCTA />
+      <GetStartedBand />
       <FAQs />
     </BasicLayout>
   );
