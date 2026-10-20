@@ -64,13 +64,10 @@ describe("email code authentication", () => {
     expect(database.session[0].emailOtp).toBe(true);
   });
 
-  it.each([
-    false,
-    undefined,
-  ])("does not send or accept codes when access is %s", async (enabled) => {
-    prisma.user.findUnique.mockResolvedValue(
-      enabled === undefined ? null : ({ emailOtpEnabled: false } as never),
-    );
+  it("does not send or accept codes when the account turned the code off", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      emailOtpEnabled: false,
+    } as never);
     const { request } = setup();
     expect(
       (
@@ -85,6 +82,34 @@ describe("email code authentication", () => {
     expect(
       (await request("/sign-in/email-otp", { email, otp: "123456" })).status,
     ).toBe(400);
+  });
+
+  it("signs up an address that has no account yet", async () => {
+    // The account is created by the sign-in, so the address is not known yet.
+    // By the time the session is minted it exists, with the code enabled.
+    prisma.user.findUnique
+      .mockResolvedValueOnce(null as never)
+      .mockResolvedValueOnce(null as never)
+      .mockResolvedValueOnce({
+        emailOtpEnabled: true,
+        emailOtpVersion: 0,
+      } as never);
+    const { request } = setup();
+    expect(
+      (
+        await request("/email-otp/send-verification-otp", {
+          email,
+          type: "sign-in",
+        })
+      ).status,
+    ).toBe(200);
+    await flushEmails();
+    expect(deliverTransactionalEmail).toHaveBeenCalled();
+    const response = await request("/sign-in/email-otp", {
+      email,
+      otp: sentCode(),
+    });
+    expect(response.status).toBe(200);
   });
 
   it("rejects an outstanding code after the owner disables access", async () => {

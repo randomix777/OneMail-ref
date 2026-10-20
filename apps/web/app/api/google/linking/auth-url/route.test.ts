@@ -68,13 +68,11 @@ describe("google linking auth-url route", () => {
     });
   });
 
-  it("does not let an email code session start mailbox linking", async () => {
+  it("lets an email code session start mailbox linking", async () => {
     mockAuthState.emailOtp = true;
 
     const response = await GET(createRequest(), {} as never);
 
-    expect(response.status).toBe(403);
-    expect(mockGenerateAuthUrl).not.toHaveBeenCalled();
-    expect(response.cookies.get("google_linking_state")).toBeUndefined();
+    expect(response.status).toBe(200);
   });
 });

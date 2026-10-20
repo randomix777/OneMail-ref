@@ -9,7 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function EmailOtpForm({ callbackURL }: { callbackURL: string }) {
+export function EmailOtpForm({
+  callbackURL,
+  embedded = false,
+}: {
+  callbackURL: string;
+  /**
+   * A page that already says what this is does not need a second heading, and
+   * it has the alternatives right there.
+   */
+  embedded?: boolean;
+}) {
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const {
@@ -55,16 +65,24 @@ export function EmailOtpForm({ callbackURL }: { callbackURL: string }) {
 
   return (
     <form className="space-y-6" onSubmit={submit}>
-      <div className="space-y-2 text-center">
-        <h1 className="font-title text-2xl">
-          {sentTo ? "Check your email" : "Sign in with email"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
+      {embedded ? (
+        <p className="text-center text-sm text-muted-foreground">
           {sentTo
-            ? "Enter your 6-digit code."
-            : "Email sign-in must be enabled in Settings."}
+            ? "Enter the 6-digit code we sent you."
+            : "Enter your email and we'll send you a 6-digit code."}
         </p>
-      </div>
+      ) : (
+        <div className="space-y-2 text-center">
+          <h1 className="font-title text-2xl">
+            {sentTo ? "Check your email" : "Sign in with email"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {sentTo
+              ? "Enter your 6-digit code."
+              : "We'll send you a 6-digit code."}
+          </p>
+        </div>
+      )}
       {sentTo ? (
         <div className="space-y-2">
           <Label htmlFor="login-code">Sign-in code</Label>
@@ -112,7 +130,7 @@ export function EmailOtpForm({ callbackURL }: { callbackURL: string }) {
         >
           Back
         </Button>
-      ) : (
+      ) : embedded ? null : (
         <Button className="w-full" variant="ghost" asChild>
           <Link
             href={buildRedirectUrl("/login/options", { next: callbackURL })}

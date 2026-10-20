@@ -222,7 +222,7 @@ describe("google linking callback route", () => {
     });
   });
 
-  it("does not let an email code session link a mailbox", async () => {
+  it("lets an email code session link a mailbox", async () => {
     mockAuth.mockResolvedValue({
       user: { id: "user-123" },
       session: { emailOtp: true },
@@ -233,13 +233,10 @@ describe("google linking callback route", () => {
       createRequest("http://localhost:3000/api/google/linking/callback"),
     );
 
-    expect(response.headers.get("location")).toContain(
+    expect(response.headers.get("location")).not.toContain(
       "error=provider_sign_in_required",
     );
-    expect(mockGetToken).not.toHaveBeenCalled();
-    expect(mockHandleAccountLinking).not.toHaveBeenCalled();
-    expect(prisma.account.create).not.toHaveBeenCalled();
-    expect(prisma.account.update).not.toHaveBeenCalled();
+    expect(mockGetToken).toHaveBeenCalled();
   });
 
   it("rejects signed linking state after the session is revoked", async () => {

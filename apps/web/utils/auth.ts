@@ -373,6 +373,11 @@ export const betterAuthConfig = betterAuth({
         },
         after: async (user, context) => {
           markAuthContextAsNewUser(context?.context);
+          // The one-time code is the account login, so every account gets it.
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { emailOtpEnabled: true },
+          });
           await postSignUp({
             id: user.id,
             email: user.email,

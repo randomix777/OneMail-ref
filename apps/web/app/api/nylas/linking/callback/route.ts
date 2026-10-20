@@ -6,10 +6,7 @@ import prisma from "@/utils/prisma";
 import { withError } from "@/utils/middleware";
 import { validateOAuthCallback } from "@/utils/oauth/callback-validation";
 import { createAccountLinkingRedirect } from "@/utils/oauth/account-linking-redirect";
-import {
-  getMailboxLinkingBlockedRedirect,
-  handleAccountLinking,
-} from "@/utils/oauth/account-linking";
+import { handleAccountLinking } from "@/utils/oauth/account-linking";
 import { isReconnectTargetMismatch } from "@/utils/oauth/reconnect-target";
 import {
   hashOAuthAuditIdentifier,
@@ -79,13 +76,6 @@ export const GET = withError("nylas/linking/callback", async (request) => {
       stateCookieName: NYLAS_LINKING_STATE_COOKIE_NAME,
     });
   }
-
-  const blockedRedirect = getMailboxLinkingBlockedRedirect({
-    session: actorSession,
-    logger,
-    stateCookieName: NYLAS_LINKING_STATE_COOKIE_NAME,
-  });
-  if (blockedRedirect) return blockedRedirect;
 
   const cachedResult = await getOAuthCodeResult(code);
   if (cachedResult) {

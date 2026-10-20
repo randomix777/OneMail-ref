@@ -67,13 +67,11 @@ describe("outlook linking auth-url route", () => {
     expect(body.url).toContain("https://login.microsoftonline.com/authorize");
   });
 
-  it("does not let an email code session start mailbox linking", async () => {
+  it("lets an email code session start mailbox linking", async () => {
     mockAuthState.emailOtp = true;
 
     const response = await GET(createRequest(), {} as never);
 
-    expect(response.status).toBe(403);
-    expect(mockGetLinkingOAuth2Url).not.toHaveBeenCalled();
-    expect(response.cookies.get("outlook_linking_state")).toBeUndefined();
+    expect(response.status).toBe(200);
   });
 });

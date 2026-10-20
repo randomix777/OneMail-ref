@@ -6,10 +6,7 @@ import { OUTLOOK_LINKING_STATE_COOKIE_NAME } from "@/utils/outlook/constants";
 import { withError } from "@/utils/middleware";
 import { captureException, SafeError } from "@/utils/error";
 import { validateOAuthCallback } from "@/utils/oauth/callback-validation";
-import {
-  getMailboxLinkingBlockedRedirect,
-  handleAccountLinking,
-} from "@/utils/oauth/account-linking";
+import { handleAccountLinking } from "@/utils/oauth/account-linking";
 import { isReconnectTargetMismatch } from "@/utils/oauth/reconnect-target";
 import { createAccountLinkingRedirect } from "@/utils/oauth/account-linking-redirect";
 import { mergeAccount } from "@/utils/user/merge-account";
@@ -116,13 +113,6 @@ export const GET = withError("outlook/linking/callback", async (request) => {
       stateCookieName: OUTLOOK_LINKING_STATE_COOKIE_NAME,
     });
   }
-
-  const blockedRedirect = getMailboxLinkingBlockedRedirect({
-    session: actorSession,
-    logger,
-    stateCookieName: OUTLOOK_LINKING_STATE_COOKIE_NAME,
-  });
-  if (blockedRedirect) return blockedRedirect;
 
   const cachedResult = await getOAuthCodeResult(code);
   if (cachedResult) {

@@ -13,10 +13,7 @@ import {
   hashOAuthAuditIdentifier,
   logOAuthLinkingCallbackValidation,
 } from "@/utils/oauth/linking-audit";
-import {
-  getMailboxLinkingBlockedRedirect,
-  handleAccountLinking,
-} from "@/utils/oauth/account-linking";
+import { handleAccountLinking } from "@/utils/oauth/account-linking";
 import { isReconnectTargetMismatch } from "@/utils/oauth/reconnect-target";
 import { mergeAccount } from "@/utils/user/merge-account";
 import { handleOAuthCallbackError } from "@/utils/oauth/error-handler";
@@ -77,13 +74,6 @@ export const GET = withError("google/linking/callback", async (request) => {
       stateCookieName: GOOGLE_LINKING_STATE_COOKIE_NAME,
     });
   }
-
-  const blockedRedirect = getMailboxLinkingBlockedRedirect({
-    session: actorSession,
-    logger,
-    stateCookieName: GOOGLE_LINKING_STATE_COOKIE_NAME,
-  });
-  if (blockedRedirect) return blockedRedirect;
 
   const cachedResult = await getOAuthCodeResult(code);
   if (cachedResult) {

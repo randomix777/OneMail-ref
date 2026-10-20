@@ -14,7 +14,9 @@ import { BRAND_NAME } from "@/utils/branding";
 const logger = createScopedLogger("auth/email-otp");
 
 export const emailOtpPlugin = emailOTP({
-  disableSignUp: true,
+  // The code is how an account signs in, so an address that has no account yet
+  // gets one.
+  disableSignUp: false,
   // VerificationToken.token is globally unique; randomized encryption avoids
   // collisions when two accounts receive the same short code.
   storeOTP: "encrypted",
@@ -25,7 +27,7 @@ export const emailOtpPlugin = emailOTP({
     if (type !== "sign-in") return;
     after(async () => {
       try {
-        if (!(await isEmailOtpEnabled(email))) return;
+        if (!(await isEmailSignInAllowed(email))) return;
         const result = await deliverTransactionalEmail({
           from: env.RESEND_FROM_EMAIL,
           to: email,
@@ -48,13 +50,13 @@ export const emailOtpBeforeHook = createAuthMiddleware(async (ctx) => {
   if (ctx.path === "/email-otp/send-verification-otp") {
     if (ctx.body?.type !== "sign-in") throw invalidCode();
     const email = normalizeEmail(ctx.body?.email);
-    if (!(await isEmailOtpEnabled(email)) || !(await claimDelivery(email))) {
+    if (!(await isEmailSignInAllowed(email)) || !(await claimDelivery(email))) {
       return ctx.json({ success: true });
     }
     return;
   }
   if (ctx.path === "/sign-in/email-otp") {
-    if (!(await isEmailOtpEnabled(normalizeEmail(ctx.body?.email)))) {
+    if (!(await isEmailSignInAllowed(normalizeEmail(ctx.body?.email)))) {
       throw invalidCode();
     }
     return;
@@ -112,17 +114,32 @@ export async function emailOtpSessionCreationHook<T extends { userId: string }>(
     select: { emailOtpEnabled: true, emailOtpVersion: true },
   });
   if (!user?.emailOtpEnabled) throw invalidCode();
+  // The session is flagged so that turning the setting off can close it, but it
+  // is otherwise a full one: the code is the account login, and connecting a
+  // mailbox is a separate consent.
   return {
-    data: { ...session, emailOtp: true, emailOtpVersion: user.emailOtpVersion },
+    data: {
+      ...session,
+      emailOtp: true,
+      emailOtpVersion: user.emailOtpVersion,
+    },
   };
 }
 
-async function isEmailOtpEnabled(email: string) {
+/**
+ * Whether an address may sign in with a one-time code.
+ *
+ * An address with no account yet may sign up with one. An existing account
+ * may only use it while its setting allows it, so turning the setting off
+ * really does close that way in.
+ */
+async function isEmailSignInAllowed(email: string) {
   const user = await prisma.user.findUnique({
     where: { email },
     select: { emailOtpEnabled: true },
   });
-  return user?.emailOtpEnabled === true;
+  if (!user) return true;
+  return user.emailOtpEnabled === true;
 }
 
 async function assertEmailOtpSession(session: EmailOtpSession) {
