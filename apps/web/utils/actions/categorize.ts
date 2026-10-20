@@ -15,7 +15,7 @@ import {
   updateCategoryForSender,
 } from "@/utils/categorize/senders/categorize";
 import { startBulkCategorization } from "@/utils/categorize/senders/start-bulk-categorization";
-import { validateUserAndAiAccess } from "@/utils/user/validate";
+import { getEmailAccountWithAi } from "@/utils/user/get";
 import { SafeError } from "@/utils/error";
 import { actionClient } from "@/utils/actions/safe-action";
 import { prefixPath } from "@/utils/path";
@@ -23,7 +23,8 @@ import { prefixPath } from "@/utils/path";
 export const bulkCategorizeSendersAction = actionClient
   .metadata({ name: "bulkCategorizeSenders" })
   .action(async ({ ctx: { emailAccountId, logger, provider } }) => {
-    await validateUserAndAiAccess({ emailAccountId });
+    const emailAccount = await getEmailAccountWithAi({ emailAccountId });
+    if (!emailAccount) throw new SafeError("Email account not found");
 
     const emailProvider = await createEmailProvider({
       emailAccountId,
@@ -48,8 +49,8 @@ export const categorizeSenderAction = actionClient
       ctx: { emailAccountId, provider, logger },
       parsedInput: { senderAddress },
     }) => {
-      const userResult = await validateUserAndAiAccess({ emailAccountId });
-      const { emailAccount } = userResult;
+      const emailAccount = await getEmailAccountWithAi({ emailAccountId });
+      if (!emailAccount) throw new SafeError("Email account not found");
 
       const emailProvider = await createEmailProvider({
         emailAccountId,

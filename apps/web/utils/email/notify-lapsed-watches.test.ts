@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import prisma from "@/utils/__mocks__/prisma";
 import { createTestLogger } from "@/__tests__/helpers";
-import { hasAiAccess } from "@/utils/premium";
 import { addUserErrorMessageWithNotification } from "@/utils/error-messages";
 import { notifyLapsedWatches } from "./notify-lapsed-watches";
 
@@ -105,7 +104,7 @@ describe("notifyLapsedWatches", () => {
     );
   });
 
-  it("skips accounts without AI access", async () => {
+  it("notifies every lapsed account, because the assistant is open to all", async () => {
     prisma.emailAccount.findMany.mockResolvedValue([
       getLapsedEmailAccount(),
       getLapsedEmailAccount({
@@ -114,12 +113,11 @@ describe("notifyLapsedWatches", () => {
         userId: "user-2",
       }),
     ] as any);
-    vi.mocked(hasAiAccess).mockReturnValueOnce(true).mockReturnValueOnce(false);
 
     const result = await notifyLapsedWatches({ logger });
 
-    expect(result).toEqual({ notified: 1 });
-    expect(addUserErrorMessageWithNotification).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ notified: 2 });
+    expect(addUserErrorMessageWithNotification).toHaveBeenCalledTimes(2);
     expect(addUserErrorMessageWithNotification).toHaveBeenCalledWith(
       expect.objectContaining({ emailAccountId: "email-account-1" }),
     );

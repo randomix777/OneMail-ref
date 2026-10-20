@@ -11,19 +11,19 @@ vi.mock("@/utils/auth", () => ({
 }));
 
 const {
-  mockValidateUserAndAiAccess,
+  mockGetEmailAccountWithAi,
   mockCreateEmailProvider,
   mockStartBulkCategorization,
 } = vi.hoisted(() => ({
-  mockValidateUserAndAiAccess: vi.fn(),
+  mockGetEmailAccountWithAi: vi.fn(),
   mockCreateEmailProvider: vi.fn(),
   mockStartBulkCategorization: vi.fn(),
 }));
 
-vi.mock("@/utils/user/validate", () => ({
-  validateUserAndAiAccess: (
-    ...args: Parameters<typeof mockValidateUserAndAiAccess>
-  ) => mockValidateUserAndAiAccess(...args),
+vi.mock("@/utils/user/get", () => ({
+  getEmailAccountWithAi: (
+    ...args: Parameters<typeof mockGetEmailAccountWithAi>
+  ) => mockGetEmailAccountWithAi(...args),
 }));
 
 vi.mock("@/utils/email/provider", () => ({
@@ -41,7 +41,7 @@ describe("bulkCategorizeSendersAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockValidateUserAndAiAccess.mockResolvedValue({
+    mockGetEmailAccountWithAi.mockResolvedValue({
       emailAccount: { id: "account-1" },
     });
     prisma.emailAccount.findUnique.mockResolvedValue(
@@ -70,7 +70,7 @@ describe("bulkCategorizeSendersAction", () => {
   it("delegates to the shared start helper and returns the queued sender count", async () => {
     const result = await bulkCategorizeSendersAction("account-1");
 
-    expect(mockValidateUserAndAiAccess).toHaveBeenCalledWith({
+    expect(mockGetEmailAccountWithAi).toHaveBeenCalledWith({
       emailAccountId: "account-1",
     });
     expect(mockCreateEmailProvider).toHaveBeenCalledWith({

@@ -4,7 +4,6 @@ import { env } from "@/env";
 import { useUser } from "@/hooks/useUser";
 import {
   getUserTier,
-  hasAiAccess,
   hasUnsubscribeAccess,
   isPremiumRecord,
 } from "@/utils/premium";
@@ -48,7 +47,9 @@ export function usePremium() {
       isUserPremium ||
       hasUnsubscribeAccess(tier || null, unsubscribeCreditsRemaining),
     unsubscribeCreditsRemaining,
-    hasAiAccess: isUserPremium && hasAiAccess(tier || null, hasAiApiKey),
+    // The assistant is metered by the token rather than by the seat, so it
+    // is open to every account.
+    hasAiAccess: true,
     isProPlanWithoutApiKey,
     tier,
   };

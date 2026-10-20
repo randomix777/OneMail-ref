@@ -5,7 +5,7 @@ import {
   getCategories,
   updateSenderCategory,
 } from "@/utils/categorize/senders/categorize";
-import { validateUserAndAiAccess } from "@/utils/user/validate";
+import { getEmailAccountWithAi } from "@/utils/user/get";
 import { UNKNOWN_CATEGORY } from "@/utils/ai/categorize-sender/ai-categorize-senders";
 import prisma from "@/utils/prisma";
 import { saveCategorizationProgress } from "@/utils/redis/categorization-progress";
@@ -39,8 +39,8 @@ async function handleBatchInternal(request: RequestWithLogger) {
 
   request.logger.info("Handle batch request", { senders: senders.length });
 
-  const userResult = await validateUserAndAiAccess({ emailAccountId });
-  const { emailAccount } = userResult;
+  const emailAccount = await getEmailAccountWithAi({ emailAccountId });
+  if (!emailAccount) throw new SafeError("Email account not found");
 
   const categoriesResult = await getCategories({ emailAccountId });
   const { categories } = categoriesResult;

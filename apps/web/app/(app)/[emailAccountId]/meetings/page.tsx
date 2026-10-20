@@ -6,7 +6,6 @@ import { useAction } from "next-safe-action/hooks";
 import { LoadingContent } from "@/components/LoadingContent";
 import { PageHeader } from "@/components/PageHeader";
 import { PageWrapper } from "@/components/PageWrapper";
-import { PremiumAlertWithData } from "@/components/PremiumAlert";
 import { TimezoneDetector } from "@/components/TimezoneDetector";
 import { toastError } from "@/components/Toast";
 import { Button } from "@/components/ui/button";
@@ -119,9 +118,7 @@ function MeetingRecorderPageContent() {
   if (!settings?.enabled) {
     return (
       <PageWrapper>
-        <div className="mx-auto max-w-lg">
-          <PremiumAlertWithData />
-        </div>
+        <div className="mx-auto max-w-lg" />
 
         <MeetingRecorderOnboarding
           emailAccountId={emailAccountId}
@@ -154,8 +151,6 @@ function MeetingRecorderPageContent() {
       </div>
 
       <div className="mt-6 max-w-3xl space-y-8">
-        <PremiumAlertWithData />
-
         {!hasCalendarConnected && (
           <ActionCard
             variant="blue"

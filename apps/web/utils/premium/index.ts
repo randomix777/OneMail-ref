@@ -224,23 +224,15 @@ export const hasUnsubscribeAccess = (
   return (unsubscribeCredits ?? 0) > 0;
 };
 
-export const hasAiAccess = (
-  tier: PremiumTier | null,
-  hasApiKey?: boolean | null,
-) => {
-  if (env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) return true;
-
-  if (!tier) return false;
-
-  const ranking = tierRanking[tier];
-
-  const hasAiAccess = !!(
-    ranking >= tierRanking.STARTER_MONTHLY ||
-    (ranking >= tierRanking.PRO_MONTHLY && hasApiKey)
-  );
-
-  return hasAiAccess;
-};
+/**
+ * Whether an account may use the assistant.
+ *
+ * The assistant is metered by the token rather than by the seat, so it is open
+ * to every account and the tier is not consulted. What actually stops the
+ * assistant is a deployment with no model to reach, and that is reported by
+ * the model resolution rather than as an entitlement.
+ */
+export const hasAiAccess = (): boolean => true;
 
 export const hasTierAccess = ({
   tier,

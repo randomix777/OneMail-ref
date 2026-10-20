@@ -21,7 +21,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Uncategorized } from "@/app/(app)/[emailAccountId]/smart-categories/Uncategorized";
 import { PermissionsCheck } from "@/app/(app)/[emailAccountId]/PermissionsCheck";
 import { ArchiveProgress } from "@/app/(app)/[emailAccountId]/bulk-unsubscribe/ArchiveProgress";
-import { PremiumAlertWithData } from "@/components/PremiumAlert";
 import { Button } from "@/components/ui/button";
 import { CategorizeSendersProgress } from "@/app/(app)/[emailAccountId]/smart-categories/CategorizeProgress";
 import { getCategorizationProgress } from "@/utils/redis/categorization-progress";
@@ -69,8 +68,6 @@ export default async function CategoriesPage({
         <EmailStatsPreloader />
         <CategorizeSendersProgress refresh={!!progress} />
       </ClientOnly>
-
-      <PremiumAlertWithData className="mx-2 mt-2 sm:mx-4" />
 
       <Suspense>
         <Tabs defaultValue="categories">

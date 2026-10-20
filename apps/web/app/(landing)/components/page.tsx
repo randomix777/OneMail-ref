@@ -51,7 +51,6 @@ import {
 import { Select as NativeSelect } from "@/components/Select";
 import { TooltipExplanation } from "@/components/TooltipExplanation";
 import { Suspense, useState } from "react";
-import { PremiumAiAssistantAlert } from "@/components/PremiumAlert";
 import { ActionType, ExecutedRuleStatus } from "@/generated/prisma/enums";
 import type { Rule } from "@/generated/prisma/client";
 import { SettingCard } from "@/components/SettingCard";
@@ -335,32 +334,6 @@ function ComponentsDemo() {
           <div className="mt-4 flex flex-col gap-2">
             <TooltipExplanation size="sm" text="Sm explanation tooltip" />
             <TooltipExplanation size="md" text="Md explanation tooltip" />
-          </div>
-        </div>
-
-        <div>
-          <div className="underline">Premium Alerts</div>
-          <div className="mt-4 space-y-4">
-            <div>
-              <MutedText className="mb-2">
-                Basic Plan (needs upgrade to Business):
-              </MutedText>
-              <PremiumAiAssistantAlert
-                showSetApiKey={false}
-                tier={"BASIC_MONTHLY"}
-              />
-            </div>
-            <div>
-              <MutedText className="mb-2">Pro Plan (needs API key):</MutedText>
-              <PremiumAiAssistantAlert
-                showSetApiKey={true}
-                tier={"PRO_MONTHLY"}
-              />
-            </div>
-            <div>
-              <MutedText className="mb-2">Free Plan (needs upgrade):</MutedText>
-              <PremiumAiAssistantAlert showSetApiKey={false} tier={null} />
-            </div>
           </div>
         </div>
 

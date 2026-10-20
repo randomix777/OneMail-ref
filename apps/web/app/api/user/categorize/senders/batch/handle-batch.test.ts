@@ -10,14 +10,14 @@ const {
   mockCategorizeWithAi,
   mockGetCategories,
   mockUpdateSenderCategory,
-  mockValidateUserAndAiAccess,
+  mockGetEmailAccountWithAi,
   mockCreateEmailProvider,
   mockSaveCategorizationProgress,
 } = vi.hoisted(() => ({
   mockCategorizeWithAi: vi.fn(),
   mockGetCategories: vi.fn(),
   mockUpdateSenderCategory: vi.fn(),
-  mockValidateUserAndAiAccess: vi.fn(),
+  mockGetEmailAccountWithAi: vi.fn(),
   mockCreateEmailProvider: vi.fn(),
   mockSaveCategorizationProgress: vi.fn(),
 }));
@@ -32,10 +32,10 @@ vi.mock("@/utils/categorize/senders/categorize", () => ({
   ) => mockUpdateSenderCategory(...args),
 }));
 
-vi.mock("@/utils/user/validate", () => ({
-  validateUserAndAiAccess: (
-    ...args: Parameters<typeof mockValidateUserAndAiAccess>
-  ) => mockValidateUserAndAiAccess(...args),
+vi.mock("@/utils/user/get", () => ({
+  getEmailAccountWithAi: (
+    ...args: Parameters<typeof mockGetEmailAccountWithAi>
+  ) => mockGetEmailAccountWithAi(...args),
 }));
 
 vi.mock("@/utils/email/provider", () => ({
@@ -66,8 +66,9 @@ describe("handleBatchRequest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockValidateUserAndAiAccess.mockResolvedValue({
-      emailAccount: { id: "account-1", email: "user@example.com" },
+    mockGetEmailAccountWithAi.mockResolvedValue({
+      id: "account-1",
+      email: "user@example.com",
     });
     mockGetCategories.mockResolvedValue({
       categories: [{ id: "cat-1", name: "Marketing" }],

@@ -2,8 +2,6 @@ import prisma from "@/utils/prisma";
 import type { Logger } from "@/utils/logger";
 import {
   getPremiumUserFilter,
-  getUserTier,
-  hasAiAccess,
   premiumEntitlementSelect,
 } from "@/utils/premium";
 import {
@@ -55,14 +53,6 @@ async function notifyIfEligible(
   >[number],
   logger: Logger,
 ): Promise<boolean> {
-  const { user } = emailAccount;
-
-  const userHasAiAccess = hasAiAccess(
-    getUserTier(user.premium),
-    !!user.aiApiKey,
-  );
-  if (!userHasAiAccess) return false;
-
   await addUserErrorMessageWithNotification({
     userId: emailAccount.userId,
     userEmail: emailAccount.email,

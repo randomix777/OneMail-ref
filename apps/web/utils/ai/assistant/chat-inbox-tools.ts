@@ -50,7 +50,7 @@ import {
   isRetryableError as isGmailRetryableError,
 } from "@/utils/gmail/retry";
 import { microsoftGraphPageTokenSchema } from "@/utils/outlook/page-token";
-import { validateUserAndAiAccess } from "@/utils/user/validate";
+import { getEmailAccountWithAi } from "@/utils/user/get";
 import { SafeError } from "@/utils/error";
 
 const SEARCH_INBOX_MAX_RESULTS = 20;
@@ -350,7 +350,8 @@ export const startSenderCategorizationTool = ({
       trackToolCall({ tool: "start_sender_categorization", email, logger });
 
       try {
-        await validateUserAndAiAccess({ emailAccountId });
+        const emailAccount = await getEmailAccountWithAi({ emailAccountId });
+        if (!emailAccount) throw new SafeError("Email account not found");
 
         const emailProvider = await createEmailProvider({
           emailAccountId,

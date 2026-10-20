@@ -30,14 +30,14 @@ const {
   mockStartBulkCategorization,
   mockGetCategorizationProgress,
   mockGetCategorizationStatusSnapshot,
-  mockValidateUserAndAiAccess,
+  mockGetEmailAccountWithAi,
 } = vi.hoisted(() => ({
   mockArchiveCategory: vi.fn(),
   mockGetCategoryOverview: vi.fn(),
   mockStartBulkCategorization: vi.fn(),
   mockGetCategorizationProgress: vi.fn(),
   mockGetCategorizationStatusSnapshot: vi.fn(),
-  mockValidateUserAndAiAccess: vi.fn(),
+  mockGetEmailAccountWithAi: vi.fn(),
 }));
 
 vi.mock("@/utils/categorize/senders/archive-category", () => ({
@@ -65,10 +65,10 @@ vi.mock("@/utils/redis/categorization-progress", () => ({
   ) => mockGetCategorizationStatusSnapshot(...args),
 }));
 
-vi.mock("@/utils/user/validate", () => ({
-  validateUserAndAiAccess: (
-    ...args: Parameters<typeof mockValidateUserAndAiAccess>
-  ) => mockValidateUserAndAiAccess(...args),
+vi.mock("@/utils/user/get", () => ({
+  getEmailAccountWithAi: (
+    ...args: Parameters<typeof mockGetEmailAccountWithAi>
+  ) => mockGetEmailAccountWithAi(...args),
 }));
 
 const TEST_EMAIL = "user@test.com";
@@ -2146,7 +2146,10 @@ describe("chat inbox tools - bulk pagination guidance (INB-134)", () => {
 describe("chat inbox tools - sender categories", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockValidateUserAndAiAccess.mockResolvedValue(undefined);
+    mockGetEmailAccountWithAi.mockResolvedValue({
+      id: "email-account-1",
+      email: TEST_EMAIL,
+    });
   });
 
   it("getSenderCategoryOverview returns the shared overview payload", async () => {
@@ -2206,7 +2209,7 @@ describe("chat inbox tools - sender categories", () => {
 
     const result = await (toolInstance.execute as any)({});
 
-    expect(mockValidateUserAndAiAccess).toHaveBeenCalledWith({
+    expect(mockGetEmailAccountWithAi).toHaveBeenCalledWith({
       emailAccountId: "email-account-1",
     });
     expect(createEmailProvider).toHaveBeenCalledWith({
@@ -2223,7 +2226,7 @@ describe("chat inbox tools - sender categories", () => {
   });
 
   it("startSenderCategorization reports an AI access error before queuing work", async () => {
-    mockValidateUserAndAiAccess.mockRejectedValue(
+    mockGetEmailAccountWithAi.mockRejectedValue(
       new SafeError("Please upgrade for AI access"),
     );
 

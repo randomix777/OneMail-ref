@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { withEmailAccount } from "@/utils/middleware";
 import { getEmailAccountWithAi } from "@/utils/user/get";
-import { assertHasAiAccess } from "@/utils/premium/limits";
 import { SafeError } from "@/utils/error";
 import { voiceErrorResponse } from "@/utils/voice/api-error";
 import { requireVoiceCapability } from "@/utils/voice/factory";
@@ -23,11 +22,6 @@ export const POST = withEmailAccount("voice/live/session", async (request) => {
   const { emailAccountId } = request.auth;
   const user = await getEmailAccountWithAi({ emailAccountId });
   if (!user) throw new SafeError("Email account not found", 404);
-
-  await assertHasAiAccess({
-    userId: user.userId,
-    hasUserApiKey: !!user.user.aiApiKey,
-  });
 
   const json = await request.json();
   const parsed = liveSessionBody.safeParse(json);

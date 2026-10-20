@@ -41,6 +41,10 @@ Two rules follow from that:
 - **Connecting a Google mailbox needs a subscription.** The linking route refuses to start without one, because a grant is a cost from the moment it exists.
 - **Ending the subscription ends the mailboxes.** When the subscription is cancelled, the app deletes the Nylas grant and marks the mailbox as disconnected. The messages stay in the database, and reconnecting is one click of consent once the customer subscribes again. A mailbox that is disconnected is not billed either, so a customer who resubscribes is not charged for a mailbox they have not brought back.
 
+## What the assistant costs
+
+The assistant is open to every account. What it spends is metered by the token rather than by the seat, so a call costs what its tokens cost, and it is billed through the gateway the deployment points at (`AI_GATEWAY_BASE_URL`). No subscription is needed to use it: the subscription covers Google mail, which is the one thing that costs money before a single token is spent.
+
 ## What Nylas does not do
 
 Some Gmail features have no Nylas API at all, and they are **disabled** for Google mailboxes rather than reimplemented on a side channel:

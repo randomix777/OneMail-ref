@@ -35,6 +35,8 @@ describe("validateWebhookAccount", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // The assistant is open to every account, so the automock says so too.
+    vi.mocked(hasAiAccess).mockReturnValue(true);
     vi.mocked(createEmailProvider).mockResolvedValue(mockEmailProvider as any);
     vi.mocked(unwatchEmails).mockResolvedValue(undefined);
     vi.mocked(getGmailClientForEmail).mockResolvedValue({} as any);
@@ -123,7 +125,7 @@ describe("validateWebhookAccount", () => {
   });
 
   describe("cleanupWebhookAccountOnRateLimitSkip", () => {
-    it("unwatches non-premium accounts even while rate-limited", async () => {
+    it("keeps watching an account that is not subscribed", async () => {
       const emailAccount = createMockEmailAccount({
         user: {
           aiProvider: null,
@@ -134,6 +136,24 @@ describe("validateWebhookAccount", () => {
       });
 
       vi.mocked(isPremiumRecord).mockReturnValue(false);
+
+      await cleanupWebhookAccountOnRateLimitSkip(emailAccount, logger);
+
+      expect(unwatchEmails).not.toHaveBeenCalled();
+    });
+
+    it("unwatches an account whose provider connection is gone", async () => {
+      const emailAccount = createMockEmailAccount({
+        account: {
+          provider: "google",
+          transport: "oauth",
+          providerAccountId: null,
+          access_token: "access-token",
+          refresh_token: "refresh-token",
+          expires_at: new Date(),
+          disconnectedAt: new Date(),
+        },
+      });
 
       await cleanupWebhookAccountOnRateLimitSkip(emailAccount, logger);
 
@@ -174,8 +194,8 @@ describe("validateWebhookAccount", () => {
     });
   });
 
-  describe("when account is not premium", () => {
-    it("should unwatch emails and return failure", async () => {
+  describe("when the account is not subscribed", () => {
+    it("keeps the mailbox watched and validates the account", async () => {
       const emailAccount = createMockEmailAccount({
         user: {
           aiProvider: null,
@@ -189,45 +209,29 @@ describe("validateWebhookAccount", () => {
 
       const result = await validateWebhookAccount(emailAccount, logger);
 
-      expect(result.success).toBe(false);
-      expect(createEmailProvider).toHaveBeenCalledWith({
-        emailAccountId: "account-id",
-        provider: "google",
-        logger,
-      });
-      expect(unwatchEmails).toHaveBeenCalledWith(
-        expect.objectContaining({
-          emailAccountId: "account-id",
-          provider: mockEmailProvider,
-          subscriptionId: "subscription-id",
-        }),
-      );
-      if (!result.success) {
-        expect(await result.response.json()).toEqual({ ok: true });
-      }
+      expect(result.success).toBe(true);
+      expect(unwatchEmails).not.toHaveBeenCalled();
     });
   });
 
-  describe("when user does not have AI access", () => {
-    it("should unwatch emails and return failure", async () => {
-      const emailAccount = createMockEmailAccount();
+  describe("when the account has no subscription and no rules", () => {
+    it("returns failure without unwatching the mailbox", async () => {
+      const emailAccount = createMockEmailAccount({
+        user: {
+          aiProvider: null,
+          aiModel: null,
+          aiApiKey: null,
+          premium: null,
+        },
+        rules: [],
+      });
 
-      vi.mocked(isPremiumRecord).mockReturnValue(true);
-      vi.mocked(hasAiAccess).mockReturnValue(false);
+      vi.mocked(isPremiumRecord).mockReturnValue(false);
 
       const result = await validateWebhookAccount(emailAccount, logger);
 
       expect(result.success).toBe(false);
-      expect(unwatchEmails).toHaveBeenCalledWith(
-        expect.objectContaining({
-          emailAccountId: "account-id",
-          provider: mockEmailProvider,
-          subscriptionId: "subscription-id",
-        }),
-      );
-      if (!result.success) {
-        expect(await result.response.json()).toEqual({ ok: true });
-      }
+      expect(unwatchEmails).not.toHaveBeenCalled();
     });
   });
 

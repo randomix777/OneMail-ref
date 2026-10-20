@@ -7,7 +7,6 @@ import { SectionDescription } from "@/components/Typography";
 import { LoadingContent } from "@/components/LoadingContent";
 import { pauseAiQueue, resumeAiQueue } from "@/utils/queue/ai-queue";
 import { toastError } from "@/components/Toast";
-import { PremiumAlertWithData } from "@/components/PremiumAlert";
 import { usePremium } from "@/hooks/usePremium";
 import { SetDateDropdown } from "@/app/(app)/[emailAccountId]/assistant/SetDateDropdown";
 import { useBeforeUnload } from "@/hooks/useBeforeUnload";
@@ -195,8 +194,6 @@ export function BulkRunRules() {
           )}
           <LoadingContent loading={isLoadingPremium}>
             <div className="flex min-w-0 flex-col space-y-4 overflow-hidden">
-              <PremiumAlertWithData className="mr-auto" />
-
               <div className="grid grid-cols-2 gap-2">
                 <SetDateDropdown
                   onChange={(date) => {

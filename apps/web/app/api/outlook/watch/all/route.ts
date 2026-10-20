@@ -5,8 +5,6 @@ import { withError } from "@/utils/middleware";
 import { captureException, isInvalidGrantError } from "@/utils/error";
 import {
   getPremiumUserFilter,
-  getUserTier,
-  hasAiAccess,
   premiumEntitlementSelect,
 } from "@/utils/premium";
 import { createManagedOutlookSubscription } from "@/utils/outlook/subscription-manager";
@@ -77,31 +75,6 @@ async function watchAllEmails(logger: Logger) {
         emailAccountId: emailAccount.id,
         email: emailAccount.email,
       });
-
-      const userHasAiAccess = hasAiAccess(
-        getUserTier(emailAccount.user.premium),
-        !!emailAccount.user.aiApiKey,
-      );
-
-      if (!userHasAiAccess) {
-        logger.info("User does not have access to AI", {
-          email: emailAccount.email,
-        });
-        if (
-          emailAccount.watchEmailsExpirationDate &&
-          new Date(emailAccount.watchEmailsExpirationDate) < new Date()
-        ) {
-          await prisma.emailAccount.update({
-            where: { email: emailAccount.email },
-            data: {
-              watchEmailsExpirationDate: null,
-              watchEmailsSubscriptionId: null,
-            },
-          });
-        }
-
-        continue;
-      }
 
       if (
         !emailAccount.account?.access_token ||

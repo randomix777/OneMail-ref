@@ -1,8 +1,6 @@
 import prisma from "@/utils/prisma";
 import {
   getPremiumUserFilter,
-  getUserTier,
-  hasAiAccess,
   premiumEntitlementSelect,
 } from "@/utils/premium";
 import type { Logger } from "@/utils/logger";
@@ -158,30 +156,6 @@ async function watchEmailAccount(
     logger.info("Skipping watch setup for a transport that pushes app-wide", {
       transport,
     });
-
-    return null;
-  }
-
-  const userHasAiAccess = hasAiAccess(
-    getUserTier(user.premium),
-    !!user.aiApiKey,
-  );
-
-  if (!userHasAiAccess) {
-    logger.info("User does not have access to AI or cold email");
-
-    if (
-      watchEmailsExpirationDate &&
-      new Date(watchEmailsExpirationDate) < new Date()
-    ) {
-      await prisma.emailAccount.updateMany({
-        where: { id: emailAccount.id },
-        data: {
-          watchEmailsExpirationDate: null,
-          watchEmailsSubscriptionId: null,
-        },
-      });
-    }
 
     return null;
   }

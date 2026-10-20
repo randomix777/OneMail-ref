@@ -5,7 +5,6 @@ import { summariseBody } from "@/app/api/ai/summarise/validation";
 import { getSummary } from "@/utils/redis/summary";
 import { getEmailAccountWithAi } from "@/utils/user/get";
 import { emailToContentForAI } from "@/utils/ai/content-sanitizer";
-import { assertHasAiAccess } from "@/utils/premium/limits";
 
 export const POST = withEmailAccount(async (request) => {
   const emailAccountId = request.auth.emailAccountId;
@@ -26,11 +25,6 @@ export const POST = withEmailAccount(async (request) => {
 
   if (!userAi)
     return NextResponse.json({ error: "User not found" }, { status: 404 });
-
-  await assertHasAiAccess({
-    userId: userAi.userId,
-    hasUserApiKey: !!userAi.user.aiApiKey,
-  });
 
   const cachedSummary = await getSummary(prompt);
   if (cachedSummary) return new NextResponse(cachedSummary);

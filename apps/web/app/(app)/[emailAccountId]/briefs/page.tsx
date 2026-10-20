@@ -6,7 +6,6 @@ import { SettingCard } from "@/components/SettingCard";
 import { Toggle } from "@/components/Toggle";
 import { toastSuccess, toastError } from "@/components/Toast";
 import { LoadingContent } from "@/components/LoadingContent";
-import { PremiumAlertWithData } from "@/components/PremiumAlert";
 import { useCalendars } from "@/hooks/useCalendars";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import { useAction } from "next-safe-action/hooks";
@@ -83,8 +82,6 @@ function MeetingBriefsPageContent() {
       <PageHeader title="Meeting Briefs" />
 
       <div className="mt-4 space-y-4 max-w-3xl">
-        <PremiumAlertWithData />
-
         <LoadingContent loading={isLoading} error={error}>
           <div className="space-y-2">
             <SettingCard

@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server";
-import { env } from "@/env";
-import {
-  getUserTier,
-  hasAiAccess,
-  isPremiumRecord,
-  premiumEntitlementSelect,
-} from "@/utils/premium";
+import { hasAiAccess, premiumEntitlementSelect } from "@/utils/premium";
 import { unwatchEmails } from "@/utils/email/watch-manager";
 import {
   isProviderFamily,
   resolveMailTransport,
 } from "@/utils/email/provider-registry";
 import { hasTransportCredentials } from "@/utils/email/transport-credentials";
-import { createEmailProvider } from "@/utils/email/provider";
 import {
   getGmailClientForEmail,
   getOutlookClientForEmail,
@@ -194,13 +187,9 @@ export async function cleanupWebhookAccountOnRateLimitSkip(
 ) {
   if (!emailAccount) return;
 
-  const premium = getWebhookAccountPremium(emailAccount);
-  const userHasAiAccess = hasAiAccess(
-    getUserTier(premium),
-    !!emailAccount.user.aiApiKey,
-  );
-  const shouldUnwatch =
-    !!emailAccount.account?.disconnectedAt || !premium || !userHasAiAccess;
+  // Only a mailbox whose provider connection is gone has to stop being
+  // watched.
+  const shouldUnwatch = !!emailAccount.account?.disconnectedAt;
 
   if (!shouldUnwatch) return;
 
@@ -256,47 +245,9 @@ export async function validateWebhookAccount(
     return { success: false, response: NextResponse.json({ ok: true }) };
   }
 
-  const premium = getWebhookAccountPremium(emailAccount);
-
-  const provider = await createEmailProvider({
-    emailAccountId: emailAccount.id,
-    provider: emailAccount.account?.provider,
-    logger,
-  });
-
-  if (!premium) {
-    logger.info("Account not premium", {
-      lemonSqueezyRenewsAt: emailAccount.user.premium?.lemonSqueezyRenewsAt,
-      appleExpiresAt: emailAccount.user.premium?.appleExpiresAt,
-      appleRevokedAt: emailAccount.user.premium?.appleRevokedAt,
-      stripeSubscriptionStatus:
-        emailAccount.user.premium?.stripeSubscriptionStatus,
-    });
-    await unwatchEmails({
-      emailAccountId: emailAccount.id,
-      provider,
-      subscriptionId: emailAccount.watchEmailsSubscriptionId,
-      logger,
-    });
-    return { success: false, response: NextResponse.json({ ok: true }) };
-  }
-
-  const tier = getUserTier(premium);
-  const userHasAiAccess = hasAiAccess(tier, !!emailAccount.user.aiApiKey);
-
-  if (!userHasAiAccess) {
-    logger.info("Does not have ai access - unwatching", {
-      tier,
-      hasApiKey: !!emailAccount.user.aiApiKey,
-    });
-    await unwatchEmails({
-      emailAccountId: emailAccount.id,
-      provider,
-      subscriptionId: emailAccount.watchEmailsSubscriptionId,
-      logger,
-    });
-    return { success: false, response: NextResponse.json({ ok: true }) };
-  }
+  // The assistant is metered by the token rather than by the seat, so every
+  // account is watched and every account may use it.
+  const userHasAiAccess = hasAiAccess();
 
   const hasAutomationRules = emailAccount.rules.length > 0;
   const hasFilingEnabled =
@@ -336,25 +287,6 @@ export async function validateWebhookAccount(
       hasAiAccess: userHasAiAccess,
     },
   };
-}
-
-function getWebhookAccountPremium(
-  emailAccount: NonNullable<ValidatedWebhookAccountData>,
-) {
-  return env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS
-    ? {
-        tier: "PROFESSIONAL_ANNUALLY" as const,
-        stripeSubscriptionStatus: "active",
-        lemonSqueezyRenewsAt: null,
-        appleSubscriptionStatus: null,
-        appleExpiresAt: null,
-        appleRevokedAt: null,
-        adminGrantExpiresAt: null,
-        adminGrantTier: null,
-      }
-    : isPremiumRecord(emailAccount.user.premium)
-      ? emailAccount.user.premium
-      : undefined;
 }
 
 async function createEmailProviderForWebhookCleanup({

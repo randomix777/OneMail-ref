@@ -6,7 +6,6 @@ import { TypographyH3 } from "@/components/Typography";
 import { Button } from "@/components/ui/button";
 import { useStep } from "@/app/(app)/[emailAccountId]/clean/useStep";
 import { CleanAction } from "@/generated/prisma/enums";
-import { PremiumAlertWithData } from "@/components/PremiumAlert";
 import { useProductAnalytics } from "@/hooks/useProductAnalytics";
 
 export function IntroStep({
@@ -21,7 +20,6 @@ export function IntroStep({
 
   return (
     <div>
-      <PremiumAlertWithData className="mb-20" activeOnly />
       <div className="text-center">
         <Image
           src="/images/illustrations/home-office.svg"

@@ -26,7 +26,7 @@ describe("usePremium", () => {
     envMock.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS = false;
   });
 
-  it("does not report AI access for a canceled Stripe trial", () => {
+  it("keeps AI access after a canceled Stripe trial", () => {
     mockUseUser.mockReturnValue({
       data: {
         premium: {
@@ -48,7 +48,7 @@ describe("usePremium", () => {
     const { result } = renderHook(() => usePremium());
 
     expect(result.current.isPremium).toBe(false);
-    expect(result.current.hasAiAccess).toBe(false);
+    expect(result.current.hasAiAccess).toBe(true);
   });
 
   it("preserves AI access for an active Stripe subscription", () => {

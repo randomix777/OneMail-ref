@@ -8,7 +8,6 @@ import { SafeError } from "@/utils/error";
 import { getLatestNonDraftMessage } from "@/utils/email/latest-message";
 import { getMessageTimestamp } from "@/utils/email/message-timestamp";
 import { emailToContent } from "@/utils/mail";
-import { assertHasAiAccess } from "@/utils/premium/limits";
 import { getEmailAccountWithAi } from "@/utils/user/get";
 
 export const translateThreadAction = actionClient
@@ -21,11 +20,6 @@ export const translateThreadAction = actionClient
     }) => {
       const emailAccount = await getEmailAccountWithAi({ emailAccountId });
       if (!emailAccount) throw new SafeError("Email account not found");
-
-      await assertHasAiAccess({
-        userId: emailAccount.userId,
-        hasUserApiKey: !!emailAccount.user.aiApiKey,
-      });
 
       const emailProvider = await createEmailProvider({
         emailAccountId,
