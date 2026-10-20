@@ -7,6 +7,7 @@ import { getStripeSubscriptionTier } from "@/app/(app)/premium/config";
 import { handleLoopsEvents } from "@/ee/billing/stripe/loops-events";
 import { syncPremiumSeats } from "@/utils/premium/seats";
 import { ensureEmailAccountsWatched } from "@/utils/email/watch-manager";
+import { revokePaidMailboxesForPremium } from "@/utils/email/revoke-connection";
 import { captureException } from "@/utils/error";
 
 export async function syncStripeDataToDb({
@@ -24,6 +25,7 @@ export async function syncStripeDataToDb({
       where: { stripeCustomerId: customerId },
       select: {
         stripeSubscriptionStatus: true,
+        stripeSubscriptionId: true,
         stripeTrialEnd: true,
         tier: true,
         users: { select: { email: true, name: true } },
@@ -90,6 +92,21 @@ export async function syncStripeDataToDb({
       logger.info("Updated Premium record for customer with no subscription", {
         customerId,
       });
+
+      if (currentPremium?.stripeSubscriptionId) {
+        // The subscription is gone from Stripe entirely, so the mailboxes it
+        // paid for have to be cut off with it.
+        await revokePaidMailboxesForPremium({ customerId, logger }).catch(
+          (error) => {
+            logger.error(
+              "Failed to cut off the paid mailboxes of a removed subscription",
+              { customerId, error },
+            );
+            captureException(error, { extra: { customerId } });
+          },
+        );
+      }
+
       return;
     }
 
@@ -193,6 +210,25 @@ export async function syncStripeDataToDb({
     });
 
     await syncPremiumSeats(updatedPremium.id);
+
+    if (stripeSubscriptionStatus === "canceled") {
+      // The subscription is what paid for the mailboxes we reach through a
+      // paid broker. Once it is gone, those connections have to go as well, or
+      // we keep paying for accounts nobody is paying for.
+      //
+      // A provider that is down must not stop the rest of the sync, so the
+      // failure is reported rather than thrown: the mailboxes stay connected
+      // until the next event or a reconciliation pass cuts them off.
+      await revokePaidMailboxesForPremium({ customerId, logger }).catch(
+        (error) => {
+          logger.error(
+            "Failed to cut off the paid mailboxes of an ended subscription",
+            { customerId, error },
+          );
+          captureException(error, { extra: { customerId } });
+        },
+      );
+    }
 
     after(() => {
       const userIds = updatedPremium.users.map((user) => user.id);

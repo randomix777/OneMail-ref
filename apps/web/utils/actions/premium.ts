@@ -381,7 +381,11 @@ export const getBillingPortalUrlAction = actionClientUser
             users: {
               select: {
                 emailAccounts: {
-                  select: { account: { select: { provider: true } } },
+                  select: {
+                    account: {
+                      select: { provider: true, disconnectedAt: true },
+                    },
+                  },
                 },
               },
             },
@@ -579,7 +583,11 @@ export const generateCheckoutSessionAction = actionClientUser
             users: {
               select: {
                 emailAccounts: {
-                  select: { account: { select: { provider: true } } },
+                  select: {
+                    account: {
+                      select: { provider: true, disconnectedAt: true },
+                    },
+                  },
                 },
               },
             },
@@ -633,7 +641,10 @@ export const generateCheckoutSessionAction = actionClientUser
       users: user.premium?.users || [
         {
           emailAccounts: user.emailAccounts.map((emailAccount) => ({
-            account: { provider: emailAccount.account.provider },
+            account: {
+              provider: emailAccount.account.provider,
+              disconnectedAt: emailAccount.account.disconnectedAt,
+            },
           })),
         },
       ],

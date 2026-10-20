@@ -80,6 +80,29 @@ describe("getStripeBillingQuantity", () => {
     ).toBe(3);
   });
 
+  it("does not bill a mailbox whose provider connection is gone", () => {
+    // A mailbox that was cut off when a subscription ended is not read, so it
+    // is not paid for either.
+    expect(
+      getStripeBillingQuantity({
+        users: [
+          {
+            emailAccounts: [
+              { account: { provider: "google", disconnectedAt: null } },
+              { account: { provider: "google", disconnectedAt: null } },
+              {
+                account: {
+                  provider: "google",
+                  disconnectedAt: new Date("2026-01-01T00:00:00.000Z"),
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(2);
+  });
+
   it("keeps a subscription at one unit when nothing is billable", () => {
     // A subscription item cannot have a quantity of zero, so a plan always
     // bills at least one.

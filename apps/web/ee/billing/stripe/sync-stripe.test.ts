@@ -7,6 +7,7 @@ import {
   getEffectiveStripeSubscriptionStatus,
   syncStripeDataToDb,
 } from "./sync-stripe";
+import { revokePaidMailboxesForPremium } from "@/utils/email/revoke-connection";
 
 const mocks = vi.hoisted(() => ({
   listSubscriptions: vi.fn(),
@@ -21,6 +22,11 @@ vi.mock("@/ee/billing/stripe/loops-events", () => ({
 vi.mock("@/utils/premium/seats", () => ({ syncPremiumSeats: vi.fn() }));
 vi.mock("@/utils/email/watch-manager", () => ({
   ensureEmailAccountsWatched: vi.fn(),
+}));
+vi.mock("@/utils/email/revoke-connection", () => ({
+  revokePaidMailboxesForPremium: vi.fn(() =>
+    Promise.resolve({ revoked: 0, skipped: 0 }),
+  ),
 }));
 vi.mock("@/app/(app)/premium/config", () => ({
   getStripeSubscriptionTier: () => "PRO_MONTHLY",
@@ -212,6 +218,75 @@ describe("syncStripeDataToDb", () => {
       },
       data: { admins: { connect: { id: "user-1" } } },
     });
+  });
+
+  it("cuts off the paid mailboxes once the subscription has ended", async () => {
+    prisma.premium.findUnique.mockResolvedValue(null);
+    prisma.premium.upsert.mockResolvedValue({
+      id: "premium-1",
+      users: [],
+      admins: [],
+    });
+    mocks.listSubscriptions.mockResolvedValue({
+      data: [
+        {
+          id: "sub_test",
+          status: "canceled",
+          cancel_at_period_end: false,
+          items: {
+            data: [
+              {
+                id: "si_test",
+                price: { id: "price_test", product: "prod_test" },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    await syncStripeDataToDb({
+      customerId: "cus_1",
+      logger: createTestLogger(),
+    });
+
+    expect(revokePaidMailboxesForPremium).toHaveBeenCalledWith({
+      customerId: "cus_1",
+      logger: expect.anything(),
+    });
+  });
+
+  it("leaves the paid mailboxes alone while the subscription runs", async () => {
+    prisma.premium.findUnique.mockResolvedValue(null);
+    prisma.premium.upsert.mockResolvedValue({
+      id: "premium-1",
+      users: [],
+      admins: [],
+    });
+    mocks.listSubscriptions.mockResolvedValue({
+      data: [
+        {
+          id: "sub_test",
+          status: "active",
+          cancel_at_period_end: false,
+          items: {
+            data: [
+              {
+                id: "si_test",
+                price: { id: "price_test", product: "prod_test" },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    await syncStripeDataToDb({
+      customerId: "cus_1",
+      logger: createTestLogger(),
+    });
+
+    expect(revokePaidMailboxesForPremium).not.toHaveBeenCalled();
   });
 });
 

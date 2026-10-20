@@ -40,7 +40,9 @@ export async function syncPremiumSeats(premiumId: string) {
       users: {
         select: {
           emailAccounts: {
-            select: { account: { select: { provider: true } } },
+            select: {
+              account: { select: { provider: true, disconnectedAt: true } },
+            },
           },
         },
       },
@@ -166,14 +168,20 @@ export function getStripeBillingQuantity({
 }: {
   priceId?: string | null;
   users: {
-    emailAccounts: { account: { provider: string } }[];
+    emailAccounts: {
+      account: { provider: string; disconnectedAt?: Date | string | null };
+    }[];
   }[];
 }): number {
   const googleMailboxes = sumBy(
     users,
     (user) =>
       user.emailAccounts.filter(
-        (emailAccount) => emailAccount.account.provider === BILLABLE_PROVIDER,
+        (emailAccount) =>
+          emailAccount.account.provider === BILLABLE_PROVIDER &&
+          // A mailbox whose provider connection is gone is not being read, so
+          // it is not being paid for either.
+          !emailAccount.account.disconnectedAt,
       ).length,
   );
 
