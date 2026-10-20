@@ -9,58 +9,141 @@ import {
   SectionHeading,
   SectionSubtitle,
 } from "@/components/new-landing/common/Typography";
-import { BRAND_NAME } from "@/utils/branding";
+import { cn } from "@/utils";
 
-const COSTS = [
+type Row = {
+  title: string;
+  price: string;
+  detail: string;
+};
+
+/**
+ * What the two ways of running it cost.
+ *
+ * The self-hosted deployment is free because the deployment pays for its own
+ * keys. The hosted one is free too, except for the two things that cost
+ * somebody real money: Gmail, which has to be reached through Nylas, and the
+ * tokens the assistant spends.
+ */
+const SELF_HOSTED: Row[] = [
   {
-    title: "The software",
-    price: "$0",
-    detail: "AGPL licensed. Every feature, no seat count, no feature gates.",
+    title: "The client",
+    price: "Free",
+    detail:
+      "Open source, and every feature is in it. No seat count, no feature gates, no time limit.",
   },
   {
-    title: "Your infrastructure",
-    price: "Yours",
+    title: "Every mailbox",
+    price: "Free",
     detail:
-      "A small machine is enough to start. Scale it, or keep it on a box you already own.",
+      "Outlook, Yahoo, Fastmail, iCloud, Zoho and any IMAP server connect straight to you. Gmail needs a Nylas key, and you bring it.",
   },
   {
-    title: "Your model provider",
-    price: "Yours",
+    title: "The models",
+    price: "Free",
     detail:
-      "Bring the key for the provider you already use. You are billed by them, at their price.",
+      "Point the assistant at the model provider you already use, and you pay them their price.",
   },
 ];
+
+const HOSTED: Row[] = [
+  {
+    title: "The client",
+    price: "Free",
+    detail:
+      "The same code, running for you. Nothing to install and nothing to keep up to date.",
+  },
+  {
+    title: "Every mailbox but Gmail",
+    price: "Free",
+    detail:
+      "Outlook, Yahoo, Fastmail, iCloud, Zoho and any IMAP server cost us nothing, so they cost you nothing.",
+  },
+  {
+    title: "Gmail",
+    price: "Charged",
+    detail:
+      "Gmail is the exception. Holding Google's restricted scopes means that connection runs through Nylas, and we pass that cost on rather than hiding it in a seat price.",
+  },
+  {
+    title: "The models",
+    price: "Per token",
+    detail:
+      "Assistant calls go through the JYI gateway, and you pay for the tokens the model uses. Nothing for the mail itself.",
+  },
+];
+
+function CostCard({
+  title,
+  description,
+  rows,
+}: {
+  title: string;
+  description: string;
+  rows: Row[];
+}) {
+  return (
+    <CardWrapper>
+      <Card variant="extra-rounding" className="h-full">
+        <CardContent>
+          <h3 className="font-title text-xl leading-7 text-[#242424]">
+            {title}
+          </h3>
+          <Paragraph size="sm" className="mt-2">
+            {description}
+          </Paragraph>
+          <ul className="mt-6 space-y-5 border-t border-[#EFEFEF] pt-5">
+            {rows.map((row) => (
+              <li key={row.title} className="flex gap-4">
+                <div className="w-24 shrink-0">
+                  <div className="font-title text-[15px] leading-6 text-[#242424]">
+                    {row.title}
+                  </div>
+                  <div
+                    className={cn(
+                      "text-[13px] leading-5",
+                      row.price === "Free"
+                        ? "text-new-green-600"
+                        : "text-gray-500",
+                    )}
+                  >
+                    {row.price}
+                  </div>
+                </div>
+                <p className="text-[13px] leading-5 text-gray-500">
+                  {row.detail}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+    </CardWrapper>
+  );
+}
 
 export function WhatItCosts() {
   return (
     <Section id="pricing">
       <SectionHeading>What it actually costs</SectionHeading>
       <SectionSubtitle>
-        {BRAND_NAME} is free to run. There is nothing to buy and no per-user
-        pricing — you pay for the machine it runs on and the model provider you
-        point it at.
+        The client is free. Two things cost somebody real money: Gmail, which
+        has to be reached through Nylas, and the tokens the assistant spends.
       </SectionSubtitle>
       <SectionContent
         noMarginTop
-        className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3"
+        className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-2"
       >
-        {COSTS.map((cost) => (
-          <CardWrapper key={cost.title}>
-            <Card variant="extra-rounding" className="h-full">
-              <CardContent>
-                <Paragraph size="sm" color="gray-500">
-                  {cost.title}
-                </Paragraph>
-                <div className="mt-2 font-title text-[2rem] leading-tight text-[#242424]">
-                  {cost.price}
-                </div>
-                <Paragraph size="sm" className="mt-3">
-                  {cost.detail}
-                </Paragraph>
-              </CardContent>
-            </Card>
-          </CardWrapper>
-        ))}
+        <CostCard
+          title="If you run it yourself"
+          description="You deploy it, you bring the keys, and there is nothing to pay for."
+          rows={SELF_HOSTED}
+        />
+        <CostCard
+          title="If we run it for you"
+          description="Same client, hosted. Free, except where a third party makes it cost money."
+          rows={HOSTED}
+        />
       </SectionContent>
     </Section>
   );

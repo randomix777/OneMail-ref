@@ -85,7 +85,7 @@ export function AudiencePage({ audience }: { audience: Audience }) {
             </Link>
           </Button>
           <Paragraph size="sm" color="light">
-            Free to self-host · every mailbox, one window
+            Free to run · every mailbox but Gmail, one window
           </Paragraph>
         </SectionContent>
       </Section>

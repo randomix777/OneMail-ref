@@ -260,6 +260,10 @@ function selectModel(
       const aiGatewayApiKey = resolveApiKey(aiApiKey, env.AI_GATEWAY_API_KEY);
       const gateway = createGateway({
         apiKey: aiGatewayApiKey,
+        // A deployment that fronts its own gateway points this at it.
+        ...(env.AI_GATEWAY_BASE_URL
+          ? { baseURL: env.AI_GATEWAY_BASE_URL }
+          : {}),
         headers: {
           "http-referer": "https://www.jyisolutions.com",
           "x-title": BRAND_NAME,

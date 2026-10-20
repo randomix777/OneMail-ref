@@ -31,7 +31,7 @@ export default function NewLanding() {
           title="One client for every mailbox you have"
           subtitle={`${BRAND_NAME} is a mail client that runs on your own infrastructure. It reads Gmail, Outlook, Yahoo, Fastmail, iCloud, Zoho and any IMAP server, keeps a local index of all of them, and puts them in one window. The assistant lives one click away when you want it.`}
           cta={<CallToAction showSalesButton={false} />}
-          ctaNote="Free to self-host · macOS, Windows and the web"
+          ctaNote="Free to run · macOS, Windows and the web"
         >
           <ClientShowcase />
         </Hero>

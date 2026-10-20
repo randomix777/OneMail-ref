@@ -7,7 +7,7 @@ import { getBrandTitle } from "@/utils/branding";
 export const metadata: Metadata = {
   title: getBrandTitle("Pricing"),
   description:
-    "Free to self-host. You pay for your server and your model provider, nothing else.",
+    "The client is free. Gmail access, which runs through Nylas, and the tokens the assistant uses are the two things that cost money.",
   alternates: { canonical: "/pricing" },
 };
 

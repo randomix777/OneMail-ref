@@ -17,9 +17,9 @@ export function GetStartedBand() {
         One client. Every mailbox. Yours to run.
       </h2>
       <Paragraph size="lg" className="mx-auto mt-4 max-w-[560px]">
-        {BRAND_NAME} is open source and free to self-host. Run it on your own
-        infrastructure, use the model provider you already pay for, and there is
-        nothing else to buy.
+        {BRAND_NAME} is open source and the client is free. Run it on your own
+        infrastructure and bring your own keys, and the only thing left to pay
+        for is the model provider you already use.
       </Paragraph>
       <div className="mt-8 flex flex-col items-center gap-3">
         <Button size="xl" asChild>
@@ -28,7 +28,7 @@ export function GetStartedBand() {
           </Link>
         </Button>
         <Paragraph size="sm" color="light">
-          Free to self-host · macOS, Windows and the web
+          Free to run · macOS, Windows and the web
         </Paragraph>
       </div>
     </div>

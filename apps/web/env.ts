@@ -193,6 +193,11 @@ const parsedEnv = createEnv({
     CEREBRAS_API_KEY: z.string().optional(),
     OPENROUTER_API_KEY: z.string().optional(),
     AI_GATEWAY_API_KEY: z.string().optional(),
+    /**
+     * Where the AI gateway lives. Left unset the provider's own gateway is
+     * used; a deployment that fronts its own gateway points this at it.
+     */
+    AI_GATEWAY_BASE_URL: z.string().optional(),
     PERPLEXITY_API_KEY: z.string().optional(),
     OLLAMA_BASE_URL: z.string().optional(),
     OLLAMA_MODEL: z.string().optional(),

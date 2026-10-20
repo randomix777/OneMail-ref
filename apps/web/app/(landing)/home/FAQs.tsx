@@ -92,7 +92,7 @@ const faqs: {
   {
     question: `Can I try ${BRAND_NAME} for free?`,
     answer:
-      "Yes. The email app is free to use. The AI assistant plans include a 7-day free trial. A credit card is required to start your trial, but you won't be charged until the trial ends. Cancel anytime during the trial to avoid being charged.",
+      "Yes. The client is free to run and free to self-host, and every mailbox except Gmail connects for free. The two things that cost money are Gmail, which has to be reached through Nylas, and the tokens the assistant uses. If you run it yourself you bring your own Nylas key and your own model key, and then there is nothing to pay for at all.",
   },
 ];
 

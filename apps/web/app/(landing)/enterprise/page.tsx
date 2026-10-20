@@ -115,7 +115,7 @@ export default function EnterprisePage() {
             </Link>
           </Button>
           <Paragraph size="sm" color="light">
-            Free to self-host · SSO, SCIM and the API are deployment switches
+            Free to run · SSO, SCIM and the API are deployment switches
           </Paragraph>
         </SectionContent>
       </Section>
