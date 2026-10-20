@@ -2,6 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getMockOrganizationMembership } from "@/__tests__/helpers";
 import { getStripePriceId } from "@/app/(app)/premium/config";
 import prisma from "@/utils/__mocks__/prisma";
+
+/** `count` mailboxes on Google, which are the billable ones. */
+function googleAccounts(count: number) {
+  return Array.from({ length: count }, () => ({
+    account: { provider: "google" },
+  }));
+}
 import {
   adminChangePremiumStatusAction,
   endStripeTrialAction,
@@ -114,7 +121,7 @@ describe("getBillingPortalUrlAction", () => {
         stripeSubscriptionId: "sub_test",
         stripeSubscriptionItemId: "si_test",
         stripeSubscriptionStatus: "active",
-        users: [{ _count: { emailAccounts: 1 } }],
+        users: [{ emailAccounts: googleAccounts(1) }],
         admins: [{ id: "user-1" }, { id: "org-owner" }],
       },
       emailAccounts: [
@@ -150,7 +157,7 @@ describe("getBillingPortalUrlAction", () => {
         stripeSubscriptionId: "sub_test",
         stripeSubscriptionItemId: "si_test",
         stripeSubscriptionStatus: "active",
-        users: [{ _count: { emailAccounts: 1 } }],
+        users: [{ emailAccounts: googleAccounts(1) }],
         admins: [{ id: "another-user" }],
       },
       emailAccounts: [
@@ -183,7 +190,7 @@ describe("getBillingPortalUrlAction", () => {
         stripeSubscriptionId: "sub_test",
         stripeSubscriptionItemId: "si_test",
         stripeSubscriptionStatus: "active",
-        users: [{ _count: { emailAccounts: 1 } }],
+        users: [{ emailAccounts: googleAccounts(1) }],
         admins: [{ id: "another-user" }],
       },
     } as Awaited<ReturnType<typeof prisma.user.findUnique>>);
@@ -204,7 +211,7 @@ describe("getBillingPortalUrlAction", () => {
         stripeSubscriptionId: "sub_test",
         stripeSubscriptionItemId: "si_test",
         stripeSubscriptionStatus: "active",
-        users: [{ _count: { emailAccounts: 1 } }],
+        users: [{ emailAccounts: googleAccounts(1) }],
         admins: [],
       },
     } as Awaited<ReturnType<typeof prisma.user.findUnique>>);
@@ -227,8 +234,8 @@ describe("getBillingPortalUrlAction", () => {
         stripeSubscriptionItemId: "si_test",
         stripeSubscriptionStatus: "active",
         users: [
-          { _count: { emailAccounts: 1 } },
-          { _count: { emailAccounts: 1 } },
+          { emailAccounts: googleAccounts(1) },
+          { emailAccounts: googleAccounts(1) },
         ],
         admins: [],
       },
@@ -430,7 +437,7 @@ describe("generateCheckoutSessionAction", () => {
         stripeSubscriptionId: null,
         stripeSubscriptionStatus: null,
         stripeEndedAt: null,
-        users: [{ _count: { emailAccounts: 1 } }],
+        users: [{ emailAccounts: googleAccounts(1) }],
         admins: [{ id: "another-user" }],
       },
     } as Awaited<ReturnType<typeof prisma.user.findUnique>>);
@@ -460,7 +467,7 @@ describe("generateCheckoutSessionAction", () => {
         stripeSubscriptionId: "sub_existing",
         stripeSubscriptionStatus: status,
         stripeEndedAt: endedAt,
-        users: [{ _count: { emailAccounts: 2 } }],
+        users: [{ emailAccounts: googleAccounts(2) }],
         admins: [{ id: "user-1" }],
       },
     } as Awaited<ReturnType<typeof prisma.user.findUnique>>);
@@ -486,7 +493,7 @@ describe("generateCheckoutSessionAction", () => {
         stripeSubscriptionId: null,
         stripeSubscriptionStatus: null,
         stripeEndedAt: null,
-        users: [{ _count: { emailAccounts: 2 } }],
+        users: [{ emailAccounts: googleAccounts(2) }],
         admins: [{ id: "user-1" }],
       },
     } as Awaited<ReturnType<typeof prisma.user.findUnique>>);
@@ -530,7 +537,7 @@ describe("generateCheckoutSessionAction", () => {
             stripeSubscriptionId: null,
             stripeSubscriptionStatus: null,
             stripeEndedAt: null,
-            users: [{ _count: { emailAccounts } }],
+            users: [{ emailAccounts: googleAccounts(emailAccounts) }],
             admins: [{ id: "user-1" }],
           },
         }) as Awaited<ReturnType<typeof prisma.user.findUnique>>,
@@ -560,7 +567,7 @@ describe("generateCheckoutSessionAction", () => {
         stripeSubscriptionId: "sub_ended",
         stripeSubscriptionStatus: "canceled",
         stripeEndedAt: new Date(),
-        users: [{ _count: { emailAccounts: 2 } }],
+        users: [{ emailAccounts: googleAccounts(2) }],
         admins: [{ id: "user-1" }],
       },
     } as Awaited<ReturnType<typeof prisma.user.findUnique>>);
@@ -595,7 +602,7 @@ function billingPortalUser({
       stripeSubscriptionId: "sub_test",
       stripeSubscriptionItemId,
       stripeSubscriptionStatus: "active",
-      users: [{ _count: { emailAccounts: emailAccountCount } }],
+      users: [{ emailAccounts: googleAccounts(emailAccountCount) }],
       admins: [{ id: "user-1" }],
     },
   } as Awaited<ReturnType<typeof prisma.user.findUnique>>;

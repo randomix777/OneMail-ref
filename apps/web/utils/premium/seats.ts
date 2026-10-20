@@ -7,6 +7,14 @@ import { createScopedLogger } from "@/utils/logger";
 
 const logger = createScopedLogger("premium");
 
+/**
+ * The provider family whose mailboxes are billed.
+ *
+ * Google mail goes through Nylas, so it is the one family that costs money to
+ * read. The rest connect straight to the provider.
+ */
+const BILLABLE_PROVIDER = "google";
+
 export async function updateAccountSeats({ userId }: { userId: string }) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -31,7 +39,11 @@ export async function syncPremiumSeats(premiumId: string) {
       stripeSubscriptionItemId: true,
       stripePriceId: true,
       users: {
-        select: { _count: { select: { emailAccounts: true } } },
+        select: {
+          emailAccounts: {
+            select: { account: { select: { provider: true } } },
+          },
+        },
       },
     },
   });
@@ -138,20 +150,36 @@ export async function updateAccountSeatsForPremium(
   }
 }
 
+/**
+ * How many billable mailboxes a premium has.
+ *
+ * Only Google mailboxes count. They are the ones reached through Nylas, and
+ * that cost is passed straight through to the user, so the subscription's
+ * quantity is the number of Google mailboxes. Every other family connects
+ * directly and costs us nothing, so it is not billed.
+ */
 export function getStripeBillingQuantity({
   priceId,
   users,
 }: {
   priceId: string | null | undefined;
-  users: { _count: { emailAccounts: number } }[];
+  users: {
+    emailAccounts: { account: { provider: string } }[];
+  }[];
 }): number {
+  const billable = (user: {
+    emailAccounts: { account: { provider: string } }[];
+  }) =>
+    user.emailAccounts.filter(
+      (emailAccount) => emailAccount.account.provider === BILLABLE_PROVIDER,
+    ).length;
+
   const totalSeats = hasIncludedEmailAccountsStripePriceId(priceId)
-    ? sumBy(users, (user) =>
-        user._count.emailAccounts <= 1
-          ? user._count.emailAccounts
-          : user._count.emailAccounts - 1,
-      )
-    : sumBy(users, (user) => user._count.emailAccounts);
+    ? sumBy(users, (user) => {
+        const count = billable(user);
+        return count <= 1 ? count : count - 1;
+      })
+    : sumBy(users, billable);
 
   return Math.max(1, totalSeats);
 }

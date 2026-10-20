@@ -38,10 +38,10 @@ const COSTS: Row[] = [
       "Outlook, Yahoo, Fastmail, iCloud, Zoho and any IMAP server connect straight to us. There is nothing to buy.",
   },
   {
-    title: "Gmail",
+    title: "Google mail",
     price: "Per mailbox",
     detail:
-      "Google mail is reached through Nylas, because that is the only way to hold the scopes Google requires. We bill it per mailbox, and we would rather say so than hide it in a seat price.",
+      "Every Google mailbox is reached through Nylas, because that is the only way to hold the scopes Google requires. Nylas's price for each mailbox is passed straight through to you, with no markup on top.",
   },
   {
     title: "The assistant",
@@ -57,7 +57,8 @@ export function WhatItCosts() {
       <SectionHeading>What it actually costs</SectionHeading>
       <SectionSubtitle>
         The client is free. Two things are not: Google mailboxes, which we reach
-        through Nylas and bill per mailbox, and the tokens the assistant spends.
+        through Nylas and bill per mailbox at Nylas's own price, and the tokens
+        the assistant spends.
       </SectionSubtitle>
       <SectionContent noMarginTop className="mt-10">
         <CardWrapper>

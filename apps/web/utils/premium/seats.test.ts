@@ -38,12 +38,22 @@ vi.mock("@/ee/billing/stripe/index", () => ({
 
 import { getStripeBillingQuantity } from "./seats";
 
+/** A user's mailboxes, `count` of them on Google. */
+function accounts(count: number) {
+  return [
+    ...Array.from({ length: count }, () => ({
+      account: { provider: "google" },
+    })),
+    { account: { provider: "microsoft" } },
+  ];
+}
+
 describe("getStripeBillingQuantity", () => {
   it("does not include an extra email account on starter monthly", () => {
     expect(
       getStripeBillingQuantity({
         priceId: "price_current_starter_monthly",
-        users: [{ _count: { emailAccounts: 2 } }],
+        users: [{ emailAccounts: accounts(2) }],
       }),
     ).toBe(2);
   });
@@ -52,7 +62,7 @@ describe("getStripeBillingQuantity", () => {
     expect(
       getStripeBillingQuantity({
         priceId: "price_current_plus_monthly",
-        users: [{ _count: { emailAccounts: 2 } }],
+        users: [{ emailAccounts: accounts(2) }],
       }),
     ).toBe(1);
   });
@@ -61,7 +71,7 @@ describe("getStripeBillingQuantity", () => {
     expect(
       getStripeBillingQuantity({
         priceId: "price_current_starter_annual",
-        users: [{ _count: { emailAccounts: 2 } }],
+        users: [{ emailAccounts: accounts(2) }],
       }),
     ).toBe(2);
   });
@@ -70,25 +80,41 @@ describe("getStripeBillingQuantity", () => {
     expect(
       getStripeBillingQuantity({
         priceId: "price_current_professional_monthly",
-        users: [
-          { _count: { emailAccounts: 2 } },
-          { _count: { emailAccounts: 1 } },
-        ],
+        users: [{ emailAccounts: accounts(2) }, { emailAccounts: accounts(1) }],
       }),
     ).toBe(2);
+  });
+
+  it("only bills mailboxes reached through the paid provider", () => {
+    // A mailbox on a family that connects directly costs us nothing, so it is
+    // not billed.
+    expect(
+      getStripeBillingQuantity({
+        priceId: "price_current_starter_monthly",
+        users: [
+          {
+            emailAccounts: [
+              { account: { provider: "microsoft" } },
+              { account: { provider: "yahoo" } },
+              { account: { provider: "imap" } },
+            ],
+          },
+        ],
+      }),
+    ).toBe(1);
   });
 
   it("keeps legacy monthly prices on raw account counts", () => {
     expect(
       getStripeBillingQuantity({
         priceId: "price_1S5u73KGf8mwZWHn8VYFdALA",
-        users: [{ _count: { emailAccounts: 2 } }],
+        users: [{ emailAccounts: accounts(2) }],
       }),
     ).toBe(2);
     expect(
       getStripeBillingQuantity({
         priceId: "price_1S5u6NKGf8mwZWHnZCfy4D5n",
-        users: [{ _count: { emailAccounts: 2 } }],
+        users: [{ emailAccounts: accounts(2) }],
       }),
     ).toBe(2);
   });

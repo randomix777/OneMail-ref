@@ -32,6 +32,9 @@ const billingAccessMembershipSelect = {
 export const billingAccessSelect = {
   emailAccounts: {
     select: {
+      // The family lives on the mailbox's account, and billing needs it to know
+      // which mailboxes are the billable ones.
+      account: { select: { provider: true } },
       members: {
         select: billingAccessMembershipSelect,
       },

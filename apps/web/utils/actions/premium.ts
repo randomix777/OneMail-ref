@@ -83,7 +83,12 @@ export const updateMultiAccountPremiumAction = actionClientUser
             users: { select: { id: true, email: true } },
           },
         },
-        emailAccounts: { select: { email: true } },
+        emailAccounts: {
+          select: {
+            email: true,
+            account: { select: { provider: true } },
+          },
+        },
       },
     });
 
@@ -374,7 +379,11 @@ export const getBillingPortalUrlAction = actionClientUser
             stripeSubscriptionItemId: true,
             stripeSubscriptionStatus: true,
             users: {
-              select: { _count: { select: { emailAccounts: true } } },
+              select: {
+                emailAccounts: {
+                  select: { account: { select: { provider: true } } },
+                },
+              },
             },
           },
         },
@@ -569,7 +578,11 @@ export const generateCheckoutSessionAction = actionClientUser
             stripeSubscriptionStatus: true,
             stripeEndedAt: true,
             users: {
-              select: { _count: { select: { emailAccounts: true } } },
+              select: {
+                emailAccounts: {
+                  select: { account: { select: { provider: true } } },
+                },
+              },
             },
           },
         },
@@ -620,7 +633,11 @@ export const generateCheckoutSessionAction = actionClientUser
     const quantity = getStripeBillingQuantity({
       priceId,
       users: user.premium?.users || [
-        { _count: { emailAccounts: user.emailAccounts.length } },
+        {
+          emailAccounts: user.emailAccounts.map((emailAccount) => ({
+            account: { provider: emailAccount.account.provider },
+          })),
+        },
       ],
     });
     const cookieStore = await cookies();
