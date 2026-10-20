@@ -43,9 +43,11 @@ const HIGHLIGHTS = [
 export function SelfHostedHighlights() {
   return (
     <Section className="mt-6 md:mt-10">
-      <SectionHeading>What it does for you</SectionHeading>
+      <SectionHeading>The assistant, one click away</SectionHeading>
       <SectionSubtitle>
-        The assistant works in the background of the mailbox you already have.
+        The client does the reading and the writing. The assistant lives next
+        door and does the thinking, and what it decides shows up on the messages
+        it touched.
       </SectionSubtitle>
       <SectionContent
         noMarginTop

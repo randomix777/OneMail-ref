@@ -43,39 +43,39 @@ const faqs: {
         It doesn't have to. {BRAND_NAME} works alongside whichever mailbox you
         already use, so you can keep using it as normal while the assistant
         works in the background. {BRAND_NAME} also has its own{" "}
-        <Anchor href="/email-client">email app</Anchor> for the web, desktop,
-        and iPhone if you'd like to use it.
+        <Anchor href="/email-client">email client</Anchor> for the web and
+        desktop if you'd like to use it.
       </span>
     ),
-    answerText: `It doesn't have to. ${BRAND_NAME} works alongside whichever mailbox you already use, so you can keep using it as normal while the assistant works in the background. ${BRAND_NAME} also has its own email app for the web, desktop, and iPhone if you'd like to use it.`,
+    answerText: `It doesn't have to. ${BRAND_NAME} works alongside whichever mailbox you already use, so you can keep using it as normal while the assistant works in the background. ${BRAND_NAME} also has its own email client for the web and desktop if you'd like to use it.`,
   },
   {
     question: "Is there a mobile app?",
     answer: (
       <span>
-        Yes. Our native iPhone app lets you triage your inbox and manage your
-        assistant on the go. We also have an Android app, which is due for an
-        update. Learn more on the <Anchor href="/mobile-app">mobile app</Anchor>{" "}
-        page.
+        Not yet. The client runs on the web and on the desktop, and the
+        assistant can reach you on Slack or Telegram while you are away. A
+        mobile app is on the list, and we would rather say so than ship a
+        promise.
       </span>
     ),
     answerText:
-      "Yes. Our native iPhone app lets you triage your inbox and manage your assistant on the go. We also have an Android app, which is due for an update. Learn more on the mobile app page.",
+      "Not yet. The client runs on the web and on the desktop, and the assistant can reach you on Slack or Telegram while you are away. A mobile app is on the list, and we would rather say so than ship a promise.",
   },
   {
     question: "Is the code open-source?",
     answer: (
       <span>
-        Yes! The AI assistant, the web app, and the desktop email app are open
+        Yes! The mail client, the AI assistant and the desktop app are open
         source in our{" "}
         <Anchor href="/github" newTab>
           GitHub repo
         </Anchor>
-        . The iPhone app isn't open source yet, but we plan to open it.
+        .
       </span>
     ),
     answerText:
-      "Yes! The AI assistant, the web app, and the desktop email app are open source in our GitHub repo. The iPhone app isn't open source yet, but we plan to open it.",
+      "Yes! The mail client, the AI assistant and the desktop app are open source in our GitHub repo.",
   },
   {
     question: "Do you offer refunds?",

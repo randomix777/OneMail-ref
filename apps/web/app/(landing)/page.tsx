@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Hero, HeroContent } from "@/app/(landing)/home/Hero";
+import { ClientShowcase, Hero, HeroContent } from "@/app/(landing)/home/Hero";
 import { EverythingElseSection } from "@/components/new-landing/sections/EverythingElseSection";
 import { StartedInMinutes } from "@/components/new-landing/sections/StartedInMinutes";
 import { BulkUnsubscribe } from "@/components/new-landing/sections/BulkUnsubscribe";
@@ -10,10 +10,12 @@ import {
   EMAIL_CLIENT_SECTION_ID,
   EmailClient,
 } from "@/components/new-landing/sections/EmailClient";
+import { KeyboardFirst } from "@/components/new-landing/sections/KeyboardFirst";
 import { MailboxSupport } from "@/components/new-landing/sections/MailboxSupport";
 import { SelfHostedHighlights } from "@/components/new-landing/sections/SelfHostedHighlights";
 import { SelfHostedPricing } from "@/components/new-landing/sections/SelfHostedPricing";
 import { SelfHostedWhy } from "@/components/new-landing/sections/SelfHostedWhy";
+import { WhyAClient } from "@/components/new-landing/sections/WhyAClient";
 import { BasicLayout } from "@/components/layouts/BasicLayout";
 import { FAQs } from "@/app/(landing)/home/FAQs";
 import { FinalCTA } from "@/app/(landing)/home/FinalCTA";
@@ -29,11 +31,17 @@ export default function NewLanding() {
     return (
       <BasicLayout>
         <Hero
-          title={`${BRAND_NAME} for self-hosted teams`}
-          subtitle={`Deploy ${BRAND_NAME} on your own infrastructure and automate your inbox with full data control. Works with Gmail, Outlook, Yahoo, Fastmail, iCloud, Zoho and any IMAP server.`}
-        />
-        <SelfHostedHighlights />
+          title="One client for every mailbox you have"
+          subtitle={`${BRAND_NAME} is a mail client that runs on your own infrastructure. It reads Gmail, Outlook, Yahoo, Fastmail, iCloud, Zoho and any IMAP server, keeps a local index of all of them, and puts them in one window. The assistant lives one click away when you want it.`}
+        >
+          <ClientShowcase />
+        </Hero>
         <MailboxSupport />
+        <WhyAClient />
+        <KeyboardFirst />
+        <SelfHostedHighlights />
+        <SelfHostedPricing />
+        <FAQs />
       </BasicLayout>
     );
   }
@@ -66,6 +74,8 @@ export default function NewLanding() {
         <HeroContent />
       </Hero>
       <MailboxSupport />
+      <WhyAClient />
+      <KeyboardFirst />
       <OrganizedInbox
         title={
           <>

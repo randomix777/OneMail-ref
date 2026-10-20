@@ -40,9 +40,9 @@ const geist = Geist({
   display: "swap",
 });
 
-const title = `${BRAND_NAME} | Automate and clean your inbox`;
+const title = `${BRAND_NAME} | The mail client for every mailbox you have`;
 const description =
-  "Your AI executive assistant to reach inbox zero fast. Automate emails, bulk unsubscribe, block cold emails, and analytics. Open-source";
+  "A mail client that reads Gmail, Outlook, Yahoo, Fastmail, iCloud, Zoho and any IMAP server, keeps a local index of all of them, and runs on your own infrastructure. Open-source";
 
 const indexingAllowed = isIndexingAllowed(env.NEXT_PUBLIC_BASE_URL);
 

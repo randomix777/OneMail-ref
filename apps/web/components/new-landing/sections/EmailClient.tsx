@@ -48,10 +48,12 @@ const reasons = [
 export function EmailClient() {
   return (
     <Section id={EMAIL_CLIENT_SECTION_ID}>
-      <SectionHeading>Fly through email on desktop and mobile</SectionHeading>
+      <SectionHeading>
+        Fly through email on the web and the desktop
+      </SectionHeading>
       <SectionSubtitle>
-        Every Gmail and Outlook account in one inbox, on the web, Mac, Windows,
-        and iPhone. Like Superhuman, but free.
+        Every Gmail and Outlook account in one inbox, on the web, Mac and
+        Windows. Like Superhuman, but free.
       </SectionSubtitle>
       <SectionContent>
         <BlurFade inView>

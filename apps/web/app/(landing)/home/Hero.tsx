@@ -15,6 +15,7 @@ import {
   type BadgeVariant,
 } from "@/components/new-landing/common/Badge";
 import { HeroVideoDialog } from "@/app/(landing)/home/HeroVideoDialog";
+import { ClientPreview } from "@/components/new-landing/ClientPreview";
 import { MailboxMark } from "@/components/new-landing/MailboxMark";
 import { MAILBOXES } from "@/components/new-landing/mailboxes";
 
@@ -71,14 +72,16 @@ export function Hero({
 }
 
 /**
- * The mailboxes the assistant can be connected to. The same list the app
- * accepts, so the landing page cannot promise a provider we do not support.
+ * The mailboxes the client can read.
+ *
+ * The same list the app accepts, so the page cannot promise a provider the
+ * client does not support.
  */
 export function MailboxRow() {
   return (
     <div className="flex flex-col items-center gap-3 md:flex-row md:justify-center md:gap-4">
       <Paragraph color="light" size="sm" className="shrink-0">
-        Works with
+        Reads
       </Paragraph>
       <ul className="flex flex-wrap items-center justify-center gap-2">
         {MAILBOXES.map((mailbox) => (
@@ -98,6 +101,20 @@ export function MailboxRow() {
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * The client, on screen.
+ *
+ * A picture of the interface is the fastest way to say what the product is,
+ * so the hero shows the window rather than a promise about it.
+ */
+export function ClientShowcase({ className }: { className?: string }) {
+  return (
+    <HeroReveal delay={0.125 * 9} className={className}>
+      <ClientPreview />
+    </HeroReveal>
   );
 }
 
