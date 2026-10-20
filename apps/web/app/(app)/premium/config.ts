@@ -147,6 +147,15 @@ export function getStripePriceId({
   return STRIPE_PRICE_ID_CONFIG[tier]?.priceId ?? null;
 }
 
+/**
+ * What a Google mailbox costs a month, in Canadian dollars.
+ *
+ * Google mail is reached through Nylas, so it is the one family that costs
+ * money to read, and every other family is free. The Stripe price that backs
+ * the subscription is set to this amount, so the two have to be kept in step.
+ */
+export const GOOGLE_MAILBOX_PRICE_CAD = 4.99;
+
 export function getAppleSubscriptionTier({
   productId,
 }: {

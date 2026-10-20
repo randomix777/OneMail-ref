@@ -9,6 +9,7 @@ import {
   SectionHeading,
   SectionSubtitle,
 } from "@/components/new-landing/common/Typography";
+import { GOOGLE_MAILBOX_PRICE_CAD } from "@/app/(app)/premium/config";
 import { cn } from "@/utils";
 
 type Row = {
@@ -39,9 +40,9 @@ const COSTS: Row[] = [
   },
   {
     title: "Google mail",
-    price: "Per account",
+    price: `${GOOGLE_MAILBOX_PRICE_CAD} CAD`,
     detail:
-      "Google mail is reached through Nylas, because that is the only way to hold the scopes Google requires. Nylas bills per connected account, and each Google mailbox is billed at Nylas's own per-account rate, passed straight through.",
+      "Google mail is reached through Nylas, because that is the only way to hold the scopes Google requires. Every Google mailbox you connect costs $4.99 CAD a month. Every other provider is free.",
   },
   {
     title: "The assistant",
@@ -56,9 +57,9 @@ export function WhatItCosts() {
     <Section id="pricing">
       <SectionHeading>What it actually costs</SectionHeading>
       <SectionSubtitle>
-        The client is free. Two things are not: Google mail, which is reached
-        through Nylas and billed at Nylas's own per-account rate, and the tokens
-        the assistant spends.
+        The client is free. Two things are not: Google mail, at $
+        {GOOGLE_MAILBOX_PRICE_CAD} CAD per mailbox, and the tokens the assistant
+        spends.
       </SectionSubtitle>
       <SectionContent noMarginTop className="mt-10">
         <CardWrapper>

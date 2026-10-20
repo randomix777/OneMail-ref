@@ -152,12 +152,14 @@ export async function updateAccountSeatsForPremium(
  * How many billable mailboxes a premium has.
  *
  * Only Google mailboxes count. They are the ones reached through Nylas, and
- * that cost is passed straight through to the user.
+ * they are the only family that costs money to read.
  *
- * Nylas does not charge a flat price per mailbox: a plan has a monthly base
- * that covers a number of connected accounts, and a per-account rate on top of
- * that. The allowance is therefore ours to give away, and only the accounts
- * beyond it are billed.
+ * Nylas bills per connected account: a monthly base that covers a number of
+ * accounts and a per-account rate on top of it. Those included accounts belong
+ * to *our* Nylas plan, not to our users, so they cannot be handed out as an
+ * allowance here: every Google mailbox any user connects consumes one of them.
+ * Each Google mailbox is therefore billed on its own, and the price is ours to
+ * set - see `GOOGLE_MAILBOX_PRICE_CAD`, which the Stripe price has to match.
  */
 export function getStripeBillingQuantity({
   users,
