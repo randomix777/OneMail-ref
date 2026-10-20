@@ -35,7 +35,6 @@ function mockMailbox(account?: {
       disconnectedAt: null,
       ...account,
     },
-    // biome-ignore lint/suspicious/noExplicitAny: a partial prisma row is enough
   } as any);
 }
 
@@ -138,7 +137,6 @@ describe("revokePaidMailboxesForPremium", () => {
     prisma.premium.findUnique.mockResolvedValue({
       users: [{ id: "user-1" }],
       admins: [{ id: "user-2" }],
-      // biome-ignore lint/suspicious/noExplicitAny: a partial prisma row is enough
     } as any);
     prisma.emailAccount.findMany.mockResolvedValue([
       { id: "email-account-1" },
@@ -154,7 +152,6 @@ describe("revokePaidMailboxesForPremium", () => {
         refresh_token: null,
         disconnectedAt: null,
       },
-      // biome-ignore lint/suspicious/noExplicitAny: a partial prisma row is enough
     } as any);
 
     const result = await revokePaidMailboxesForPremium({

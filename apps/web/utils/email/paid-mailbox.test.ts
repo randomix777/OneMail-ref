@@ -19,7 +19,6 @@ describe("hasPaidMailboxSubscription", () => {
   it("is true when the user has a subscription on file", async () => {
     prisma.user.findUnique.mockResolvedValue({
       premium: { stripeSubscriptionStatus: "active" },
-      // biome-ignore lint/suspicious/noExplicitAny: a partial prisma row is enough
     } as any);
 
     await expect(
@@ -30,7 +29,6 @@ describe("hasPaidMailboxSubscription", () => {
   it("is false when the user has no subscription", async () => {
     prisma.user.findUnique.mockResolvedValue({
       premium: { stripeSubscriptionStatus: null },
-      // biome-ignore lint/suspicious/noExplicitAny: a partial prisma row is enough
     } as any);
 
     await expect(
@@ -41,7 +39,6 @@ describe("hasPaidMailboxSubscription", () => {
   it("is false when the user has no premium record at all", async () => {
     prisma.user.findUnique.mockResolvedValue({
       premium: null,
-      // biome-ignore lint/suspicious/noExplicitAny: a partial prisma row is enough
     } as any);
 
     await expect(
