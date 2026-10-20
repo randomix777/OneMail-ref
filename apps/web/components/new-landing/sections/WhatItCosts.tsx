@@ -18,14 +18,13 @@ type Row = {
 };
 
 /**
- * What the two ways of running it cost.
+ * What running the product costs.
  *
- * The self-hosted deployment is free because the deployment pays for its own
- * keys. The hosted one is free too, except for the two things that cost
- * somebody real money: Gmail, which has to be reached through Nylas, and the
- * tokens the assistant spends.
+ * The client is free. Two things are not: Google mailboxes, which are reached
+ * through Nylas and billed per mailbox, and the tokens the assistant spends
+ * through the JYI gateway.
  */
-const SELF_HOSTED: Row[] = [
+const COSTS: Row[] = [
   {
     title: "The client",
     price: "Free",
@@ -33,117 +32,73 @@ const SELF_HOSTED: Row[] = [
       "Open source, and every feature is in it. No seat count, no feature gates, no time limit.",
   },
   {
-    title: "Every mailbox",
+    title: "Your mailboxes",
     price: "Free",
     detail:
-      "Outlook, Yahoo, Fastmail, iCloud, Zoho and any IMAP server connect straight to you. Gmail needs a Nylas key, and you bring it.",
-  },
-  {
-    title: "The models",
-    price: "Free",
-    detail:
-      "Point the assistant at the model provider you already use, and you pay them their price.",
-  },
-];
-
-const HOSTED: Row[] = [
-  {
-    title: "The client",
-    price: "Free",
-    detail:
-      "The same code, running for you. Nothing to install and nothing to keep up to date.",
-  },
-  {
-    title: "Every mailbox but Gmail",
-    price: "Free",
-    detail:
-      "Outlook, Yahoo, Fastmail, iCloud, Zoho and any IMAP server cost us nothing, so they cost you nothing.",
+      "Outlook, Yahoo, Fastmail, iCloud, Zoho and any IMAP server connect straight to us. There is nothing to buy.",
   },
   {
     title: "Gmail",
-    price: "Charged",
+    price: "Per mailbox",
     detail:
-      "Gmail is the exception. Holding Google's restricted scopes means that connection runs through Nylas, and we pass that cost on rather than hiding it in a seat price.",
+      "Google mail is reached through Nylas, because that is the only way to hold the scopes Google requires. We bill it per mailbox, and we would rather say so than hide it in a seat price.",
   },
   {
-    title: "The models",
+    title: "The assistant",
     price: "Per token",
     detail:
-      "Assistant calls go through the JYI gateway, and you pay for the tokens the model uses. Nothing for the mail itself.",
+      "Assistant calls go through the JYI gateway, and you pay for the tokens the model uses. Point it at your own provider and even this disappears.",
   },
 ];
-
-function CostCard({
-  title,
-  description,
-  rows,
-}: {
-  title: string;
-  description: string;
-  rows: Row[];
-}) {
-  return (
-    <CardWrapper>
-      <Card variant="extra-rounding" className="h-full">
-        <CardContent>
-          <h3 className="font-title text-xl leading-7 text-[#242424]">
-            {title}
-          </h3>
-          <Paragraph size="sm" className="mt-2">
-            {description}
-          </Paragraph>
-          <ul className="mt-6 space-y-5 border-t border-[#EFEFEF] pt-5">
-            {rows.map((row) => (
-              <li key={row.title} className="flex gap-4">
-                <div className="w-24 shrink-0">
-                  <div className="font-title text-[15px] leading-6 text-[#242424]">
-                    {row.title}
-                  </div>
-                  <div
-                    className={cn(
-                      "text-[13px] leading-5",
-                      row.price === "Free"
-                        ? "text-new-green-600"
-                        : "text-gray-500",
-                    )}
-                  >
-                    {row.price}
-                  </div>
-                </div>
-                <p className="text-[13px] leading-5 text-gray-500">
-                  {row.detail}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
-    </CardWrapper>
-  );
-}
 
 export function WhatItCosts() {
   return (
     <Section id="pricing">
       <SectionHeading>What it actually costs</SectionHeading>
       <SectionSubtitle>
-        The client is free. Two things cost somebody real money: Gmail, which
-        has to be reached through Nylas, and the tokens the assistant spends.
+        The client is free. Two things are not: Google mailboxes, which we reach
+        through Nylas and bill per mailbox, and the tokens the assistant spends.
       </SectionSubtitle>
-      <SectionContent
-        noMarginTop
-        className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-2"
-      >
-        <CostCard
-          title="If you run it yourself"
-          description="You deploy it, you bring the keys, and there is nothing to pay for."
-          rows={SELF_HOSTED}
-        />
-        <CostCard
-          title="If we run it for you"
-          description="Same client, hosted. Free, except where a third party makes it cost money."
-          rows={HOSTED}
-        />
+      <SectionContent noMarginTop className="mt-10">
+        <CardWrapper>
+          <Card variant="extra-rounding" className="h-full">
+            <CardContent>
+              <ul className="space-y-6">
+                {COSTS.map((cost) => (
+                  <li
+                    key={cost.title}
+                    className="flex flex-col gap-1 border-b border-[#EFEFEF] pb-6 last:border-0 last:pb-0 md:flex-row md:gap-8"
+                  >
+                    <div className="md:w-48 md:shrink-0">
+                      <div className="font-title text-[15px] leading-6 text-[#242424]">
+                        {cost.title}
+                      </div>
+                      <div
+                        className={cn(
+                          "text-[13px] leading-5",
+                          cost.price === "Free"
+                            ? "text-new-green-600"
+                            : "text-gray-500",
+                        )}
+                      >
+                        {cost.price}
+                      </div>
+                    </div>
+                    <p className="text-[13px] leading-5 text-gray-500 md:flex-1">
+                      {cost.detail}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </CardWrapper>
+      </SectionContent>
+      <SectionContent className="mt-6 flex justify-center">
+        <Paragraph size="sm" color="light" className="text-center">
+          Running it yourself is free too, and with your own model key the
+          assistant costs nothing at all.
+        </Paragraph>
       </SectionContent>
     </Section>
   );

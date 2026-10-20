@@ -18,8 +18,8 @@ export function GetStartedBand() {
       </h2>
       <Paragraph size="lg" className="mx-auto mt-4 max-w-[560px]">
         {BRAND_NAME} is open source and the client is free. Run it on your own
-        infrastructure and bring your own keys, and the only thing left to pay
-        for is the model provider you already use.
+        infrastructure, and you only pay for what actually costs money: Google
+        mailboxes, and the tokens the assistant uses.
       </Paragraph>
       <div className="mt-8 flex flex-col items-center gap-3">
         <Button size="xl" asChild>

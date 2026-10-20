@@ -7,7 +7,7 @@ import { getBrandTitle } from "@/utils/branding";
 export const metadata: Metadata = {
   title: getBrandTitle("Pricing"),
   description:
-    "The client is free. Gmail access, which runs through Nylas, and the tokens the assistant uses are the two things that cost money.",
+    "The client is free. Google mailboxes, which we reach through Nylas and bill per mailbox, and the tokens the assistant uses are the two things that cost money.",
   alternates: { canonical: "/pricing" },
 };
 

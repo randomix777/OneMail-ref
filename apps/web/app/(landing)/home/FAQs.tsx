@@ -92,7 +92,7 @@ const faqs: {
   {
     question: `Can I try ${BRAND_NAME} for free?`,
     answer:
-      "Yes. The client is free to run and free to self-host, and every mailbox except Gmail connects for free. The two things that cost money are Gmail, which has to be reached through Nylas, and the tokens the assistant uses. If you run it yourself you bring your own Nylas key and your own model key, and then there is nothing to pay for at all.",
+      "Yes. The client is free, and every mailbox except Google mail connects for free. The two things that cost money are Google mailboxes, which we reach through Nylas and bill per mailbox, and the tokens the assistant spends. Point the assistant at your own model provider and even that disappears.",
   },
 ];
 
