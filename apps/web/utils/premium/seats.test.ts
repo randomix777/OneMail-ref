@@ -50,18 +50,8 @@ describe("getStripeBillingQuantity", () => {
     expect(
       getStripeBillingQuantity({
         users: [{ emailAccounts: accounts(2) }],
-        includedMailboxes: 0,
       }),
     ).toBe(2);
-  });
-
-  it("does not bill the mailboxes the allowance covers", () => {
-    expect(
-      getStripeBillingQuantity({
-        users: [{ emailAccounts: accounts(2) }],
-        includedMailboxes: 2,
-      }),
-    ).toBe(1);
   });
 
   it("only bills mailboxes reached through the paid provider", () => {
@@ -78,7 +68,6 @@ describe("getStripeBillingQuantity", () => {
             ],
           },
         ],
-        includedMailboxes: 0,
       }),
     ).toBe(1);
   });
@@ -87,7 +76,6 @@ describe("getStripeBillingQuantity", () => {
     expect(
       getStripeBillingQuantity({
         users: [{ emailAccounts: accounts(2) }, { emailAccounts: accounts(1) }],
-        includedMailboxes: 0,
       }),
     ).toBe(3);
   });
@@ -97,8 +85,7 @@ describe("getStripeBillingQuantity", () => {
     // bills at least one.
     expect(
       getStripeBillingQuantity({
-        users: [{ emailAccounts: accounts(1) }],
-        includedMailboxes: 5,
+        users: [{ emailAccounts: [] }],
       }),
     ).toBe(1);
   });

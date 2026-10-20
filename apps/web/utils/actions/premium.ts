@@ -21,7 +21,6 @@ import {
   upgradeToPremiumLemon,
 } from "@/utils/premium/server";
 import {
-  getIncludedGoogleMailboxes,
   getStripeBillingQuantity,
   syncPremiumSeats,
 } from "@/utils/premium/seats";
@@ -427,7 +426,6 @@ export const getBillingPortalUrlAction = actionClientUser
 
     const quantity = getStripeBillingQuantity({
       users: user.premium?.users || [],
-      includedMailboxes: getIncludedGoogleMailboxes(),
     });
     const planChangeItem = getStripePlanChangeItem({
       subscription,
@@ -639,7 +637,6 @@ export const generateCheckoutSessionAction = actionClientUser
           })),
         },
       ],
-      includedMailboxes: getIncludedGoogleMailboxes(),
     });
     const cookieStore = await cookies();
     const conversionAttributionId = cookieStore.get(

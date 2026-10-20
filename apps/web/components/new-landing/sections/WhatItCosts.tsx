@@ -41,7 +41,7 @@ const COSTS: Row[] = [
     title: "Google mail",
     price: "Per account",
     detail:
-      "Google mail is reached through Nylas, because that is the only way to hold the scopes Google requires. Nylas bills a monthly base that covers a number of accounts and a per-account rate on top of it: the accounts inside the allowance are on us, and the rest are billed at Nylas's own rate, passed straight through.",
+      "Google mail is reached through Nylas, because that is the only way to hold the scopes Google requires. Nylas bills per connected account, and each Google mailbox is billed at Nylas's own per-account rate, passed straight through.",
   },
   {
     title: "The assistant",
@@ -57,8 +57,8 @@ export function WhatItCosts() {
       <SectionHeading>What it actually costs</SectionHeading>
       <SectionSubtitle>
         The client is free. Two things are not: Google mail, which is reached
-        through Nylas and billed at Nylas's own rate once it is past the
-        allowance, and the tokens the assistant spends.
+        through Nylas and billed at Nylas's own per-account rate, and the tokens
+        the assistant spends.
       </SectionSubtitle>
       <SectionContent noMarginTop className="mt-10">
         <CardWrapper>

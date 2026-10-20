@@ -194,14 +194,6 @@ const parsedEnv = createEnv({
     OPENROUTER_API_KEY: z.string().optional(),
     AI_GATEWAY_API_KEY: z.string().optional(),
     /**
-     * How many Google mailboxes the allowance covers.
-     *
-     * Google mail is reached through Nylas, which bills a monthly base that
-     * covers a number of accounts and a per-account rate on top of it. The
-     * accounts inside the allowance are not billed to the user.
-     */
-    GOOGLE_MAILBOXES_INCLUDED: z.coerce.number().int().nonnegative().default(0),
-    /**
      * Where the AI gateway lives. Left unset the provider's own gateway is
      * used; a deployment that fronts its own gateway points this at it.
      */

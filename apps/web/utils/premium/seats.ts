@@ -1,7 +1,6 @@
 import sumBy from "lodash/sumBy";
 import { updateSubscriptionItemQuantity } from "@/ee/billing/lemon/index";
 import { updateStripeSubscriptionItemQuantity } from "@/ee/billing/stripe/index";
-import { env } from "@/env";
 import prisma from "@/utils/prisma";
 import { createScopedLogger } from "@/utils/logger";
 
@@ -14,17 +13,6 @@ const logger = createScopedLogger("premium");
  * read. The rest connect straight to the provider.
  */
 const BILLABLE_PROVIDER = "google";
-
-/**
- * How many Google mailboxes the allowance covers.
- *
- * Nylas' plan includes a number of connected accounts, and that allowance is
- * ours to give away. The accounts beyond it are billed at Nylas' own
- * per-account rate.
- */
-export function getIncludedGoogleMailboxes() {
-  return env.GOOGLE_MAILBOXES_INCLUDED;
-}
 
 export async function updateAccountSeats({ userId }: { userId: string }) {
   const user = await prisma.user.findUnique({
@@ -66,7 +54,6 @@ export async function syncPremiumSeats(premiumId: string) {
 
   const totalSeats = getStripeBillingQuantity({
     users: premium.users,
-    includedMailboxes: getIncludedGoogleMailboxes(),
   });
   await updateAccountSeatsForPremium(premium, totalSeats);
 }
@@ -174,14 +161,11 @@ export async function updateAccountSeatsForPremium(
  */
 export function getStripeBillingQuantity({
   users,
-  includedMailboxes = 0,
 }: {
   priceId?: string | null;
   users: {
     emailAccounts: { account: { provider: string } }[];
   }[];
-  /** Google mailboxes covered by the allowance, so not billed. */
-  includedMailboxes?: number;
 }): number {
   const googleMailboxes = sumBy(
     users,
@@ -191,5 +175,5 @@ export function getStripeBillingQuantity({
       ).length,
   );
 
-  return Math.max(1, googleMailboxes - includedMailboxes);
+  return Math.max(1, googleMailboxes);
 }
