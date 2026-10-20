@@ -13,7 +13,7 @@ describe("swrFetcher", () => {
     );
 
     await expect(swrFetcher("/api/user/email-account")).rejects.toThrow(
-      "Couldn't connect to Inbox Zero. Check your internet connection and try again.",
+      "Couldn't connect to OneMail. Check your internet connection and try again.",
     );
   });
 

@@ -10,6 +10,7 @@ import {
   normalizeSWRFetchErrorData,
 } from "./swr-error";
 import { redirectToSafeUrl } from "@/utils/redirect";
+import { BRAND_NAME } from "@/utils/branding";
 
 // https://swr.vercel.app/docs/error-handling#status-code-and-error-object
 export const swrFetcher = async (
@@ -33,8 +34,7 @@ export const swrFetcher = async (
       throw error;
     }
     // Browsers reject with an opaque "Failed to fetch" / "Load failed".
-    const message =
-      "Couldn't connect to Inbox Zero. Check your internet connection and try again.";
+    const message = `Couldn't connect to ${BRAND_NAME}. Check your internet connection and try again.`;
     const networkError: Error & { info?: Record<string, unknown> } = new Error(
       message,
       { cause: error },

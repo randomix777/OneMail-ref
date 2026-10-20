@@ -140,7 +140,7 @@ describe("isFilebotNotificationMessage", () => {
         userEmail: "john@example.com",
         from: "John <john@example.com>",
         to: "john@example.com",
-        replyTo: "Inbox Zero Assistant <john+ai@example.com>",
+        replyTo: "OneMail Assistant <john+ai@example.com>",
       },
       expected: true,
     },
@@ -148,7 +148,7 @@ describe("isFilebotNotificationMessage", () => {
       name: "assistant-formatted self-email without reply-to",
       message: {
         userEmail: "john@example.com",
-        from: "Inbox Zero Assistant <john@example.com>",
+        from: "OneMail Assistant <john@example.com>",
         to: "john@example.com",
       },
       expected: true,
@@ -175,10 +175,10 @@ describe("isFilebotConversationMessage", () => {
     {
       name: "notification with the filebot reply-to",
       headers: {
-        from: "Inbox Zero Assistant <john@example.com>",
+        from: "OneMail Assistant <john@example.com>",
         to: "john@example.com",
         subject: "✓ Filed Receipt.pdf",
-        "reply-to": "Inbox Zero Assistant <john+ai@example.com>",
+        "reply-to": "OneMail Assistant <john+ai@example.com>",
       },
       expected: true,
     },
@@ -222,7 +222,7 @@ describe("isFilebotConversationMessage", () => {
       name: "user reply to the filebot address",
       headers: {
         from: "John <john@example.com>",
-        to: "Inbox Zero Assistant <john+ai@example.com>",
+        to: "OneMail Assistant <john+ai@example.com>",
         subject: "Re: Your receipt",
       },
       expected: true,
@@ -231,7 +231,7 @@ describe("isFilebotConversationMessage", () => {
       name: "user reply to a mixed-case filebot address",
       headers: {
         from: "John <john@example.com>",
-        to: "Inbox Zero Assistant <John+ai@example.com>",
+        to: "OneMail Assistant <John+ai@example.com>",
         subject: "Re: Your receipt",
       },
       expected: true,

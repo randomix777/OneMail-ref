@@ -16,7 +16,7 @@ const {
   mockEnv: {
     DESKTOP_AUTH_ORIGIN: "inboxzero://",
     MOBILE_AUTH_ORIGIN: "inboxzero://",
-    NEXT_PUBLIC_BASE_URL: "https://www.getinboxzero.com",
+    NEXT_PUBLIC_BASE_URL: "https://www.jyisolutions.com",
   },
 }));
 
@@ -55,7 +55,7 @@ describe("mobile auth callback route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockEnv.MOBILE_AUTH_ORIGIN = "inboxzero://";
-    mockEnv.NEXT_PUBLIC_BASE_URL = "https://www.getinboxzero.com";
+    mockEnv.NEXT_PUBLIC_BASE_URL = "https://www.jyisolutions.com";
     authMock.mockResolvedValue({
       user: { id: "user-1" },
       session: { emailOtp: false, token: "session-token" },
@@ -74,13 +74,13 @@ describe("mobile auth callback route", () => {
     });
     const response = await GET(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890",
       ),
       {} as never,
     );
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe(
-      "https://www.getinboxzero.com/login/app-sign-in-error",
+      "https://www.jyisolutions.com/login/app-sign-in-error",
     );
     expect(createMobileAuthCodeMock).not.toHaveBeenCalled();
   });
@@ -91,13 +91,13 @@ describe("mobile auth callback route", () => {
     );
     const response = await GET(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890",
       ),
       {} as never,
     );
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe(
-      "https://www.getinboxzero.com/login/app-sign-in-error",
+      "https://www.jyisolutions.com/login/app-sign-in-error",
     );
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(createMobileAuthCodeMock).not.toHaveBeenCalled();
@@ -109,28 +109,28 @@ describe("mobile auth callback route", () => {
     );
     const response = await GET(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890&error=access_denied",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890&error=access_denied",
       ),
       {} as never,
     );
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe(
-      "https://www.getinboxzero.com/login/app-sign-in-error",
+      "https://www.jyisolutions.com/login/app-sign-in-error",
     );
   });
 
   it("shows a recovery page when the callback state is malformed", async () => {
     const response = await GET(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=invalid",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=invalid",
       ),
       {} as never,
     );
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe(
-      "https://www.getinboxzero.com/login/app-sign-in-error",
+      "https://www.jyisolutions.com/login/app-sign-in-error",
     );
     expect(authMock).not.toHaveBeenCalled();
   });
@@ -141,7 +141,7 @@ describe("mobile auth callback route", () => {
     });
     const response = await GET(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890&error=access_denied",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890&error=access_denied",
       ),
       {} as never,
     );
@@ -155,7 +155,7 @@ describe("mobile auth callback route", () => {
   it("redirects HTTPS app links with a one-time code and state", async () => {
     const response = await GET(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890",
       ),
       {} as never,
     );
@@ -171,7 +171,7 @@ describe("mobile auth callback route", () => {
       codeChallenge: "a".repeat(43),
     });
     expect(response.headers.get("location")).toBe(
-      "https://www.getinboxzero.com/auth-callback?state=state-1234567890&code=one-time-code",
+      "https://www.jyisolutions.com/auth-callback?state=state-1234567890&code=one-time-code",
     );
     expect(response.headers.get("cache-control")).toBe("no-store");
   });
@@ -198,7 +198,7 @@ describe("mobile auth callback route", () => {
 
     const response = await GET(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890",
       ),
       {} as never,
     );
@@ -215,7 +215,7 @@ describe("mobile auth callback route", () => {
 
     const response = await GET(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890",
       ),
       {} as never,
     );
@@ -233,13 +233,13 @@ describe("mobile auth callback route", () => {
 
     const response = await GET(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890&returnUrlMode=custom-scheme",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890&returnUrlMode=custom-scheme",
       ),
       {} as never,
     );
 
     expect(response.headers.get("location")).toBe(
-      "https://www.getinboxzero.com/auth-callback?state=state-1234567890&code=one-time-code",
+      "https://www.jyisolutions.com/auth-callback?state=state-1234567890&code=one-time-code",
     );
   });
 
@@ -248,7 +248,7 @@ describe("mobile auth callback route", () => {
 
     const response = await GET(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890",
       ),
       {} as never,
     );
@@ -256,7 +256,7 @@ describe("mobile auth callback route", () => {
     expect(createMobileAuthCodeMock).not.toHaveBeenCalled();
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe(
-      "https://www.getinboxzero.com/login/app-sign-in-error",
+      "https://www.jyisolutions.com/login/app-sign-in-error",
     );
     expect(redeemMobileAuthStateMock).not.toHaveBeenCalled();
   });

@@ -27,7 +27,7 @@ const runtimeImport = (specifier: string): Promise<CliProviderModule> =>
   import(/* webpackIgnore: true */ specifier);
 
 const CLAUDE_CODE_PACKAGE = "ai-sdk-provider-claude-code";
-const CLAUDE_CODE_MCP_SERVER_NAME = "inboxzero";
+const CLAUDE_CODE_MCP_SERVER_NAME = "onemail";
 
 export function assertCliLlmEnabled(provider: CliProvider) {
   if (env.CLI_LLM_ENABLED) return;
@@ -126,7 +126,7 @@ function unprefixToolName(name: string): string {
 }
 
 // The MCP bridge causes the Claude Code CLI to surface tool calls as
-// `mcp__inboxzero__<name>`. Inbox Zero callers (stop conditions, UI part
+// `mcp__onemail__<name>`. OneMail callers (stop conditions, UI part
 // renderers, validators) match on the original tool names, so the prefix is
 // stripped from every `toolName` field in both the non-streaming and
 // streaming response paths before it reaches the AI SDK consumer.

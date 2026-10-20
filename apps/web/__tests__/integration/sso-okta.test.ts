@@ -87,7 +87,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)(
               {
                 client_id: CLIENT_ID,
                 client_secret: CLIENT_SECRET,
-                name: "Inbox Zero SSO",
+                name: "OneMail SSO",
                 redirect_uris: [CALLBACK_URL],
                 auth_server_id: "default",
                 token_endpoint_auth_method: "client_secret_post",

@@ -206,7 +206,7 @@ test("opens saved mail offline, reconnects, and clears it on sign-out", async ({
       .poll(
         async () =>
           page.evaluate(async () => {
-            const inspect = window.__inboxZeroMailInspect;
+            const inspect = window.__mailInspect;
             if (!inspect?.read) return false;
             const diagnostics = (await inspect.read()) as {
               coverage?: Array<{ metadata?: string }>;

@@ -11,7 +11,7 @@ import {
 vi.mock("server-only", () => ({}));
 
 describe("describeContext", () => {
-  it("uses the active Inbox Zero booking link ahead of the external link", () => {
+  it("uses the active OneMail booking link ahead of the external link", () => {
     const context = describeContext(
       evalCase({
         calendarBookingLink: "https://cal.example.com/external",
@@ -25,7 +25,7 @@ describe("describeContext", () => {
     expect(context).not.toContain("https://cal.example.com/external");
   });
 
-  it("uses the external booking link when no Inbox Zero link is active", () => {
+  it("uses the external booking link when no OneMail link is active", () => {
     const context = describeContext(
       evalCase({
         calendarBookingLink: "https://cal.example.com/external",

@@ -1,6 +1,6 @@
 ---
 title: 'Security Hardening'
-description: 'Recommended steps for locking down a self-hosted Inbox Zero deployment.'
+description: 'Recommended steps for locking down a self-hosted OneMail deployment.'
 icon: 'lock'
 ---
 
@@ -22,11 +22,11 @@ You can also enforce this at the identity provider:
 - **Google:** set the OAuth consent screen to **Internal** so only your Google Workspace users can sign in. See [Google OAuth setup](/hosting/google-oauth).
 - **Microsoft:** register the app as **Single tenant** so only your Microsoft Entra ID tenant can sign in. See [Microsoft OAuth setup](/hosting/microsoft-oauth).
 
-Inbox Zero also supports SAML SSO and SCIM provisioning. See [Enterprise SSO and SCIM](/hosting/sso).
+OneMail also supports SAML SSO and SCIM provisioning. See [Enterprise SSO and SCIM](/hosting/sso).
 
 ## Keep the app on a private network
 
-For the strongest setup, deploy Inbox Zero on a private network so employees can only reach it through your VPN or a zero-trust access proxy (for example Cloudflare Access or Tailscale).
+For the strongest setup, deploy OneMail on a private network so employees can only reach it through your VPN or a zero-trust access proxy (for example Cloudflare Access or Tailscale).
 
 Sign-in still works in this setup because OAuth and SAML redirects run in the user's browser, which is already on your network. Some features, however, depend on external services calling into your deployment. Those endpoints must stay publicly reachable, or you need to route them through a relay:
 
@@ -42,7 +42,7 @@ Sign-in still works in this setup because OAuth and SAML redirects run in the us
 
 Each of these endpoints verifies that requests come from the expected service, using a shared secret, request signature, or signed token, and rejects anything that fails. The one exception is `GOOGLE_PUBSUB_VERIFICATION_TOKEN`: setting it to an empty string turns off Gmail webhook verification, so only do that when a gateway in front of the app already authenticates those requests. If AI assistants or scripts outside your network use the [MCP server](/api-reference/mcp) or [API](/api-reference/introduction), they also need access.
 
-Only expose the endpoints for features you use. Without the mail webhooks, Inbox Zero will not process new email as it arrives.
+Only expose the endpoints for features you use. Without the mail webhooks, OneMail will not process new email as it arrives.
 
 For Gmail on AWS, the [webhook gateway](/hosting/aws-copilot#firewalled-deployments-webhook-gateway) puts a public API Gateway in front of a private load balancer and validates Google's signed tokens before forwarding requests. The same pattern works for the other endpoints with any reverse proxy or API gateway that only forwards the paths listed above.
 
@@ -64,7 +64,7 @@ To redact or block credentials and payment card numbers before they reach the pr
 
 ## Keep rule webhooks off internal addresses
 
-Rules can call external webhooks. By default, Inbox Zero blocks webhooks to private, loopback, and link-local addresses. Leave `WEBHOOK_ALLOW_PRIVATE_IPS` unset, especially when the app runs inside your internal network, so a rule cannot be used to reach internal services.
+Rules can call external webhooks. By default, OneMail blocks webhooks to private, loopback, and link-local addresses. Leave `WEBHOOK_ALLOW_PRIVATE_IPS` unset, especially when the app runs inside your internal network, so a rule cannot be used to reach internal services.
 
 ## Database and backups
 

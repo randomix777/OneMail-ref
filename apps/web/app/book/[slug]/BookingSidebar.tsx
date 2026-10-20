@@ -38,7 +38,7 @@ import {
   type Slot,
 } from "./booking-helpers";
 
-const BRAND_HOMEPAGE_URL = "https://www.getinboxzero.com";
+const BRAND_HOMEPAGE_URL = "https://www.jyisolutions.com";
 
 type BookingLink = Omit<GetPublicBookingLinkResponse, "locationValue"> & {
   locationValue: string | null;

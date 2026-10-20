@@ -173,9 +173,9 @@ describe("calculateSimilarity - integration tests with ParsedMessage", () => {
 
     it("should return 1.0 when comparing stored content with signature to Outlook HTML", () => {
       const storedContent =
-        'Hello, this is a test draft\n\nDrafted by <a href="http://localhost:3000/?ref=ABC">Inbox Zero</a>.';
+        'Hello, this is a test draft\n\nDrafted by <a href="http://localhost:3000/?ref=ABC">OneMail</a>.';
       const outlookMessage = createParsedMessage(
-        '<html><body><div dir="ltr">Hello, this is a test draft<br><br>Drafted by <a href="http://localhost:3000/?ref=ABC">Inbox Zero</a>.</div></body></html>',
+        '<html><body><div dir="ltr">Hello, this is a test draft<br><br>Drafted by <a href="http://localhost:3000/?ref=ABC">OneMail</a>.</div></body></html>',
         "html",
       );
 
@@ -232,11 +232,11 @@ On Mon, Jan 1, 2024 at 10:00 AM Sender <sender@example.com> wrote:
     it("should strip converted Gmail HTML quote blocks before comparing drafts", () => {
       const storedContent = `Checking on this now.
 
-Drafted by <a href="https://www.getinboxzero.com/?ref=ABC123">Inbox Zero</a>.`;
+Drafted by <a href="https://www.jyisolutions.com/?ref=ABC123">OneMail</a>.`;
       const gmailMessage = {
         ...createParsedMessage(""),
         textPlain: undefined,
-        textHtml: `<div dir="ltr">Checking on this now.<br><br>Drafted by <a href="https://www.getinboxzero.com/?ref=ABC123">Inbox Zero</a>.</div><br><div class="gmail_quote gmail_quote_container"><div dir="ltr" class="gmail_attr">Le lun. 27 avr. 2026, Sender &lt;<a href="mailto:sender@example.com">sender@example.com</a>&gt; a écrit:<br></div><blockquote class="gmail_quote"><div dir="ltr">Previous message</div></blockquote></div>`,
+        textHtml: `<div dir="ltr">Checking on this now.<br><br>Drafted by <a href="https://www.jyisolutions.com/?ref=ABC123">OneMail</a>.</div><br><div class="gmail_quote gmail_quote_container"><div dir="ltr" class="gmail_attr">Le lun. 27 avr. 2026, Sender &lt;<a href="mailto:sender@example.com">sender@example.com</a>&gt; a écrit:<br></div><blockquote class="gmail_quote"><div dir="ltr">Previous message</div></blockquote></div>`,
       };
 
       const score = realCalculateSimilarity(storedContent, gmailMessage);
@@ -310,13 +310,13 @@ On Tue, 27 Jan 2026 at 2:59, Test User <test@example.com> wrote:
 
 Took a look at the doc. Option 2 seems like a good middle ground for balancing the unit economics. Happy to jam on the specifics once I pull the data.
 
-Drafted by <a href="https://www.getinboxzero.com/?ref=ABC123">Inbox Zero</a>.`;
+Drafted by <a href="https://www.jyisolutions.com/?ref=ABC123">OneMail</a>.`;
       const gmailMessage = createParsedMessage(
         `Checking on the usage numbers now (scanned vs drafted). Should have those soon.
 
 Took a look at the doc. Option 2 seems like a good middle ground for balancing the unit economics. Happy to jam on the specifics once I pull the data.
 
-Drafted by Inbox Zero.
+Drafted by OneMail.
 
 On Tue, 1 Apr 2026 at 10:00, Sender <sender@example.com> wrote:
 > Previous message`,
@@ -490,12 +490,12 @@ On Mon, Jan 1, 2024 wrote:
 
 describe("branding footer normalization", () => {
   it.each([
-    "Drafted by Inbox Zero.",
-    "Sent with Inbox Zero",
-    'Drafted by <a href="https://example.com/?ref=test">Inbox Zero</a>.',
-    "Sent with Inbox Zero [https://example.com/?ref=test]",
-    "Drafted by Inbox Zero [https://example.com/?ref=test].",
-    "Drafted by Inbox Zero.\n\nSent with Inbox Zero",
+    "Drafted by OneMail.",
+    "Sent with OneMail",
+    'Drafted by <a href="https://example.com/?ref=test">OneMail</a>.',
+    "Sent with OneMail [https://example.com/?ref=test]",
+    "Drafted by OneMail [https://example.com/?ref=test].",
+    "Drafted by OneMail.\n\nSent with OneMail",
   ])("ignores adding or deleting %s", (footer) => {
     const body = "Thanks for the update.";
     expect(calculateSimilarity(`${body}\n\n${footer}`, body)).toBe(1);

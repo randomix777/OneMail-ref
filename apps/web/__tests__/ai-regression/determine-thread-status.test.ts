@@ -624,7 +624,7 @@ Platform Support`,
         subject: "Great speaking",
         content: `Hey,
 
-Great speaking. To sign up: https://getinboxzero.com
+Great speaking. To sign up: https://jyisolutions.com
 
 In your specific case I'd recommend adding custom rules to get the most out of it.`,
       });

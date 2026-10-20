@@ -11,7 +11,7 @@ export function renderDashboardHtml(data: DashboardData): string {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Eval Deck · Inbox Zero</title>
+<title>Eval Deck · OneMail</title>
 <style>
 ${CSS}
 </style>
@@ -24,7 +24,7 @@ ${CSS}
   <div class="masthead-title">
     <span class="sigil">▣</span>
     <h1>EVAL&nbsp;DECK</h1>
-    <span class="subtitle">Inbox Zero · model evaluation telemetry</span>
+    <span class="subtitle">OneMail · model evaluation telemetry</span>
   </div>
   <div class="masthead-controls">
     <label class="commit-filter" for="commit-select">

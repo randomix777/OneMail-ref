@@ -88,7 +88,7 @@ describe("createCliLanguageModel", () => {
       content: [
         {
           type: "tool-call",
-          toolName: "mcp__inboxzero__searchInbox",
+          toolName: "mcp__onemail__searchInbox",
           input: { query: "hello" },
         },
       ],
@@ -97,7 +97,7 @@ describe("createCliLanguageModel", () => {
       start(controller) {
         controller.enqueue({
           type: "tool-call",
-          toolName: "mcp__inboxzero__createRule",
+          toolName: "mcp__onemail__createRule",
           input: { label: "later" },
         });
         controller.close();
@@ -156,17 +156,14 @@ describe("createCliLanguageModel", () => {
       },
     });
 
-    expect(createAiSdkMcpServer).toHaveBeenCalledWith("inboxzero", {
+    expect(createAiSdkMcpServer).toHaveBeenCalledWith("onemail", {
       searchInbox,
       createRule,
     });
     expect(claudeCode).toHaveBeenCalledWith("sonnet", {
       settingSources: [],
-      allowedTools: [
-        "mcp__inboxzero__searchInbox",
-        "mcp__inboxzero__createRule",
-      ],
-      mcpServers: { inboxzero: mcpServer },
+      allowedTools: ["mcp__onemail__searchInbox", "mcp__onemail__createRule"],
+      mcpServers: { onemail: mcpServer },
       permissionMode: "default",
       sandbox: { enabled: true },
     });

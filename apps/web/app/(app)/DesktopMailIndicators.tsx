@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useOptionalMailClient } from "@inboxzero/mail-react/MailEngineProvider";
 import { useAccount } from "@/providers/EmailAccountProvider";
-import { getInboxZeroDesktopApp } from "@/utils/desktop-app";
+import { getDesktopApp } from "@/utils/desktop-app";
 
 export function DesktopMailIndicators() {
   const client = useOptionalMailClient();
@@ -14,7 +14,7 @@ export function DesktopMailIndicators() {
       : null;
 
   useEffect(() => {
-    const desktop = getInboxZeroDesktopApp();
+    const desktop = getDesktopApp();
     if (!desktop?.setUnreadCount) return;
     if (!client || !accountId) {
       desktop.setUnreadCount(0);

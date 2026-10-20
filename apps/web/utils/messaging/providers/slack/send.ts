@@ -18,6 +18,7 @@ import {
   type FollowUpReminderBlocksParams,
 } from "./messages/follow-up-reminder";
 import { getFollowUpCopy } from "@/utils/follow-up/copy";
+import { BRAND_NAME } from "@/utils/branding";
 
 export type SlackBriefingParams = MeetingBriefingBlocksParams & {
   accessToken: string;
@@ -61,7 +62,7 @@ export async function sendChannelConfirmation({
   const client = createSlackClient(accessToken);
 
   await postMessageWithJoin(client, channelId, {
-    text: `✅ Inbox Zero connected! You can mention ${formatSlackAppMention(botUserId)} in this channel to chat about your emails. If you enable meeting briefs or attachment filing notifications, I can send those here too.`,
+    text: `✅ ${BRAND_NAME} connected! You can mention ${formatSlackAppMention(botUserId)} in this channel to chat about your emails. If you enable meeting briefs or attachment filing notifications, I can send those here too.`,
   });
 }
 
@@ -79,7 +80,7 @@ export async function sendConnectionOnboardingDirectMessage({
   await client.chat.postMessage(
     disableSlackLinkUnfurls({
       channel: userId,
-      text: `✅ Inbox Zero connected. Next, open Channels in Inbox Zero to choose where messages go. To use a private channel, invite ${formatSlackAppMention(botUserId)} there. You can also DM me anytime to chat about your emails.`,
+      text: `✅ ${BRAND_NAME} connected. Next, open Channels in ${BRAND_NAME} to choose where messages go. To use a private channel, invite ${formatSlackAppMention(botUserId)} there. You can also DM me anytime to chat about your emails.`,
     }),
   );
 }
@@ -155,7 +156,7 @@ export async function sendDigestToSlack({
 
   await postMessageWithJoin(client, channelId, {
     blocks,
-    text: "📋 Your Inbox Zero digest",
+    text: `📋 Your ${BRAND_NAME} digest`,
   });
 }
 
@@ -238,7 +239,7 @@ export async function resolveSlackRouteDestination({
 }
 
 export function formatSlackAppMention(botUserId: string | null | undefined) {
-  return botUserId ? `<@${botUserId}>` : "@Inbox Zero";
+  return botUserId ? `<@${botUserId}>` : `@${BRAND_NAME}`;
 }
 
 export function disableSlackLinkUnfurls<T extends object>(message: T) {

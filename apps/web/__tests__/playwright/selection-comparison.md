@@ -42,7 +42,7 @@ checkpoints were removed.
 
 Spec counts are measured selector outputs. Runner-minutes are an estimate formed
 by summing the durations of the selected spec jobs from the same
-[successful full-suite CI run](https://github.com/elie222/inbox-zero/actions/runs/34062589569).
+[successful full-suite CI run](https://github.com/randomix777/OneMail-ref/actions/runs/34062589569).
 Those job durations include runner setup and tests, exclude queue time, and do
 not include the shared selection/report jobs. They measure total runner work,
 not elapsed PR time: jobs execute concurrently. They are not fresh timings for
@@ -89,12 +89,12 @@ Replaying complete PR file lists against this same application tree gives:
 
 | PR | Before: spec jobs | After: spec jobs |
 | --- | ---: | ---: |
-| [#3558](https://github.com/elie222/inbox-zero/pull/3558) Mail: support nested sidebar labels | 16 | 2 |
-| [#3560](https://github.com/elie222/inbox-zero/pull/3560) mail: Remove redundant split shortcut hint | 16 | 1 |
-| [#3551](https://github.com/elie222/inbox-zero/pull/3551) mail: Show sender profile beside the reader | 16 | 16 |
-| [#3559](https://github.com/elie222/inbox-zero/pull/3559) Mail: preserve message keyboard interactions | 16 | 16 |
-| [#3554](https://github.com/elie222/inbox-zero/pull/3554) mail: Render compose shortcut hints as one key per block | 16 | 37 |
-| [#3548](https://github.com/elie222/inbox-zero/pull/3548) mail: Simplify label picker | 16 | 1 |
+| [#3558](https://github.com/randomix777/OneMail-ref/pull/3558) Mail: support nested sidebar labels | 16 | 2 |
+| [#3560](https://github.com/randomix777/OneMail-ref/pull/3560) mail: Remove redundant split shortcut hint | 16 | 1 |
+| [#3551](https://github.com/randomix777/OneMail-ref/pull/3551) mail: Show sender profile beside the reader | 16 | 16 |
+| [#3559](https://github.com/randomix777/OneMail-ref/pull/3559) Mail: preserve message keyboard interactions | 16 | 16 |
+| [#3554](https://github.com/randomix777/OneMail-ref/pull/3554) mail: Render compose shortcut hints as one key per block | 16 | 37 |
+| [#3548](https://github.com/randomix777/OneMail-ref/pull/3548) mail: Simplify label picker | 16 | 1 |
 
 The sender-profile PR (#3551) also changed `EmailMessage.tsx`, which selects all
 16 mail specs; it did not change the mail shell. The keyboard-interaction PR

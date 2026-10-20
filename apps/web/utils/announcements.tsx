@@ -7,6 +7,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { AnnouncementVideo } from "@/components/feature-announcements/AnnouncementVideo";
+import { BRAND_NAME } from "@/utils/branding";
 
 const DETAIL_ICON_CLASS = "size-4";
 export const EMAIL_CLIENT_LAUNCH_VIDEO_ID =
@@ -41,7 +42,7 @@ export const ANNOUNCEMENTS: Announcement[] = [
       <AnnouncementVideo
         playbackId={EMAIL_CLIENT_LAUNCH_VIDEO_ID}
         thumbnailTime={1.5}
-        title="Meet the Inbox Zero email app"
+        title={`Meet the ${BRAND_NAME} email app`}
       />
     ),
     link: "/mail",

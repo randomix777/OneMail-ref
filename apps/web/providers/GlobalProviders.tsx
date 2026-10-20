@@ -15,10 +15,11 @@ import { SWRConfig } from "swr";
 import { swrFetcher } from "./swr-fetcher";
 import {
   DESKTOP_WEB_UPDATE_LAST_PROMPTED_KEY,
-  getInboxZeroDesktopApp,
+  getDesktopApp,
   shouldCheckForDesktopWebUpdate,
   shouldPromptDesktopWebUpdate,
 } from "@/utils/desktop-app";
+import { BRAND_NAME } from "@/utils/branding";
 
 const DESKTOP_WEB_UPDATE_TOAST_ID = "desktop-web-update";
 const DESKTOP_WEB_UPDATE_RELOAD_GRACE_MS = 3000;
@@ -53,7 +54,7 @@ function ManageServiceWorker() {
   useEffect(() => {
     if (!serwist) return;
 
-    const isDesktopApp = Boolean(getInboxZeroDesktopApp());
+    const isDesktopApp = Boolean(getDesktopApp());
     const pageLoadedAt = Date.now();
     let hadController = Boolean(navigator.serviceWorker.controller);
     let lastCheckedAt: number | null = null;
@@ -100,7 +101,7 @@ function ManageServiceWorker() {
           label: "Reload",
           onClick: activateWaitingWorker,
         },
-        description: "Reload Inbox Zero to use the latest version.",
+        description: `Reload ${BRAND_NAME} to use the latest version.`,
         duration: Number.POSITIVE_INFINITY,
         id: DESKTOP_WEB_UPDATE_TOAST_ID,
       });
@@ -214,7 +215,7 @@ function ManageServiceWorker() {
 
 function SignalDesktopReady() {
   useEffect(() => {
-    getInboxZeroDesktopApp()?.signalReady?.();
+    getDesktopApp()?.signalReady?.();
   }, []);
   return null;
 }

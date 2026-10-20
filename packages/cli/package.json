@@ -1,7 +1,7 @@
 {
   "name": "@inbox-zero/cli",
   "version": "2.29.2",
-  "description": "CLI tool for setting up and managing Inbox Zero - AI email assistant",
+  "description": "CLI tool for setting up and managing OneMail - AI email assistant",
   "keywords": [
     "inbox-zero",
     "email",
@@ -10,7 +10,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elie222/inbox-zero.git",
+    "url": "git+https://github.com/randomix777/OneMail-ref.git",
     "directory": "packages/cli"
   },
   "license": "SEE LICENSE IN ../../LICENSE",

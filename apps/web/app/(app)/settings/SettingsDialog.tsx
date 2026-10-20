@@ -9,13 +9,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useSettingsDialog } from "@/hooks/useSettingsDialog";
-import { getInboxZeroDesktopApp } from "@/utils/desktop-app";
+import { getDesktopApp } from "@/utils/desktop-app";
 
 export function SettingsDialog() {
   const { isSettingsOpen, openSettings, closeSettings } = useSettingsDialog();
 
   useEffect(
-    () => getInboxZeroDesktopApp()?.onOpenSettings?.(openSettings),
+    () => getDesktopApp()?.onOpenSettings?.(openSettings),
     [openSettings],
   );
 

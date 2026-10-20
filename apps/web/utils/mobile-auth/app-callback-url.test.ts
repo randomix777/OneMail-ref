@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  getInboxZeroCustomSchemeCallbackUrl,
-  isInboxZeroAppCallbackUrl,
+  getCustomSchemeCallbackUrl,
+  isAppCallbackUrl,
 } from "./app-callback-url";
 
-describe("getInboxZeroCustomSchemeCallbackUrl", () => {
+describe("getCustomSchemeCallbackUrl", () => {
   it("opens the desktop app with a one-time code and state", () => {
     expect(
-      getInboxZeroCustomSchemeCallbackUrl({
+      getCustomSchemeCallbackUrl({
         code: "xz5IkObSXqOpdCvBARrwRnqhOrxRQNX9qPeoT9G-jws",
         state: "ADUZf5bSBOBSBzj58yThh17uiqgEg1PmsNzu-s4cMMA",
       }),
@@ -18,7 +18,7 @@ describe("getInboxZeroCustomSchemeCallbackUrl", () => {
 
   it("opens the desktop app with auth errors", () => {
     expect(
-      getInboxZeroCustomSchemeCallbackUrl({
+      getCustomSchemeCallbackUrl({
         error: "missing_session",
         error_description: "Authentication session was not found",
         state: "ADUZf5bSBOBSBzj58yThh17uiqgEg1PmsNzu-s4cMMA",
@@ -30,7 +30,7 @@ describe("getInboxZeroCustomSchemeCallbackUrl", () => {
 
   it("ignores extra query values that are not part of the handoff", () => {
     expect(
-      getInboxZeroCustomSchemeCallbackUrl({
+      getCustomSchemeCallbackUrl({
         code: "xz5IkObSXqOpdCvBARrwRnqhOrxRQNX9qPeoT9G-jws",
         cookie: "better-auth.session_token=session",
         next: "https://evil.example",
@@ -43,7 +43,7 @@ describe("getInboxZeroCustomSchemeCallbackUrl", () => {
 
   it("does not open the app without a code or error", () => {
     expect(
-      getInboxZeroCustomSchemeCallbackUrl({
+      getCustomSchemeCallbackUrl({
         state: "ADUZf5bSBOBSBzj58yThh17uiqgEg1PmsNzu-s4cMMA",
       }),
     ).toBeNull();
@@ -51,12 +51,12 @@ describe("getInboxZeroCustomSchemeCallbackUrl", () => {
 
   it("recognizes sanitized Inbox Zero app callback URLs", () => {
     expect(
-      isInboxZeroAppCallbackUrl(
+      isAppCallbackUrl(
         "inboxzero://auth-callback?state=ADUZf5bSBOBSBzj58yThh17uiqgEg1PmsNzu-s4cMMA&code=xz5IkObSXqOpdCvBARrwRnqhOrxRQNX9qPeoT9G-jws",
       ),
     ).toBe(true);
-    expect(
-      isInboxZeroAppCallbackUrl("https://www.getinboxzero.com/auth-callback"),
-    ).toBe(false);
+    expect(isAppCallbackUrl("https://www.jyisolutions.com/auth-callback")).toBe(
+      false,
+    );
   });
 });

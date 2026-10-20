@@ -86,6 +86,7 @@ import {
   getEmailUrlForOptionalMessage,
 } from "@/utils/url";
 import { getEmailAccountWithAi } from "@/utils/user/get";
+import { BRAND_NAME } from "@/utils/branding";
 
 const MAX_CHAT_CONTEXT_MESSAGES = 12;
 const CHAT_SDK_STATE_KEY_PREFIX = "inbox-zero:chat-sdk";
@@ -240,17 +241,17 @@ type ParsedPendingEmailActionValue =
   | { kind: "token"; token: string };
 
 declare global {
-  var inboxZeroMessagingChatSdk: MessagingChatSdkContext | undefined;
+  var mailMessagingChatSdk: MessagingChatSdkContext | undefined;
 }
 
 const messagingRequestLoggerStore = new AsyncLocalStorage<Logger>();
 
 export function getMessagingChatSdkBot(): MessagingChatSdkContext {
-  if (!global.inboxZeroMessagingChatSdk) {
-    global.inboxZeroMessagingChatSdk = createMessagingChatSdkBot();
+  if (!global.mailMessagingChatSdk) {
+    global.mailMessagingChatSdk = createMessagingChatSdkBot();
   }
 
-  return global.inboxZeroMessagingChatSdk;
+  return global.mailMessagingChatSdk;
 }
 
 export function withMessagingRequestLogger<T>({
@@ -516,7 +517,7 @@ function registerMessagingHandlers({
           channelId,
           threadTs,
           SLACK_ASSISTANT_SUGGESTED_PROMPTS,
-          "Try asking Inbox Zero",
+          `Try asking ${BRAND_NAME}`,
         );
       } catch (error) {
         logger.warn("Failed to set Slack assistant suggested prompts", {
@@ -1825,7 +1826,7 @@ async function handleMessagingLinkCommand({
 
   if (!linkedCode) {
     await thread.post(
-      "That connect code is invalid or expired. Generate a new code in Inbox Zero settings and try again.",
+      `That connect code is invalid or expired. Generate a new code in ${BRAND_NAME} settings and try again.`,
     );
     return true;
   }
@@ -1837,7 +1838,7 @@ async function handleMessagingLinkCommand({
 
   if (!emailAccount) {
     await thread.post(
-      "This connect code is no longer valid. Generate a new code in Inbox Zero settings and try again.",
+      `This connect code is no longer valid. Generate a new code in ${BRAND_NAME} settings and try again.`,
     );
     return true;
   }
@@ -1889,7 +1890,7 @@ async function handleMessagingLinkCommand({
   await postMessagingThreadMessage({
     thread,
     logger,
-    message: `Connected successfully. You can now chat with your Inbox Zero assistant in this ${provider === "teams" ? "Microsoft Teams" : "Telegram"} direct message. Type \`/help\` to see what I can do.`,
+    message: `Connected successfully. You can now chat with your ${BRAND_NAME} assistant in this ${provider === "teams" ? "Microsoft Teams" : "Telegram"} direct message. Type \`/help\` to see what I can do.`,
     errorLogMessage: "Failed to send messaging link confirmation",
     logMeta: {
       provider,
@@ -2621,8 +2622,7 @@ async function sendUnauthorizedMessage({
   await postMessagingThreadMessage({
     thread,
     logger,
-    message:
-      "To use this bot, connect your Inbox Zero account to this workspace from your settings page.",
+    message: `To use this bot, connect your ${BRAND_NAME} account to this workspace from your settings page.`,
     errorLogMessage: "Failed to send unauthorized messaging message",
     logMeta: { teamId },
   });
@@ -2648,8 +2648,8 @@ async function sendLinkRequiredMessage({
     thread,
     logger,
     message: [
-      `Welcome to Inbox Zero for ${providerName}. I can help you summarize, organize, and draft replies to email from this chat.`,
-      "An active Inbox Zero account is required.",
+      `Welcome to ${BRAND_NAME} for ${providerName}. I can help you summarize, organize, and draft replies to email from this chat.`,
+      `An active ${BRAND_NAME} account is required.`,
       "",
       "To get started:",
       `1. Sign in or create an account at ${baseUrl}.`,
@@ -2693,8 +2693,7 @@ async function sendUnlinkedChannelMessage({
   await postMessagingThreadMessage({
     thread,
     logger,
-    message:
-      "This channel isn't linked to an email account. Set one up in your Inbox Zero settings.",
+    message: `This channel isn't linked to an email account. Set one up in your ${BRAND_NAME} settings.`,
     errorLogMessage: "Failed to send unlinked channel message",
   });
 }

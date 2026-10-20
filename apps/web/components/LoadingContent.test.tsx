@@ -103,6 +103,6 @@ describe("LoadingContent while offline", () => {
       </LoadingContent>,
     );
 
-    expect(screen.getByText(/Couldn't connect to Inbox Zero/)).toBeTruthy();
+    expect(screen.getByText(/Couldn't connect to OneMail/)).toBeTruthy();
   });
 });

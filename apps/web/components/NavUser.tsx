@@ -192,7 +192,7 @@ export function NavUser() {
             )}
             <DropdownMenuItem asChild>
               <Link
-                href="https://docs.getinboxzero.com"
+                href="https://docs.jyisolutions.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => closeMobileSidebar("left-sidebar")}

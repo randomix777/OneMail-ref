@@ -2,22 +2,22 @@
 title: "Introduction"
 ---
 
-Use the Inbox Zero API to read inbox statistics, manage automation rules, and unsubscribe from senders programmatically.
+Use the OneMail API to read inbox statistics, manage automation rules, and unsubscribe from senders programmatically.
 
 If you prefer a CLI wrapper for scripts or bots, see the [API CLI](/api-reference/cli). To connect Cursor or Claude Code to your mailbox with OAuth, see the [MCP server](/api-reference/mcp).
 
 ## Supported Email Providers
 
-Inbox Zero supports integration with:
+OneMail supports integration with:
 - **Gmail** (Google Workspace and personal accounts)
 - **Outlook** (Microsoft 365 and personal accounts)
 
 ## Getting Started
 
-To begin using the Inbox Zero API, you'll need to obtain an API key. Here's how:
+To begin using the OneMail API, you'll need to obtain an API key. Here's how:
 
-1. Log in to your Inbox Zero account
-2. Navigate to the [Settings](https://www.getinboxzero.com/settings) page and scroll down to the `API Keys` section
+1. Log in to your OneMail account
+2. Navigate to the [Settings](https://www.jyisolutions.com/settings) page and scroll down to the `API Keys` section
 3. Click on the `Create New Secret Key` button
 4. Select the permissions (scopes) you need for your key
 5. Choose an expiry period
@@ -39,14 +39,14 @@ A key may include more than one scope. Keys are also bound to one inbox account;
 
 ### Self-Hosting
 
-If you are self-hosting Inbox Zero, set `NEXT_PUBLIC_EXTERNAL_API_ENABLED=true` and `API_KEY_SALT` before rebuilding the app. Generate the salt with `openssl rand -hex 32`. Use your deployment URL as the base URL for requests (for example, `https://your-domain.com/api/v1`).
+If you are self-hosting OneMail, set `NEXT_PUBLIC_EXTERNAL_API_ENABLED=true` and `API_KEY_SALT` before rebuilding the app. Generate the salt with `openssl rand -hex 32`. Use your deployment URL as the base URL for requests (for example, `https://your-domain.com/api/v1`).
 
 ## Base URL
 
 All API requests should be made to the following base URL:
 
 ```
-https://www.getinboxzero.com/api/v1
+https://www.jyisolutions.com/api/v1
 ```
 
 ## Authentication
@@ -60,14 +60,14 @@ API-Key: YOUR_API_KEY
 For example, list rules:
 
 ```bash
-curl "https://www.getinboxzero.com/api/v1/rules" \
+curl "https://www.jyisolutions.com/api/v1/rules" \
   -H "API-Key: YOUR_API_KEY"
 ```
 
 Unsubscribe from a sender, using the same `API-Key` header as above:
 
 ```bash
-curl -X POST "https://www.getinboxzero.com/api/v1/senders/unsubscribe" \
+curl -X POST "https://www.jyisolutions.com/api/v1/senders/unsubscribe" \
   -H "API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   --data '{ "senderEmail": "news@example.com" }'
@@ -76,7 +76,7 @@ curl -X POST "https://www.getinboxzero.com/api/v1/senders/unsubscribe" \
 To create a rule:
 
 ```bash
-curl -X POST "https://www.getinboxzero.com/api/v1/rules" \
+curl -X POST "https://www.jyisolutions.com/api/v1/rules" \
   -H "API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   --data '{
@@ -98,7 +98,7 @@ API errors are returned as structured JSON:
   "error": {
     "code": "UNAUTHORIZED",
     "message": "Missing API key",
-    "hint": "Include a valid API-Key header. See https://docs.getinboxzero.com/api-reference/introduction."
+    "hint": "Include a valid API-Key header. See https://docs.jyisolutions.com/api-reference/introduction."
   }
 }
 ```
@@ -113,10 +113,10 @@ API errors are returned as structured JSON:
 | `429` | `RATE_LIMITED` | Rate limited by the API or email provider |
 | `500` | `INTERNAL_ERROR` | An unexpected server error occurred |
 
-The OpenAPI schema is published at [https://www.getinboxzero.com/openapi.json](https://www.getinboxzero.com/openapi.json) (also `/api/v1/openapi` and `/.well-known/openapi.json`).
+The OpenAPI schema is published at [https://www.jyisolutions.com/openapi.json](https://www.jyisolutions.com/openapi.json) (also `/api/v1/openapi` and `/.well-known/openapi.json`).
 
 The `DELETE` rule action, which moves matching emails to trash, is available only when the deployment enables `NEXT_PUBLIC_DELETE_EMAIL_ACTION_ENABLED`. This feature flag is separate from `DELETE /rules/{id}`, which deletes a rule definition.
 
 ## Request New Endpoint
 
-If you have a new endpoint that you would like to add to the API, open an issue on [GitHub](https://github.com/elie222/inbox-zero/issues/new).
+If you have a new endpoint that you would like to add to the API, open an issue on [GitHub](https://github.com/randomix777/OneMail-ref/issues/new).

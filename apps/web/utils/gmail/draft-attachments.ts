@@ -19,6 +19,7 @@ import { getDraft } from "@/utils/gmail/draft";
 import { buildMailMessage } from "@/utils/gmail/mail";
 import { withGmailRetry } from "@/utils/gmail/retry";
 import { convertEmailHtmlToText } from "@/utils/mail";
+import { BRAND_NAME } from "@/utils/branding";
 
 type GmailDraft = NonNullable<Awaited<ReturnType<typeof getDraft>>>;
 
@@ -242,7 +243,7 @@ function draftMailOptions(
     attachments,
     inReplyTo: current.headers?.["in-reply-to"],
     references: current.headers?.references,
-    headers: { "X-Mailer": "Inbox Zero Web" },
+    headers: { "X-Mailer": `${BRAND_NAME} Web` },
   };
 }
 

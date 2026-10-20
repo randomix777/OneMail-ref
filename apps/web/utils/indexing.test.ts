@@ -4,17 +4,17 @@ import { isIndexingAllowed } from "@/utils/indexing";
 describe("isIndexingAllowed", () => {
   it("allows production and self-hosted installs", () => {
     expect(
-      isIndexingAllowed("https://www.getinboxzero.com", "production"),
+      isIndexingAllowed("https://www.jyisolutions.com", "production"),
     ).toBe(true);
     expect(isIndexingAllowed("https://mail.example.com", "")).toBe(true);
   });
 
   it("blocks preview deploys and staging hosts", () => {
-    expect(isIndexingAllowed("https://www.getinboxzero.com", "preview")).toBe(
+    expect(isIndexingAllowed("https://www.jyisolutions.com", "preview")).toBe(
       false,
     );
     expect(
-      isIndexingAllowed("https://staging.getinboxzero.com", "production"),
+      isIndexingAllowed("https://staging.jyisolutions.com", "production"),
     ).toBe(false);
   });
 });

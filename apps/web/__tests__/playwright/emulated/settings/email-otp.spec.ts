@@ -88,7 +88,7 @@ test("an assistant signs in after owner opt-in and loses access when it is disab
         }[];
         code = messages
           .findLast(
-            (message) => message.subject === "Your Inbox Zero sign-in code",
+            (message) => message.subject === "Your OneMail sign-in code",
           )
           ?.text.match(/\b\d{6}\b/)?.[0];
         return !!code;

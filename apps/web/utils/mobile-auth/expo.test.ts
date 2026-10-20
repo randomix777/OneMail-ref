@@ -9,7 +9,7 @@ describe("safe Expo Better Auth plugin", () => {
   it("copies expo-origin into origin for mobile Better Auth requests", async () => {
     const plugin = safeExpo();
     const request = new Request(
-      "https://www.getinboxzero.com/api/auth/session",
+      "https://www.jyisolutions.com/api/auth/session",
       {
         headers: {
           "expo-origin": "inboxzero://",

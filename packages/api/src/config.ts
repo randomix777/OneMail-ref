@@ -9,7 +9,7 @@ import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 
 export const CONFIG_PATH = resolve(homedir(), ".inbox-zero-api", "config.json");
-export const DEFAULT_BASE_URL = "https://www.getinboxzero.com";
+export const DEFAULT_BASE_URL = "https://www.jyisolutions.com";
 
 export type ApiCliConfig = {
   apiKey?: string;

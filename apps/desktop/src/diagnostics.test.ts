@@ -142,7 +142,7 @@ describe("stripTraceUrlQueries", () => {
           name: "ResourceSendRequest",
           args: {
             data: {
-              url: 'https://www.getinboxzero.com/api/threads?q=from:"boss"#top',
+              url: 'https://www.jyisolutions.com/api/threads?q=from:"boss"#top',
               stack: [{ url: "https://cdn.example.com/app.js?v=1" }],
             },
           },
@@ -157,7 +157,7 @@ describe("stripTraceUrlQueries", () => {
           name: "ResourceSendRequest",
           args: {
             data: {
-              url: "https://www.getinboxzero.com/api/threads",
+              url: "https://www.jyisolutions.com/api/threads",
               stack: [{ url: "https://cdn.example.com/app.js" }],
             },
           },

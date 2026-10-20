@@ -1,9 +1,9 @@
 ---
 title: 'Copilot Deployment'
-description: 'Deploy Inbox Zero to AWS using AWS Copilot and ECS Fargate'
+description: 'Deploy OneMail to AWS using AWS Copilot and ECS Fargate'
 ---
 
-Deploy Inbox Zero to AWS using AWS Copilot. The deployment uses Amazon ECS on Fargate.
+Deploy OneMail to AWS using AWS Copilot. The deployment uses Amazon ECS on Fargate.
 
 If you prefer Terraform, see [Terraform Deployment Guide](/hosting/terraform).
 
@@ -13,7 +13,7 @@ If you prefer Terraform, see [Terraform Deployment Guide](/hosting/terraform).
 - AWS Copilot CLI installed ([installation guide](https://aws.github.io/copilot-cli/docs/getting-started/install/))
 - Docker installed and running
 - An AWS account with appropriate permissions
-- Inbox Zero repository cloned locally (run all commands from the repo root)
+- OneMail repository cloned locally (run all commands from the repo root)
 
 ## CLI Setup
 
@@ -111,7 +111,7 @@ copilot svc deploy
 ```
 
 This will:
-- Use the pre-built Docker image from GitHub Container Registry (`ghcr.io/elie222/inbox-zero:latest`), or
+- Use the pre-built Docker image from GitHub Container Registry (`ghcr.io/randomix777/OneMail-ref:latest`), or
 - Build your Docker image using `docker/Dockerfile.prod` if you prefer to build from source
 - Push the image to Amazon ECR (if building)
 - Deploy the service to ECS/Fargate

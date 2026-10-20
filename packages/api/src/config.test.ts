@@ -32,7 +32,7 @@ describe("updateConfig", () => {
   it("merges new values with the existing config file", () => {
     updateConfig(
       {
-        baseUrl: "https://www.getinboxzero.com",
+        baseUrl: "https://www.jyisolutions.com",
       },
       configPath,
     );
@@ -46,7 +46,7 @@ describe("updateConfig", () => {
 
     expect(updated).toEqual({
       apiKey: "iz_test_key",
-      baseUrl: "https://www.getinboxzero.com",
+      baseUrl: "https://www.jyisolutions.com",
     });
   });
 
@@ -102,7 +102,7 @@ describe("updateConfig", () => {
 
   it("throws when the API key is missing", () => {
     expect(() =>
-      resolveRuntimeConfig({ baseUrl: "https://www.getinboxzero.com" }, {}, {}),
+      resolveRuntimeConfig({ baseUrl: "https://www.jyisolutions.com" }, {}, {}),
     ).toThrow("Missing API key");
   });
 

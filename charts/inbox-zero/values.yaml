@@ -4,7 +4,7 @@
 # to managed Postgres and Redis services for production.
 
 image:
-  repository: ghcr.io/elie222/inbox-zero
+  repository: ghcr.io/randomix777/OneMail-ref
   tag: latest
   pullPolicy: Always
 

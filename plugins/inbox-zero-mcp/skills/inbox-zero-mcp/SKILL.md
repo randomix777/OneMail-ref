@@ -5,7 +5,7 @@ description: Search Inbox Zero mail, read threads, create mailbox drafts, and ma
 
 # Inbox Zero MCP
 
-Connect to the Inbox Zero MCP server configured in `mcp.json` (OAuth, Streamable HTTP). Hosted URL: `https://www.getinboxzero.com/mcp`.
+Connect to the Inbox Zero MCP server configured in `mcp.json` (OAuth, Streamable HTTP). Hosted URL: `https://www.jyisolutions.com/mcp`.
 
 ## Tools
 

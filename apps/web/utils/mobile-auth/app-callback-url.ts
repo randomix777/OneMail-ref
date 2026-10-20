@@ -6,7 +6,7 @@ const CODE_PATTERN = /^[A-Za-z0-9._~-]{16,256}$/u;
 const ERROR_PATTERN = /^[A-Za-z0-9._-]{1,64}$/u;
 const ERROR_DESCRIPTION_PATTERN = /^[\w .,+'-]{1,200}$/u;
 
-export function getInboxZeroCustomSchemeCallbackUrl(
+export function getCustomSchemeCallbackUrl(
   params: Record<string, string | string[] | undefined>,
 ): string | null {
   const state = firstSearchParam(params.state);
@@ -38,7 +38,7 @@ export function getInboxZeroCustomSchemeCallbackUrl(
   return url.toString();
 }
 
-export function isInboxZeroAppCallbackUrl(redirectUrl: string): boolean {
+export function isAppCallbackUrl(redirectUrl: string): boolean {
   try {
     const parsedUrl = new URL(redirectUrl);
     const path = `${parsedUrl.hostname}${parsedUrl.pathname}`

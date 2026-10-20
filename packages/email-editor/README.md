@@ -1,6 +1,6 @@
 # @inboxzero/email-editor
 
-Reusable email composition primitives for Inbox Zero. The package keeps the
+Reusable email composition primitives for OneMail. The package keeps the
 provider interchange format as HTML while separating portable email correctness
 rules from the React editing surface, which is built on
 [Squire](https://github.com/fastmail/Squire).

@@ -7,12 +7,12 @@ import staticOpenApiDocument from "../../../docs/openapi.json";
 vi.mock("@/env", () => ({
   env: {
     NEXT_PUBLIC_EXTERNAL_API_ENABLED: true,
-    NEXT_PUBLIC_BASE_URL: "https://www.getinboxzero.com",
+    NEXT_PUBLIC_BASE_URL: "https://www.jyisolutions.com",
   },
 }));
 
 vi.mock("@/utils/branding", () => ({
-  BRAND_NAME: "Inbox Zero",
+  BRAND_NAME: "OneMail",
 }));
 
 describe("createPublicOpenApiDocument", () => {
@@ -93,7 +93,7 @@ describe("createPublicOpenApiDocument", () => {
 
     expect(docs.servers).toEqual([
       {
-        url: "https://www.getinboxzero.com/api/v1",
+        url: "https://www.jyisolutions.com/api/v1",
         description: "Primary server",
       },
     ]);

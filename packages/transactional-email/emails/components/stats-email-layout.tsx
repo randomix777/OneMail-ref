@@ -14,6 +14,7 @@ import {
 } from "@react-email/components";
 import type { ReactNode } from "react";
 import { StatsEmailFooter } from "./stats-email-footer";
+import { BRAND_NAME } from "../../src/brand";
 
 export const ACCENT = "#2563EB";
 
@@ -48,8 +49,8 @@ export function StatsEmailLayout({
                 <Img
                   src={`${baseUrl}/logo-wordmark.png`}
                   width="209"
-                  height="25"
-                  alt="Inbox Zero"
+                  height="49"
+                  alt={BRAND_NAME}
                   className="mx-auto my-0"
                 />
               </Link>

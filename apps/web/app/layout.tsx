@@ -86,7 +86,7 @@ const jsonLd: WithContext<WebApplication> = {
     },
     sameAs: [
       "https://x.com/inboxzero_ai",
-      "https://github.com/elie222/inbox-zero",
+      "https://github.com/randomix777/OneMail-ref",
     ],
     ...(SUPPORT_EMAIL
       ? {

@@ -1,7 +1,7 @@
 name: E2E Flow Tests
 
 # This workflow runs comprehensive E2E tests with real email accounts.
-# It uses the pre-built Docker image from ghcr.io/elie222/inbox-zero:latest
+# It uses the pre-built Docker image from ghcr.io/randomix777/OneMail-ref:latest
 # instead of building from source, saving ~5 minutes per run.
 #
 # To enable: Set the repository variable E2E_FLOWS_ENABLED=true
@@ -30,7 +30,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  DOCKER_IMAGE: ghcr.io/elie222/inbox-zero:latest
+  DOCKER_IMAGE: ghcr.io/randomix777/OneMail-ref:latest
 
 jobs:
   check-enabled:

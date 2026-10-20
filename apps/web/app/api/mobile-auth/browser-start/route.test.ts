@@ -12,7 +12,7 @@ const {
   mockEnv: {
     DESKTOP_AUTH_ORIGIN: "inboxzero://",
     MOBILE_AUTH_ORIGIN: "inboxzero://",
-    NEXT_PUBLIC_BASE_URL: "https://www.getinboxzero.com",
+    NEXT_PUBLIC_BASE_URL: "https://www.jyisolutions.com",
   },
   storeMobileAuthStateMock: vi.fn(),
 }));
@@ -46,7 +46,7 @@ describe("mobile auth browser-start route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockEnv.DESKTOP_AUTH_ORIGIN = "inboxzero://";
-    mockEnv.NEXT_PUBLIC_BASE_URL = "https://www.getinboxzero.com";
+    mockEnv.NEXT_PUBLIC_BASE_URL = "https://www.jyisolutions.com";
     createMobileAuthStateMock.mockReturnValue("state-1234567890");
     storeMobileAuthStateMock.mockResolvedValue(undefined);
     handlerMock.mockResolvedValue(
@@ -70,7 +70,7 @@ describe("mobile auth browser-start route", () => {
   it("starts desktop OAuth in the current browser and copies the OAuth state cookie", async () => {
     const response = await GET(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/browser-start?provider=google&codeChallenge=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "https://www.jyisolutions.com/api/mobile-auth/browser-start?provider=google&codeChallenge=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       ),
       {} as never,
     );
@@ -94,11 +94,11 @@ describe("mobile auth browser-start route", () => {
     await expect(signInRequest.json()).resolves.toEqual({
       provider: "google",
       callbackURL:
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890&completion=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890&completion=state-1234567890",
       errorCallbackURL:
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890",
       newUserCallbackURL:
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890&completion=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890&completion=state-1234567890",
       disableRedirect: true,
     });
   });
@@ -107,7 +107,7 @@ describe("mobile auth browser-start route", () => {
     await expect(
       GET(
         new NextRequest(
-          "https://www.getinboxzero.com/api/mobile-auth/browser-start?provider=okta",
+          "https://www.jyisolutions.com/api/mobile-auth/browser-start?provider=okta",
         ),
         {} as never,
       ),
@@ -118,14 +118,14 @@ describe("mobile auth browser-start route", () => {
   it("directs older desktop clients to update when the PKCE challenge is missing", async () => {
     const response = await GET(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/browser-start?provider=google",
+        "https://www.jyisolutions.com/api/mobile-auth/browser-start?provider=google",
       ),
       {} as never,
     );
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe(
-      "https://www.getinboxzero.com/login/desktop-update-required",
+      "https://www.jyisolutions.com/login/desktop-update-required",
     );
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(handlerMock).not.toHaveBeenCalled();
@@ -134,14 +134,14 @@ describe("mobile auth browser-start route", () => {
   it("directs invalid desktop auth requests to update without starting OAuth", async () => {
     const response = await GET(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/browser-start?provider=google&codeChallenge=invalid",
+        "https://www.jyisolutions.com/api/mobile-auth/browser-start?provider=google&codeChallenge=invalid",
       ),
       {} as never,
     );
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe(
-      "https://www.getinboxzero.com/login/desktop-update-required",
+      "https://www.jyisolutions.com/login/desktop-update-required",
     );
     expect(handlerMock).not.toHaveBeenCalled();
   });

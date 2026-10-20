@@ -4,13 +4,13 @@
   "private": true,
   "description": "Portable mailbox schemas, query semantics, command state, and engine API",
   "license": "SEE LICENSE IN ../../LICENSE",
-  "homepage": "https://github.com/elie222/inbox-zero/tree/main/packages/mail-core#readme",
+  "homepage": "https://github.com/randomix777/OneMail-ref/tree/main/packages/mail-core#readme",
   "bugs": {
-    "url": "https://github.com/elie222/inbox-zero/issues"
+    "url": "https://github.com/randomix777/OneMail-ref/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elie222/inbox-zero.git",
+    "url": "git+https://github.com/randomix777/OneMail-ref.git",
     "directory": "packages/mail-core"
   },
   "type": "module",

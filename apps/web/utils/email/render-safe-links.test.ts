@@ -81,9 +81,9 @@ describe("renderEmailTextWithSafeLinks", () => {
   it.each([
     {
       name: "label contains a different domain",
-      text: "Use [getinboxzero.com](https://attacker.tld/login) to continue.",
+      text: "Use [jyisolutions.com](https://attacker.tld/login) to continue.",
       expected:
-        '<a href="https://attacker.tld/login">getinboxzero.com - attacker.tld</a>',
+        '<a href="https://attacker.tld/login">jyisolutions.com - attacker.tld</a>',
     },
     {
       name: "label contains a different subdomain",

@@ -56,10 +56,10 @@ Do not hand-edit `docs/changelog.mdx`. Regenerate it with `node docs/scripts/bui
 
 ## Process
 
-1. Review recent merged PRs: `gh pr list --repo elie222/inbox-zero --state merged --limit 30 --json number,title,mergedAt`
+1. Review recent merged PRs: `gh pr list --repo randomix777/OneMail-ref --state merged --limit 30 --json number,title,mergedAt`
 2. Filter to user-facing changes only
 3. Group into a theme — find the headline
-4. Check for an existing open changelog PR from `automation/changelog` to `main`: `gh pr list --repo elie222/inbox-zero --head automation/changelog --base main --state open --json number,title,url`
+4. Check for an existing open changelog PR from `automation/changelog` to `main`: `gh pr list --repo randomix777/OneMail-ref --head automation/changelog --base main --state open --json number,title,url`
 5. Create or update today's file `docs/changelog-entries/YYYY-MM-DD.mdx` with frontmatter (`description`) and markdown content
 6. If today's file already exists, merge the new updates into that file instead of creating a second entry for the same day
 7. Regenerate `docs/changelog.mdx`: `node docs/scripts/build-changelog.mjs`

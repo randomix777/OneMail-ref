@@ -1,4 +1,5 @@
 import { callTelegramBotApi } from "@/utils/messaging/providers/telegram/api";
+import { BRAND_NAME } from "@/utils/branding";
 
 type TelegramBotCommand = {
   command: string;
@@ -16,7 +17,7 @@ type TelegramUserProfilePhotos = {
 export const TELEGRAM_BOT_COMMANDS: TelegramBotCommand[] = [
   {
     command: "connect",
-    description: "Link your Inbox Zero account with /connect <code>",
+    description: `Link your ${BRAND_NAME} account with /connect <code>`,
   },
   {
     command: "switch",

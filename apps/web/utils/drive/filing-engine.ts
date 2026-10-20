@@ -16,6 +16,7 @@ import {
 import { sendFilingMessagingNotifications } from "@/utils/drive/filing-messaging-notifications";
 import { extractEmailAddress } from "@/utils/email";
 import { isCalendarInviteAttachment } from "@/utils/parse/calender-event";
+import { BRAND_NAME } from "@/utils/branding";
 
 // ============================================================================
 // Types
@@ -657,7 +658,7 @@ function resolveFolderTarget(
     // Use the folder name from our records if available, otherwise use a default
     const staleFolderName =
       folders.find((f) => f.id === analysis.folderId)?.name ||
-      "Inbox Zero Filed";
+      `${BRAND_NAME} Filed`;
     logger.warn("Could not find folder from AI response, creating new folder", {
       folderId: analysis.folderId,
       fallbackPath: staleFolderName,
@@ -676,7 +677,7 @@ function resolveFolderTarget(
   return {
     driveConnection: connection,
     folderId: "root",
-    folderPath: analysis.folderPath || "Inbox Zero Filed",
+    folderPath: analysis.folderPath || `${BRAND_NAME} Filed`,
     needsToCreateFolder: true,
   };
 }

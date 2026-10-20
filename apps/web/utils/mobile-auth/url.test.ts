@@ -4,7 +4,7 @@ const { mockEnv } = vi.hoisted(() => ({
   mockEnv: {
     DESKTOP_AUTH_ORIGIN: "inboxzero://",
     MOBILE_AUTH_ORIGIN: "inboxzero://",
-    NEXT_PUBLIC_BASE_URL: "https://www.getinboxzero.com",
+    NEXT_PUBLIC_BASE_URL: "https://www.jyisolutions.com",
   },
 }));
 
@@ -23,7 +23,7 @@ describe("mobile auth URL helpers", () => {
   beforeEach(() => {
     mockEnv.DESKTOP_AUTH_ORIGIN = "inboxzero://";
     mockEnv.MOBILE_AUTH_ORIGIN = "inboxzero://";
-    mockEnv.NEXT_PUBLIC_BASE_URL = "https://www.getinboxzero.com";
+    mockEnv.NEXT_PUBLIC_BASE_URL = "https://www.jyisolutions.com";
   });
 
   afterEach(() => {
@@ -33,14 +33,14 @@ describe("mobile auth URL helpers", () => {
 
   it("builds the web callback URL from the configured base origin", () => {
     expect(getMobileAuthWebCallbackUrl("state-1234567890")).toBe(
-      "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890",
+      "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890",
     );
-    expect(getMobileAuthBaseUrlOrigin()).toBe("https://www.getinboxzero.com");
+    expect(getMobileAuthBaseUrlOrigin()).toBe("https://www.jyisolutions.com");
   });
 
   it("uses the HTTPS app callback URL for production", () => {
     expect(getMobileAuthAppCallbackUrl().toString()).toBe(
-      "https://www.getinboxzero.com/auth-callback",
+      "https://www.jyisolutions.com/auth-callback",
     );
   });
 

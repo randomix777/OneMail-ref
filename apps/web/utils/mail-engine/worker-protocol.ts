@@ -114,7 +114,7 @@ export function workerStartFence(
 
 export function readPageMaxPendingOperations(): number | undefined {
   if (typeof window === "undefined") return;
-  const value = window.__inboxZeroMailMaxPendingOperations;
+  const value = window.__mailMaxPendingOperations;
   if (typeof value !== "number" || !Number.isFinite(value) || value < 1) {
     return;
   }
@@ -123,6 +123,6 @@ export function readPageMaxPendingOperations(): number | undefined {
 
 declare global {
   interface Window {
-    __inboxZeroMailMaxPendingOperations?: number;
+    __mailMaxPendingOperations?: number;
   }
 }

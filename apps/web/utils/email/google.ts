@@ -25,11 +25,11 @@ import {
   getLabelById,
   createLabel,
   getOrCreateLabel,
-  getOrCreateInboxZeroLabel,
+  getOrCreateBrandLabel,
   GmailLabel,
 } from "@/utils/gmail/label";
 import { labelVisibility, messageVisibility } from "@/utils/gmail/constants";
-import type { InboxZeroLabel } from "@/utils/label";
+import type { BrandLabel } from "@/utils/label";
 import type { ThreadsQuery } from "@/utils/threads/validation";
 import { getMessageByRfc822Id } from "@/utils/gmail/message";
 import {
@@ -137,6 +137,7 @@ import {
   getGmailMailboxSyncPage,
 } from "@/utils/gmail/mailbox-sync";
 import { isGoogleOauthEmulationEnabled } from "@/utils/gmail/oauth";
+import { BRAND_NAME } from "@/utils/branding";
 
 const GMAIL_MESSAGE_WRITE_CONCURRENCY = 5;
 
@@ -1034,7 +1035,7 @@ export class GmailProvider implements EmailProvider {
         headerMessageId,
         references: parentReferences,
       }),
-      headers: { "X-Mailer": "Inbox Zero Web" },
+      headers: { "X-Mailer": `${BRAND_NAME} Web` },
     });
 
     const result = await uploadGmailDraftMessage(
@@ -1252,8 +1253,7 @@ export class GmailProvider implements EmailProvider {
       messageId,
     });
 
-    const unsubscribeLabel =
-      await this.getOrCreateInboxZeroLabel("unsubscribed");
+    const unsubscribeLabel = await this.getOrCreateBrandLabel("unsubscribed");
 
     if (unsubscribeLabel?.id) {
       log.warn("Unsubscribe label not found");
@@ -1342,8 +1342,8 @@ export class GmailProvider implements EmailProvider {
     });
   }
 
-  async getOrCreateInboxZeroLabel(key: InboxZeroLabel): Promise<EmailLabel> {
-    const label = await getOrCreateInboxZeroLabel({
+  async getOrCreateBrandLabel(key: BrandLabel): Promise<EmailLabel> {
+    const label = await getOrCreateBrandLabel({
       gmail: this.client,
       key,
     });

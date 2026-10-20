@@ -28,7 +28,7 @@ describe("ensureSlackTeamInstallation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (globalThis as any).inboxZeroMessagingChatSdk = {
+    (globalThis as any).mailMessagingChatSdk = {
       bot: {
         initialize: vi.fn().mockResolvedValue(undefined),
       },
@@ -102,7 +102,7 @@ describe("normalizeMessagingAssistantText", () => {
         'archive="true" />',
         "<rule-suggestion",
         'name="Digest Updates"',
-        'when="summary emails from Inbox Zero"',
+        'when="summary emails from OneMail"',
         'label="Notification"',
         "archive={false}",
         "/>",
@@ -118,7 +118,7 @@ describe("normalizeMessagingAssistantText", () => {
     expect(output).toContain("When: mention alerts from monitoring tools");
     expect(output).toContain("Then: Label as 'Monitoring', Archive");
     expect(output).toContain("**Digest Updates**");
-    expect(output).toContain("When: summary emails from Inbox Zero");
+    expect(output).toContain("When: summary emails from OneMail");
     expect(output).toContain("Then: Label as 'Notification'");
     expect(output).toContain("Want me to create either one?");
     expect(output).not.toContain("<rule-suggestion");

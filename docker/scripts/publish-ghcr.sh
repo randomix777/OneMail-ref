@@ -1,9 +1,9 @@
 #!/bin/bash
-# publish-ghcr.sh - Publish inbox-zero to GitHub Container Registry
+# publish-ghcr.sh - Publish one-mail to GitHub Container Registry
 #
 # Builds and pushes a Docker image (amd64) to your personal GHCR.
-# Useful for running your own inbox-zero fork in Docker/Kubernetes without
-# depending on the upstream elie222/inbox-zero image.
+# Useful for running your own one-mail build in Docker/Kubernetes without
+# depending on the published randomix777/OneMail-ref image.
 #
 # Prerequisites:
 #   - gh CLI authenticated: gh auth login

@@ -1,6 +1,6 @@
 # @inbox-zero/api
 
-CLI tool for managing [Inbox Zero](https://www.getinboxzero.com) through the external API.
+CLI tool for managing [Inbox Zero](https://www.jyisolutions.com) through the external API.
 
 This package is separate from `@inbox-zero/cli`, which is focused on self-hosting and deployment.
 
@@ -53,11 +53,11 @@ inbox-zero-api config list
 inbox-zero-api config get base-url
 ```
 
-`base-url` is optional. It defaults to `https://www.getinboxzero.com` and only needs to be set for self-hosted or nonstandard deployments.
+`base-url` is optional. It defaults to `https://www.jyisolutions.com` and only needs to be set for self-hosted or nonstandard deployments.
 
 ### `inbox-zero-api openapi`
 
-Fetch the live OpenAPI document from the configured Inbox Zero deployment.
+Fetch the live OpenAPI document from the configured OneMail deployment.
 
 ```bash
 inbox-zero-api openapi --json

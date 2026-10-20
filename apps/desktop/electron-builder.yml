@@ -48,4 +48,4 @@ nsis:
   allowToChangeInstallationDirectory: false
 publish:
   provider: generic
-  url: https://github.com/elie222/inbox-zero/releases/download/desktop-updates
+  url: https://github.com/randomix777/OneMail-ref/releases/download/desktop-updates

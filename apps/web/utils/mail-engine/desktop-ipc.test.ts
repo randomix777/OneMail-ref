@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getInboxZeroDesktopApp } from "@/utils/desktop-app";
+import { getDesktopApp } from "@/utils/desktop-app";
 import { startDesktopIpcMailClient } from "./desktop-ipc";
 
-vi.mock("@/utils/desktop-app", () => ({ getInboxZeroDesktopApp: vi.fn() }));
+vi.mock("@/utils/desktop-app", () => ({ getDesktopApp: vi.fn() }));
 
 const invoke = vi.fn();
 
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.mocked(getInboxZeroDesktopApp).mockReturnValue({
+  vi.mocked(getDesktopApp).mockReturnValue({
     startAuth: vi.fn(),
     mailEngine: invoke,
     mailEngineSubscribe: vi.fn(),
@@ -57,7 +57,7 @@ describe("desktop IPC startup", () => {
   });
 
   it("fails startup when client creation fails", async () => {
-    vi.mocked(getInboxZeroDesktopApp).mockReturnValue(undefined);
+    vi.mocked(getDesktopApp).mockReturnValue(undefined);
     const publish = vi.fn();
     const onSyncError = vi.fn();
     await expect(

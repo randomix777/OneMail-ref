@@ -9,13 +9,13 @@ import {
 import { bulkPublishToQstash } from "@/utils/upstash";
 import {
   getLabel,
-  getOrCreateInboxZeroLabel,
+  getOrCreateBrandLabel,
   GmailLabel,
   labelThread,
 } from "@/utils/gmail/label";
 import type { CleanThreadBody } from "@/app/api/clean/controller";
 import { isDefined } from "@/utils/types";
-import { inboxZeroLabels } from "@/utils/label";
+import { brandLabels } from "@/utils/label";
 import prisma from "@/utils/prisma";
 import { CleanAction } from "@/generated/prisma/enums";
 import { updateThread } from "@/utils/redis/clean";
@@ -58,10 +58,10 @@ export const cleanInboxAction = actionClient
       });
 
       const [markedDoneLabel, processedLabel] = await Promise.all([
-        emailProvider.getOrCreateInboxZeroLabel(
+        emailProvider.getOrCreateBrandLabel(
           action === CleanAction.ARCHIVE ? "archived" : "marked_read",
         ),
-        emailProvider.getOrCreateInboxZeroLabel("processed"),
+        emailProvider.getOrCreateBrandLabel("processed"),
       ]);
 
       const markedDoneLabelId = markedDoneLabel?.id;
@@ -107,7 +107,7 @@ export const cleanInboxAction = actionClient
                   type === "inbox"
                     ? [GmailLabel.INBOX]
                     : [GmailLabel.INBOX, GmailLabel.UNREAD],
-                excludeLabelNames: [inboxZeroLabels.processed.name],
+                excludeLabelNames: [brandLabels.processed.name],
               },
               maxResults: Math.min(maxEmails || 100, 100),
             });
@@ -189,8 +189,8 @@ export const undoCleanInboxAction = actionClient
       const markedDoneLabel = await getLabel({
         name:
           action === CleanAction.ARCHIVE
-            ? inboxZeroLabels.archived.name
-            : inboxZeroLabels.marked_read.name,
+            ? brandLabels.archived.name
+            : brandLabels.marked_read.name,
         gmail,
       });
 
@@ -248,7 +248,7 @@ export const changeKeepToDoneAction = actionClient
       const gmail = await getGmailClientForEmail({ emailAccountId, logger });
 
       // Get the label to add (archived or marked_read)
-      const actionLabel = await getOrCreateInboxZeroLabel({
+      const actionLabel = await getOrCreateBrandLabel({
         key: action === CleanAction.ARCHIVE ? "archived" : "marked_read",
         gmail,
       });

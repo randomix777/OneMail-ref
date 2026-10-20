@@ -51,7 +51,7 @@ describe("buildFollowUpReminderBlocks", () => {
       expect.arrayContaining([
         expect.objectContaining({
           type: "context",
-          elements: [{ type: "mrkdwn", text: "Inbox Zero" }],
+          elements: [{ type: "mrkdwn", text: "OneMail" }],
         }),
       ]),
     );

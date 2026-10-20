@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { env } from "@/env";
 import type { Logger } from "@/utils/logger";
+import { BRAND_NAME } from "@/utils/branding";
 
 let stripe: Stripe | null = null;
 
@@ -11,9 +12,9 @@ export const getStripe = () => {
 
     stripe = new Stripe(env.STRIPE_SECRET_KEY, {
       appInfo: {
-        name: "Inbox Zero",
+        name: BRAND_NAME,
         version: "1.0.0",
-        url: "https://www.getinboxzero.com",
+        url: "https://www.jyisolutions.com",
       },
       typescript: true,
       ...(apiBaseUrl && {

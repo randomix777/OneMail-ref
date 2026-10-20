@@ -20,7 +20,7 @@ describe("scrubBreadcrumb", () => {
       scrubBreadcrumb({
         category: "electron",
         data: {
-          url: "https://www.getinboxzero.com/acc/mail?thread-id=t1&q=invoice",
+          url: "https://www.jyisolutions.com/acc/mail?thread-id=t1&q=invoice",
           from: "/acc/mail?q=invoice#reply",
           status: 200,
         },
@@ -28,7 +28,7 @@ describe("scrubBreadcrumb", () => {
     ).toEqual({
       category: "electron",
       data: {
-        url: "https://www.getinboxzero.com/acc/mail",
+        url: "https://www.jyisolutions.com/acc/mail",
         from: "/acc/mail",
         status: 200,
       },
@@ -42,12 +42,12 @@ describe("scrubEvent", () => {
       type: undefined,
       contexts: {
         electron: {
-          crashed_url: "https://www.getinboxzero.com/acc/mail?q=invoice",
+          crashed_url: "https://www.jyisolutions.com/acc/mail?q=invoice",
         },
       },
     });
     expect(event.contexts?.electron?.crashed_url).toBe(
-      "https://www.getinboxzero.com/acc/mail",
+      "https://www.jyisolutions.com/acc/mail",
     );
   });
 });

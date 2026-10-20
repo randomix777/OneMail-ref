@@ -1,8 +1,9 @@
 import { messageVisibility } from "@/utils/gmail/constants";
 import { getRuleLabel } from "@/utils/rule/consts";
 import { SystemType } from "@/generated/prisma/enums";
+import { BRAND_NAME } from "@/utils/branding";
 
-export const PARENT_LABEL = "Inbox Zero";
+export const PARENT_LABEL = BRAND_NAME;
 
 const blue = "#b6cff5";
 const cyan = "#98d7e4";
@@ -29,7 +30,7 @@ const LABEL_COLORS = [
   rose,
 ] as const;
 
-export const inboxZeroLabels = {
+export const brandLabels = {
   archived: {
     name: `${PARENT_LABEL}/Archived`,
     color: blue,
@@ -62,7 +63,7 @@ export const inboxZeroLabels = {
   },
 } as const;
 
-export type InboxZeroLabel = keyof typeof inboxZeroLabels;
+export type BrandLabel = keyof typeof brandLabels;
 
 export const FOLLOW_UP_LABEL = "Follow-up";
 

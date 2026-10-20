@@ -106,7 +106,7 @@ describe("mergeTemplateWithVars Safety", () => {
     const template = "Hello {{greeting}}, welcome to {{place}}";
     const vars = {
       var1: "Dear User",
-      var2: "Inbox Zero",
+      var2: "OneMail",
       var3: "INJECTED_3",
       var4: "INJECTED_4",
       var5: "INJECTED_5",
@@ -114,7 +114,7 @@ describe("mergeTemplateWithVars Safety", () => {
 
     const result = mergeTemplateWithVars(template, vars);
 
-    expect(result).toBe("Hello Dear User, welcome to Inbox Zero");
+    expect(result).toBe("Hello Dear User, welcome to OneMail");
     expect(result).not.toContain("INJECTED");
   });
 

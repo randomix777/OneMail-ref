@@ -10,17 +10,17 @@ import {
 describe("buildShareText", () => {
   it("includes the count and link", () => {
     expect(
-      buildShareText({ senderCount: 12, link: "https://www.getinboxzero.com" }),
+      buildShareText({ senderCount: 12, link: "https://www.jyisolutions.com" }),
     ).toBe(
-      "I just unsubscribed from 12 email lists with Inbox Zero. https://www.getinboxzero.com",
+      "I just unsubscribed from 12 email lists with OneMail. https://www.jyisolutions.com",
     );
   });
 
   it("uses singular wording for one sender", () => {
     expect(
-      buildShareText({ senderCount: 1, link: "https://www.getinboxzero.com" }),
+      buildShareText({ senderCount: 1, link: "https://www.jyisolutions.com" }),
     ).toBe(
-      "I just unsubscribed from 1 email list with Inbox Zero. https://www.getinboxzero.com",
+      "I just unsubscribed from 1 email list with OneMail. https://www.jyisolutions.com",
     );
   });
 
@@ -28,11 +28,11 @@ describe("buildShareText", () => {
     expect(
       buildShareText({
         senderCount: 12,
-        link: "https://www.getinboxzero.com",
+        link: "https://www.jyisolutions.com",
         yearlyEmails: 2400,
       }),
     ).toBe(
-      "I just unsubscribed from 12 email lists with Inbox Zero — that's ~2,400 fewer emails a year. https://www.getinboxzero.com",
+      "I just unsubscribed from 12 email lists with OneMail — that's ~2,400 fewer emails a year. https://www.jyisolutions.com",
     );
   });
 
@@ -40,11 +40,11 @@ describe("buildShareText", () => {
     expect(
       buildShareText({
         senderCount: 1,
-        link: "https://www.getinboxzero.com",
+        link: "https://www.jyisolutions.com",
         yearlyEmails: 0,
       }),
     ).toBe(
-      "I just unsubscribed from 1 email list with Inbox Zero — that's ~0 fewer emails a year. https://www.getinboxzero.com",
+      "I just unsubscribed from 1 email list with OneMail — that's ~0 fewer emails a year. https://www.jyisolutions.com",
     );
   });
 });

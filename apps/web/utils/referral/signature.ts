@@ -1,7 +1,7 @@
 import { BRAND_NAME } from "@/utils/branding";
 
 const REFERRAL_SIGNATURE_PREFIX = "Drafted by";
-const REFERRAL_SIGNATURE_PRODUCT = "Inbox Zero";
+const REFERRAL_SIGNATURE_PRODUCT = BRAND_NAME;
 
 const REFERRAL_SIGNATURE_PATTERN = createSignaturePatterns(
   REFERRAL_SIGNATURE_PREFIX,

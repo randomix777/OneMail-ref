@@ -26,9 +26,7 @@ describe("SenderContextPanel", () => {
     const cache = new Map();
     renderPanel(cache, () => Promise.reject(networkError()));
 
-    expect(
-      await screen.findByText(/Couldn't connect to Inbox Zero/),
-    ).toBeTruthy();
+    expect(await screen.findByText(/Couldn't connect to OneMail/)).toBeTruthy();
   });
 
   it("retries on reopen without showing the previous failure", async () => {
@@ -106,6 +104,6 @@ function renderPanel(cache: Map<unknown, unknown>, fetcher: () => unknown) {
 
 function networkError() {
   const message =
-    "Couldn't connect to Inbox Zero. Check your internet connection and try again.";
+    "Couldn't connect to OneMail. Check your internet connection and try again.";
   return Object.assign(new Error(message), { info: { error: message } });
 }

@@ -1,4 +1,4 @@
-import { getInboxZeroDesktopApp } from "@/utils/desktop-app";
+import { getDesktopApp } from "@/utils/desktop-app";
 import { hasDesktopMailEngineIpc } from "@/utils/mail-engine/desktop-ipc";
 import { selectMailEngineRuntimeMode } from "@/utils/mail-engine/runtime-mode";
 import { browserMailEngineCapabilities } from "@/utils/mail-engine/worker-protocol";
@@ -9,7 +9,7 @@ export function getClientAnalyticsProperties() {
     ...browserMailEngineCapabilities(),
   });
 
-  if (!getInboxZeroDesktopApp()) {
+  if (!getDesktopApp()) {
     return { client: "web", mail_engine_transport: mailEngineTransport };
   }
 

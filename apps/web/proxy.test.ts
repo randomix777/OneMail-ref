@@ -21,7 +21,7 @@ describe("proxy matcher", () => {
 describe("proxy content negotiation", () => {
   it("returns markdown when explicitly preferred", async () => {
     const response = proxy(
-      new NextRequest("https://www.getinboxzero.com/", {
+      new NextRequest("https://www.jyisolutions.com/", {
         headers: { Accept: "text/markdown, text/html;q=0.8" },
       }),
     );
@@ -31,12 +31,12 @@ describe("proxy content negotiation", () => {
       "text/markdown; charset=utf-8",
     );
     expect(response.headers.get("vary")).toBe("Accept");
-    await expect(response.text()).resolves.toContain("# Inbox Zero");
+    await expect(response.text()).resolves.toContain("# OneMail");
   });
 
   it("passes browser requests through and advertises negotiation", () => {
     const response = proxy(
-      new NextRequest("https://www.getinboxzero.com/pricing", {
+      new NextRequest("https://www.jyisolutions.com/pricing", {
         headers: { Accept: "text/html,application/xhtml+xml" },
       }),
     );
@@ -47,7 +47,7 @@ describe("proxy content negotiation", () => {
 
   it("never replaces RSC responses with markdown", () => {
     const response = proxy(
-      new NextRequest("https://www.getinboxzero.com/", {
+      new NextRequest("https://www.jyisolutions.com/", {
         headers: { Accept: "text/markdown", RSC: "1" },
       }),
     );

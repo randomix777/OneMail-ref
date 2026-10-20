@@ -26,14 +26,14 @@ import {
 
 describe("desktop shell helpers", () => {
   it("uses the production origin by default", () => {
-    expect(getDesktopAppOrigin("https://www.getinboxzero.com/ignored")).toBe(
-      "https://www.getinboxzero.com",
+    expect(getDesktopAppOrigin("https://www.jyisolutions.com/ignored")).toBe(
+      "https://www.jyisolutions.com",
     );
-    expect(getDesktopLoginUrl("https://www.getinboxzero.com")).toBe(
-      "https://www.getinboxzero.com/login",
+    expect(getDesktopLoginUrl("https://www.jyisolutions.com")).toBe(
+      "https://www.jyisolutions.com/login",
     );
-    expect(getDesktopHomeUrl("https://www.getinboxzero.com")).toBe(
-      "https://www.getinboxzero.com/welcome-redirect?mode=mail",
+    expect(getDesktopHomeUrl("https://www.jyisolutions.com")).toBe(
+      "https://www.jyisolutions.com/welcome-redirect?mode=mail",
     );
   });
 
@@ -58,7 +58,7 @@ describe("desktop shell helpers", () => {
     );
     expect(
       isAllowedDesktopNavigation(
-        "https://www.getinboxzero.com/acc-1/mail",
+        "https://www.jyisolutions.com/acc-1/mail",
         origin,
       ),
     ).toBe(false);
@@ -71,7 +71,7 @@ describe("desktop shell helpers", () => {
     expect(
       getDesktopSessionRestoreUrl(
         origin,
-        "https://www.getinboxzero.com/acc-1/mail",
+        "https://www.jyisolutions.com/acc-1/mail",
       ),
     ).toBeNull();
     expect(getDesktopMailAccountId(`${origin}/acc-1/mail`, origin)).toBe(
@@ -79,7 +79,7 @@ describe("desktop shell helpers", () => {
     );
     expect(
       getDesktopMailAccountId(
-        "https://www.getinboxzero.com/acc-1/mail",
+        "https://www.jyisolutions.com/acc-1/mail",
         origin,
       ),
     ).toBeNull();
@@ -91,12 +91,12 @@ describe("desktop shell helpers", () => {
   it("builds the system-browser OAuth start URL", () => {
     expect(
       getDesktopBrowserStartUrl(
-        "https://www.getinboxzero.com",
+        "https://www.jyisolutions.com",
         "google",
         "challenge",
       ),
     ).toBe(
-      "https://www.getinboxzero.com/api/mobile-auth/browser-start?provider=google&codeChallenge=challenge",
+      "https://www.jyisolutions.com/api/mobile-auth/browser-start?provider=google&codeChallenge=challenge",
     );
   });
 
@@ -144,18 +144,18 @@ describe("desktop shell helpers", () => {
   it("keeps navigation on the app origin", () => {
     expect(
       isAllowedDesktopNavigation(
-        "https://www.getinboxzero.com/mail",
-        "https://www.getinboxzero.com",
+        "https://www.jyisolutions.com/mail",
+        "https://www.jyisolutions.com",
       ),
     ).toBe(true);
     expect(
       isAllowedDesktopNavigation(
         "https://accounts.google.com/o/oauth2/v2/auth",
-        "https://www.getinboxzero.com",
+        "https://www.jyisolutions.com",
       ),
     ).toBe(false);
     expect(
-      isAllowedDesktopNavigation("about:blank", "https://www.getinboxzero.com"),
+      isAllowedDesktopNavigation("about:blank", "https://www.jyisolutions.com"),
     ).toBe(true);
   });
 
@@ -168,14 +168,14 @@ describe("desktop shell helpers", () => {
     expect(
       isAllowedDesktopNavigation(
         url,
-        "https://www.getinboxzero.com",
+        "https://www.jyisolutions.com",
         rendererFile,
       ),
     ).toBe(true);
     expect(
       isAllowedDesktopNavigation(
         "file:///etc/passwd",
-        "https://www.getinboxzero.com",
+        "https://www.jyisolutions.com",
         rendererFile,
       ),
     ).toBe(false);
@@ -189,20 +189,20 @@ describe("desktop shell helpers", () => {
     expect(shouldSmokeLocalMail({})).toBe(false);
     expect(
       resolveDesktopStartUrl({
-        requestedUrl: "https://www.getinboxzero.com/account-1/mail",
+        requestedUrl: "https://www.jyisolutions.com/account-1/mail",
         localMailUrl: url,
-        homeUrl: "https://www.getinboxzero.com/welcome-redirect?mode=mail",
+        homeUrl: "https://www.jyisolutions.com/welcome-redirect?mode=mail",
         rendererFile,
       }),
     ).toBe(url);
     expect(
       resolveDesktopStartUrl({
-        requestedUrl: "https://www.getinboxzero.com/account-1/mail",
+        requestedUrl: "https://www.jyisolutions.com/account-1/mail",
         localMailUrl: null,
-        homeUrl: "https://www.getinboxzero.com/welcome-redirect?mode=mail",
+        homeUrl: "https://www.jyisolutions.com/welcome-redirect?mode=mail",
         rendererFile,
       }),
-    ).toBe("https://www.getinboxzero.com/account-1/mail");
+    ).toBe("https://www.jyisolutions.com/account-1/mail");
   });
 
   it("finds the protocol URL in process arguments", () => {
@@ -220,7 +220,7 @@ describe("desktop shell helpers", () => {
     expect(
       isAllowedExternalUrl("https://accounts.google.com/o/oauth2/v2/auth"),
     ).toBe(true);
-    expect(isAllowedExternalUrl("mailto:hello@getinboxzero.com")).toBe(true);
+    expect(isAllowedExternalUrl("mailto:hello@jyisolutions.com")).toBe(true);
     expect(isAllowedExternalUrl("file:///etc/passwd")).toBe(false);
     expect(isAllowedExternalUrl("inboxzero://auth-callback")).toBe(false);
   });
@@ -228,23 +228,23 @@ describe("desktop shell helpers", () => {
   it("loads a validated post-auth path and falls back to mail", () => {
     expect(
       getDesktopPostAuthUrl(
-        "https://www.getinboxzero.com",
+        "https://www.jyisolutions.com",
         "/connect-mailbox?next=%2Fwelcome-redirect",
       ),
     ).toBe(
-      "https://www.getinboxzero.com/connect-mailbox?next=%2Fwelcome-redirect",
+      "https://www.jyisolutions.com/connect-mailbox?next=%2Fwelcome-redirect",
     );
     expect(
       getDesktopPostAuthUrl(
-        "https://www.getinboxzero.com",
+        "https://www.jyisolutions.com",
         "https://evil.test",
       ),
-    ).toBe("https://www.getinboxzero.com/welcome-redirect?mode=mail");
+    ).toBe("https://www.jyisolutions.com/welcome-redirect?mode=mail");
     expect(normalizeDesktopCallbackPath("//evil.test")).toBeNull();
     expect(normalizeDesktopCallbackPath("/.//evil.test")).toBe("/evil.test");
     expect(
-      getDesktopPostAuthUrl("https://www.getinboxzero.com", "/.//evil.test"),
-    ).toBe("https://www.getinboxzero.com/evil.test");
+      getDesktopPostAuthUrl("https://www.jyisolutions.com", "/.//evil.test"),
+    ).toBe("https://www.jyisolutions.com/evil.test");
   });
 
   it("uses platform-appropriate title bars and menu visibility", () => {
@@ -265,7 +265,7 @@ describe("desktop shell helpers", () => {
   });
 
   it("persists in-app pages but not auth or API URLs", () => {
-    const origin = "https://www.getinboxzero.com";
+    const origin = "https://www.jyisolutions.com";
     expect(
       shouldPersistDesktopUrl(`${origin}/account-1/automation`, origin),
     ).toBe(true);
@@ -288,7 +288,7 @@ describe("desktop shell helpers", () => {
   });
 
   it("restores only validated mail URLs on launch", () => {
-    const origin = "https://www.getinboxzero.com";
+    const origin = "https://www.jyisolutions.com";
     expect(
       getDesktopSessionRestoreUrl(
         origin,
@@ -307,7 +307,7 @@ describe("desktop shell helpers", () => {
   });
 
   it("reads a mail account id only from same-origin mailbox URLs", () => {
-    const origin = "https://www.getinboxzero.com";
+    const origin = "https://www.jyisolutions.com";
     expect(
       getDesktopMailAccountId(`${origin}/account-1/mail?type=inbox`, origin),
     ).toBe("account-1");

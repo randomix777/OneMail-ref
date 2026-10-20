@@ -41,7 +41,7 @@ describe("messaging attachment handling", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    global.inboxZeroMessagingChatSdk = undefined;
+    global.mailMessagingChatSdk = undefined;
     const mentionSpy = vi.spyOn(Chat.prototype, "onNewMention");
     const subscribedSpy = vi.spyOn(Chat.prototype, "onSubscribedMessage");
     getMessagingChatSdkBot();
@@ -93,7 +93,7 @@ describe("messaging attachment handling", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-    global.inboxZeroMessagingChatSdk = undefined;
+    global.mailMessagingChatSdk = undefined;
   });
 
   it.each([

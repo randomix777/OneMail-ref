@@ -3,6 +3,7 @@ import { findVideoConferenceLink } from "@/utils/calendar/video-conference-link"
 import { TZDate } from "@date-fns/tz";
 import ICAL from "ical.js";
 import { z } from "zod";
+import { BRAND_NAME } from "@/utils/branding";
 
 export type InvitationEvent = { id: string; response: string | null };
 
@@ -99,7 +100,7 @@ export function createCalendarReply(
   const original = new ICAL.Component(ICAL.parse(invitation.content));
   const source = original.getFirstSubcomponent("vevent")!;
   const calendar = new ICAL.Component("vcalendar");
-  calendar.addPropertyWithValue("prodid", "-//Inbox Zero//Calendar//EN");
+  calendar.addPropertyWithValue("prodid", `-//${BRAND_NAME}//Calendar//EN`);
   calendar.addPropertyWithValue("version", "2.0");
   calendar.addPropertyWithValue("method", "REPLY");
   for (const zone of original.getAllSubcomponents("vtimezone")) {

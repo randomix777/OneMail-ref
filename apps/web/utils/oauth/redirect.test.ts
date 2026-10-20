@@ -3,7 +3,7 @@ import { redirectWithError, redirectWithMessage } from "./redirect";
 
 vi.mock("@/env", () => ({
   env: {
-    NEXT_PUBLIC_BASE_URL: "https://www.getinboxzero.com",
+    NEXT_PUBLIC_BASE_URL: "https://www.jyisolutions.com",
   },
 }));
 
@@ -16,7 +16,7 @@ describe("redirectWithMessage", () => {
     );
 
     expect(response.headers.get("location")).toBe(
-      "https://www.getinboxzero.com/phish?step=1&message=connected#fragment",
+      "https://www.jyisolutions.com/phish?step=1&message=connected#fragment",
     );
   });
 
@@ -28,7 +28,7 @@ describe("redirectWithMessage", () => {
     );
 
     expect(response.headers.get("location")).toBe(
-      "https://www.getinboxzero.com/phish?step=1&message=connected#fragment",
+      "https://www.jyisolutions.com/phish?step=1&message=connected#fragment",
     );
   });
 });
@@ -36,13 +36,13 @@ describe("redirectWithMessage", () => {
 describe("redirectWithError", () => {
   it("preserves same-origin redirect targets", () => {
     const response = redirectWithError(
-      new URL("https://www.getinboxzero.com/accounts"),
+      new URL("https://www.jyisolutions.com/accounts"),
       "forbidden",
       new Headers(),
     );
 
     expect(response.headers.get("location")).toBe(
-      "https://www.getinboxzero.com/accounts?error=forbidden",
+      "https://www.jyisolutions.com/accounts?error=forbidden",
     );
   });
 });

@@ -22,11 +22,11 @@ import {
   getLabels,
   getLabel,
   createLabel,
-  getOrCreateInboxZeroLabel,
+  getOrCreateBrandLabel,
   getLabelById,
   OUTLOOK_COLOR_MAP,
 } from "@/utils/outlook/label";
-import type { InboxZeroLabel } from "@/utils/label";
+import type { BrandLabel } from "@/utils/label";
 import type { ThreadsQuery } from "@/utils/threads/validation";
 import {
   compileOutlookThreadSearch,
@@ -1240,8 +1240,8 @@ export class OutlookProvider implements EmailProvider {
     this.client.invalidateCategoryMapCache();
   }
 
-  async getOrCreateInboxZeroLabel(key: InboxZeroLabel): Promise<EmailLabel> {
-    const label = await getOrCreateInboxZeroLabel({
+  async getOrCreateBrandLabel(key: BrandLabel): Promise<EmailLabel> {
+    const label = await getOrCreateBrandLabel({
       client: this.client,
       key,
       logger: this.logger,

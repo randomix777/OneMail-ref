@@ -1,6 +1,6 @@
 # @inbox-zero/cli
 
-CLI tool for running [Inbox Zero](https://www.getinboxzero.com) - an open-source AI email assistant.
+CLI tool for running [Inbox Zero](https://www.jyisolutions.com) - an open-source AI email assistant.
 
 ## Installation
 
@@ -12,15 +12,15 @@ brew install inbox-zero/inbox-zero/inbox-zero
 
 ### Manual Installation
 
-Download the binary for your platform from [releases](https://github.com/elie222/inbox-zero/releases) and add to your PATH.
+Download the binary for your platform from [releases](https://github.com/randomix777/OneMail-ref/releases) and add to your PATH.
 
 ## Quick Start
 
 ```bash
-# Configure Inbox Zero (interactive)
+# Configure OneMail (interactive)
 inbox-zero setup
 
-# Start Inbox Zero
+# Start OneMail
 inbox-zero start
 
 # Open http://localhost:3000
@@ -76,7 +76,7 @@ Use `--deploy` if you want the CLI to trigger `vercel deploy --prod` after setup
 Pulls the latest Docker image and starts all containers:
 - PostgreSQL database
 - Redis cache
-- Inbox Zero web app
+- OneMail web app
 - Cron job for email sync
 
 ```bash
@@ -108,7 +108,7 @@ Show status of running containers.
 
 ### `inbox-zero update`
 
-Pull the latest Inbox Zero image and optionally restart.
+Pull the latest OneMail image and optionally restart.
 
 ```bash
 inbox-zero update

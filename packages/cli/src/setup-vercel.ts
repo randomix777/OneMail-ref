@@ -8,6 +8,7 @@ import {
   promptLlmCredentials,
   seedLlmPlaceholderCredentials,
 } from "./llm";
+import { BRAND_NAME } from "./brand";
 
 type VercelEnvironment = "production" | "preview" | "development";
 
@@ -138,7 +139,7 @@ export function buildVercelEnvValues(config: {
 export async function runVercelSetup(
   options: SetupVercelOptions,
 ): Promise<void> {
-  p.intro("Inbox Zero Vercel Setup");
+  p.intro(`${BRAND_NAME} Vercel Setup`);
 
   requireVercelCli();
   requireVercelLogin(options.scope);

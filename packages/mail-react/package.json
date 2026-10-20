@@ -4,13 +4,13 @@
   "private": true,
   "description": "Thin React bindings for the shared mail engine facade",
   "license": "SEE LICENSE IN ../../LICENSE",
-  "homepage": "https://github.com/elie222/inbox-zero/tree/main/packages/mail-react#readme",
+  "homepage": "https://github.com/randomix777/OneMail-ref/tree/main/packages/mail-react#readme",
   "bugs": {
-    "url": "https://github.com/elie222/inbox-zero/issues"
+    "url": "https://github.com/randomix777/OneMail-ref/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elie222/inbox-zero.git",
+    "url": "git+https://github.com/randomix777/OneMail-ref.git",
     "directory": "packages/mail-react"
   },
   "type": "module",

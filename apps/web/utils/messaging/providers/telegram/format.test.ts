@@ -18,7 +18,7 @@ describe("markdownToTelegramText", () => {
 
 **Must check:**
 
-* 2x Security alerts from Google <no-reply@accounts.google.com> (Inbox Zero access confirmations) \\[IDs: 19cab71f8af095ad, 19c9aaa940710c26]
+* 2x Security alerts from Google <no-reply@accounts.google.com> (OneMail access confirmations) \\[IDs: 19cab71f8af095ad, 19c9aaa940710c26]
 
 **Newsletter clutter (14+):**
 
@@ -28,7 +28,7 @@ describe("markdownToTelegramText", () => {
 
 Must check:
 
-• 2x Security alerts from Google <no-reply@accounts.google.com> (Inbox Zero access confirmations) [IDs: 19cab71f8af095ad, 19c9aaa940710c26]
+• 2x Security alerts from Google <no-reply@accounts.google.com> (OneMail access confirmations) [IDs: 19cab71f8af095ad, 19c9aaa940710c26]
 
 Newsletter clutter (14+):
 

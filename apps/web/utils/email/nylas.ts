@@ -26,8 +26,8 @@ import type {
 import type { DraftAttachmentMetadata } from "@/utils/actions/draft-attachments.validation";
 import { createScopedLogger, type Logger } from "@/utils/logger";
 import { SafeError } from "@/utils/error";
-import type { InboxZeroLabel } from "@/utils/label";
-import { inboxZeroLabels } from "@/utils/label";
+import type { BrandLabel } from "@/utils/label";
+import { brandLabels } from "@/utils/label";
 import type { SendEmailBody } from "@/utils/types/mail";
 import type { ParsedMessage } from "@/utils/types";
 import type { ThreadsQuery } from "@/utils/threads/validation";
@@ -834,8 +834,8 @@ export class NylasMailProvider implements EmailProvider {
     return folder ? toEmailLabel(folder) : null;
   }
 
-  async getOrCreateInboxZeroLabel(key: InboxZeroLabel): Promise<EmailLabel> {
-    const name = inboxZeroLabels[key].name;
+  async getOrCreateBrandLabel(key: BrandLabel): Promise<EmailLabel> {
+    const name = brandLabels[key].name;
     const existing = await this.getLabelByName(name);
     if (existing) return existing;
     return this.createLabel(name);

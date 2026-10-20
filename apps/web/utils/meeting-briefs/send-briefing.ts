@@ -28,6 +28,7 @@ import { isMessagingChannelOperational } from "@/utils/messaging/channel-validit
 import { createUnsubscribeToken } from "@/utils/unsubscribe";
 import { formatTimeInUserTimezone } from "@/utils/date";
 import prisma from "@/utils/prisma";
+import { BRAND_NAME } from "@/utils/branding";
 
 export async function sendBriefing({
   event,
@@ -372,7 +373,7 @@ function formatMeetingBriefingText({
   }
 
   sections.push(
-    "AI-generated briefing from Inbox Zero. May contain inaccuracies.",
+    `AI-generated briefing from ${BRAND_NAME}. May contain inaccuracies.`,
   );
 
   return sections.join("\n\n");

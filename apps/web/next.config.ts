@@ -217,7 +217,7 @@ const nextConfig: NextConfig = {
         protocol: "https",
       },
       {
-        hostname: "images.getinboxzero.com",
+        hostname: "images.jyisolutions.com",
         protocol: "https",
       },
       {
@@ -270,32 +270,32 @@ const nextConfig: NextConfig = {
         source: "/",
       },
       {
-        destination: "https://go.getinboxzero.com/feature-requests",
+        destination: "https://go.jyisolutions.com/feature-requests",
         permanent: true,
         source: "/feature-requests",
       },
       {
-        destination: "https://go.getinboxzero.com/feature-requests",
+        destination: "https://go.jyisolutions.com/feature-requests",
         permanent: true,
         source: "/roadmap",
       },
       {
-        destination: "https://go.getinboxzero.com/feedback",
+        destination: "https://go.jyisolutions.com/feedback",
         permanent: true,
         source: "/feedback",
       },
       {
-        destination: "https://go.getinboxzero.com/changelog",
+        destination: "https://go.jyisolutions.com/changelog",
         permanent: true,
         source: "/changelog",
       },
       {
-        destination: "https://go.getinboxzero.com/x",
+        destination: "https://go.jyisolutions.com/x",
         permanent: true,
         source: "/twitter",
       },
       {
-        destination: "https://go.getinboxzero.com/github",
+        destination: "https://go.jyisolutions.com/github",
         permanent: true,
         source: "/github",
       },
@@ -317,12 +317,12 @@ const nextConfig: NextConfig = {
         source: "/android",
       },
       {
-        destination: "https://go.getinboxzero.com/discord",
+        destination: "https://go.jyisolutions.com/discord",
         permanent: true,
         source: "/discord",
       },
       {
-        destination: "https://go.getinboxzero.com/linkedin",
+        destination: "https://go.jyisolutions.com/linkedin",
         permanent: true,
         source: "/linkedin",
       },
@@ -332,17 +332,17 @@ const nextConfig: NextConfig = {
         source: "/contact",
       },
       {
-        destination: "https://go.getinboxzero.com/waitlist",
+        destination: "https://go.jyisolutions.com/waitlist",
         permanent: true,
         source: "/waitlist",
       },
       {
-        destination: "https://go.getinboxzero.com/waitlist-other",
+        destination: "https://go.jyisolutions.com/waitlist-other",
         permanent: false,
         source: "/waitlist-other",
       },
       {
-        destination: "https://go.getinboxzero.com/affiliate",
+        destination: "https://go.jyisolutions.com/affiliate",
         permanent: true,
         source: "/affiliates",
       },
@@ -352,17 +352,17 @@ const nextConfig: NextConfig = {
         source: "/newsletters",
       },
       {
-        destination: "https://docs.getinboxzero.com",
+        destination: "https://docs.jyisolutions.com",
         permanent: true,
         source: "/docs",
       },
       {
-        destination: "https://docs.getinboxzero.com/:path*",
+        destination: "https://docs.jyisolutions.com/:path*",
         permanent: true,
         source: "/docs/:path*",
       },
       {
-        destination: "https://docs.getinboxzero.com",
+        destination: "https://docs.jyisolutions.com",
         permanent: true,
         source: "/api-reference/cli",
       },
@@ -392,12 +392,12 @@ const nextConfig: NextConfig = {
         source: "/new-senders",
       },
       {
-        destination: "https://go.getinboxzero.com/game",
+        destination: "https://go.jyisolutions.com/game",
         permanent: false,
         source: "/game",
       },
       {
-        destination: "https://go.getinboxzero.com/soc2",
+        destination: "https://go.jyisolutions.com/soc2",
         permanent: true,
         source: "/soc2",
       },

@@ -58,7 +58,7 @@ vi.mock("@/app/api/v1/rules/validation", async (importActual) => {
   return actual;
 });
 vi.mock("@/utils/branding", () => ({
-  BRAND_NAME: "Inbox Zero",
+  BRAND_NAME: "OneMail",
 }));
 vi.mock("@/utils/email/provider", () => ({
   createEmailProvider: vi.fn(),

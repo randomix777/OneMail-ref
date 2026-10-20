@@ -62,9 +62,9 @@ const cases = [
     email: getEmail({
       from: "editor@known-publication.example",
       to: lunaEmailAccount.email,
-      subject: "Interview request about Inbox Zero",
+      subject: "Interview request about OneMail",
       content:
-        "I'm writing a named profile about Inbox Zero for our publication and would like to interview you about the product next Tuesday.",
+        "I'm writing a named profile about OneMail for our publication and would like to interview you about the product next Tuesday.",
     }),
   },
 ];

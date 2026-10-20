@@ -1,9 +1,9 @@
 ---
 title: 'Environment Variables'
-description: 'Reference for self-hosting environment variables used in Inbox Zero'
+description: 'Reference for self-hosting environment variables used in OneMail'
 ---
 
-Reference for environment variables relevant to self-hosting Inbox Zero. Hosted-only billing, analytics, and internal operations variables are intentionally omitted unless they affect common self-hosted deployments.
+Reference for environment variables relevant to self-hosting OneMail. Hosted-only billing, analytics, and internal operations variables are intentionally omitted unless they affect common self-hosted deployments.
 
 ## Self-Hosting Environment Variables
 
@@ -37,7 +37,7 @@ Reference for environment variables relevant to self-hosting Inbox Zero. Hosted-
 | `SLACK_CLIENT_ID` | No | Slack OAuth client ID | — |
 | `SLACK_CLIENT_SECRET` | No | Slack OAuth client secret | — |
 | `SLACK_SIGNING_SECRET` | No | Slack signing secret used to verify requests | — |
-| `NEXT_PUBLIC_SLACK_BOT_NAME` | No | Bot display name shown in the app | `Inbox Zero` |
+| `NEXT_PUBLIC_SLACK_BOT_NAME` | No | Bot display name shown in the app | `OneMail` |
 | **Messaging Adapters** ||||
 | `TEAMS_BOT_APP_ID` | No | Microsoft Teams bot app ID | — |
 | `TEAMS_BOT_APP_PASSWORD` | No | Microsoft Teams bot app password/secret | — |
@@ -141,7 +141,7 @@ Reference for environment variables relevant to self-hosting Inbox Zero. Hosted-
 | **Resend** ||||
 | `RESEND_API_KEY` | No | API key for transactional emails | — |
 | `RESEND_AUDIENCE_ID` | No | Audience ID for contacts | — |
-| `RESEND_FROM_EMAIL` | No | From email address | `Inbox Zero <updates@transactional.getinboxzero.com>` |
+| `RESEND_FROM_EMAIL` | No | From email address | `OneMail <updates@transactional.jyisolutions.com>` |
 | `NEXT_PUBLIC_IS_RESEND_CONFIGURED` | No | Client-side flag indicating if Resend is configured | — |
 | **Meeting Recorder (Recall.ai, Optional)** ||||
 | `RECALL_API_KEY` | No* | Recall.ai API key. Required with `RECALL_WEBHOOK_SECRET` when Meeting Recorder is enabled. | — |
@@ -189,12 +189,12 @@ Reference for environment variables relevant to self-hosting Inbox Zero. Hosted-
 | `NEXT_PUBLIC_DELETE_EMAIL_ACTION_ENABLED` | No | Enable delete/trash actions for automation rules, including rules created through the external API. | `false` |
 | `NEXT_PUBLIC_BOOKING_LINKS_ENABLED` | No | Enable first-party booking links and availability pages. | `false` |
 | `NEXT_PUBLIC_AUTO_DRAFT_DISABLED` | No | Disable the auto-drafting feature, which automatically drafts replies based on assistant rules. | `false` |
-| `NEXT_PUBLIC_TABS_EXTENSION_ID` | No | Chrome extension ID used for Inbox Zero Tabs sync | Built-in extension ID |
+| `NEXT_PUBLIC_TABS_EXTENSION_ID` | No | Chrome extension ID used for OneMail Tabs sync | Built-in extension ID |
 | **White Labeling (Optional)** ||||
-| `NEXT_PUBLIC_BRAND_NAME` | No | Brand name used in UI text and metadata | `Inbox Zero` |
-| `NEXT_PUBLIC_BRAND_LOGO_URL` | No | Custom logo URL or public asset path (for example `/images/brand-logo.svg`) | Built-in Inbox Zero logo |
+| `NEXT_PUBLIC_BRAND_NAME` | No | Brand name used in UI text and metadata | `OneMail` |
+| `NEXT_PUBLIC_BRAND_LOGO_URL` | No | Custom logo URL or public asset path (for example `/images/brand-logo.svg`) | Built-in OneMail logo |
 | `NEXT_PUBLIC_BRAND_ICON_URL` | No | Custom app icon URL or public asset path | `/icon.png` |
-| `NEXT_PUBLIC_SUPPORT_EMAIL` | No | Contact email shown in support links and error messages | `support@getinboxzero.com` |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | No | Contact email shown in support links and error messages | `support@jyisolutions.com` |
 | **Debugging** ||||
 | `DISABLE_LOG_ZOD_ERRORS` | No | Disable logging Zod validation errors | — |
 | `ENABLE_DEBUG_LOGS` | No | Enable debug logging | `false` |

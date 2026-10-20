@@ -1,4 +1,5 @@
 import type { KnownBlock, Block } from "@slack/types";
+import { BRAND_NAME } from "@/utils/branding";
 
 type AppHomeView = {
   type: "home";
@@ -13,7 +14,7 @@ export function buildAppHomeBlocks(): AppHomeView {
         type: "header",
         text: {
           type: "plain_text",
-          text: "Welcome to Inbox Zero",
+          text: `Welcome to ${BRAND_NAME}`,
           emoji: true,
         },
       },
@@ -37,7 +38,7 @@ export function buildAppHomeBlocks(): AppHomeView {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: "*1.* Connect your email at <https://www.getinboxzero.com|getinboxzero.com>\n*2.* Connect Slack on the Channels page\n*3.* Choose where notifications go (email alerts, drafted replies, meeting briefs)\n*4.* DM me or @mention me in any channel to chat about your emails",
+          text: "*1.* Connect your email at <https://www.jyisolutions.com|jyisolutions.com>\n*2.* Connect Slack on the Channels page\n*3.* Choose where notifications go (email alerts, drafted replies, meeting briefs)\n*4.* DM me or @mention me in any channel to chat about your emails",
         },
       },
       { type: "divider" },
@@ -67,7 +68,7 @@ export function buildAppHomeBlocks(): AppHomeView {
         type: "header",
         text: {
           type: "plain_text",
-          text: "Chat with Inbox Zero",
+          text: `Chat with ${BRAND_NAME}`,
           emoji: true,
         },
       },
@@ -91,7 +92,7 @@ export function buildAppHomeBlocks(): AppHomeView {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: "*Meeting Briefs* — Get a briefing on attendees before your meetings, delivered to your chosen Slack channel.\n\n*Attachment Filing* — Inbox Zero can auto-file attachments to Google Drive and notify you here.\n\n*AI Automation* — Set up rules to auto-label, archive, or draft replies. Configure at <https://www.getinboxzero.com|getinboxzero.com>.",
+          text: `*Meeting Briefs* — Get a briefing on attendees before your meetings, delivered to your chosen Slack channel.\n\n*Attachment Filing* — ${BRAND_NAME} can auto-file attachments to Google Drive and notify you here.\n\n*AI Automation* — Set up rules to auto-label, archive, or draft replies. Configure at <https://www.jyisolutions.com|jyisolutions.com>.`,
         },
       },
       { type: "divider" },
@@ -100,7 +101,7 @@ export function buildAppHomeBlocks(): AppHomeView {
         elements: [
           {
             type: "mrkdwn",
-            text: "<https://www.getinboxzero.com|Settings> · <https://www.getinboxzero.com/support|Support> · <https://www.getinboxzero.com/privacy|Privacy Policy>",
+            text: "<https://www.jyisolutions.com|Settings> · <https://www.jyisolutions.com/support|Support> · <https://www.jyisolutions.com/privacy|Privacy Policy>",
           },
         ],
       },

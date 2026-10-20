@@ -108,7 +108,7 @@ import { getActionErrorMessage } from "@/utils/error";
 import { prefixPath } from "@/utils/path";
 import { getMailAccountUrl } from "@/app/(app)/[emailAccountId]/mail/mail-account-url";
 import { redirectToSafeUrl } from "@/utils/redirect";
-import { getInboxZeroDesktopApp } from "@/utils/desktop-app";
+import { getDesktopApp } from "@/utils/desktop-app";
 import { LoadingContent } from "@/components/LoadingContent";
 import { useTeamCommentsAvailable } from "@/components/team-comments/use-team-comments-available";
 import { getEmailMessageCellActions } from "@/components/EmailMessageCellActions";
@@ -174,7 +174,7 @@ export function MailShell() {
   const pendingSearchFocusRef = useRef(false);
 
   useEffect(() => {
-    setIsDesktopApp(Boolean(getInboxZeroDesktopApp()));
+    setIsDesktopApp(Boolean(getDesktopApp()));
   }, []);
 
   const isAllAccounts = accountScope === "all";

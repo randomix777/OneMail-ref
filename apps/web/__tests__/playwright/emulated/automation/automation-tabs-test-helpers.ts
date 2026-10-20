@@ -78,7 +78,7 @@ export async function expectVisibleAfterTransientFetch(
       return;
     } catch (error) {
       const hasTransientFetchError = await page
-        .getByText("Couldn't connect to Inbox Zero")
+        .getByText("Couldn't connect to OneMail")
         .first()
         .isVisible()
         .catch(() => false);

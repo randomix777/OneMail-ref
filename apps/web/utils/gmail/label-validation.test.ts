@@ -20,7 +20,7 @@ describe("validateLabelNameBasic", () => {
         "Work`Items",
         "a".repeat(225), // Max length
         // Nested labels with forward slash are valid
-        "Inbox Zero/Archived",
+        "OneMail/Archived",
         "Work/Projects",
         "Personal/Family",
         // These would be rejected by Gmail-specific validation but are valid at basic level

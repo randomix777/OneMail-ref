@@ -16,7 +16,7 @@ import {
   type ShortcutScope,
 } from "@/lib/shortcuts/registry";
 import { shortcutsDialogOpenAtom } from "@/store/command-palette";
-import { getInboxZeroDesktopApp } from "@/utils/desktop-app";
+import { getDesktopApp } from "@/utils/desktop-app";
 
 const SCOPES: readonly ShortcutScope[] = ["global", "mail"];
 
@@ -30,7 +30,7 @@ export function ShortcutsDialog() {
   const groups = getShortcutGroups(SCOPES, { isDesktopApp });
 
   useEffect(() => {
-    setIsDesktopApp(Boolean(getInboxZeroDesktopApp()));
+    setIsDesktopApp(Boolean(getDesktopApp()));
   }, []);
 
   return (

@@ -1,9 +1,9 @@
 ---
 title: "Telegram Integration Setup"
-description: "Set up the Telegram bot for Inbox Zero assistant chat."
+description: "Set up the Telegram bot for OneMail assistant chat."
 ---
 
-This guide is for self-hosted deployments that want to enable Telegram chat with the Inbox Zero assistant.
+This guide is for self-hosted deployments that want to enable Telegram chat with the OneMail assistant.
 
 ## 1. Create a Telegram bot with BotFather
 
@@ -14,7 +14,7 @@ This guide is for self-hosted deployments that want to enable Telegram chat with
 
 ## 2. Configure the webhook
 
-Set your bot's webhook to Inbox Zero:
+Set your bot's webhook to OneMail:
 
 ```bash
 curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
@@ -64,11 +64,11 @@ pnpm --filter inbox-zero-ai exec tsx scripts/setup-telegram-bot.ts \
 
 This command registers Telegram slash commands (`/connect`, `/switch`, `/help`, `/cleanup`, `/summary`, `/draftreply`, `/followups`) and sets a profile photo only if the bot does not already have one.
 
-## 5. Connect a user account from Inbox Zero
+## 5. Connect a user account from OneMail
 
-Each Inbox Zero email account links to a Telegram user via a connect code:
+Each OneMail email account links to a Telegram user via a connect code:
 
-1. In Inbox Zero, go to **Settings** → **Connected Apps**
+1. In OneMail, go to **Settings** → **Connected Apps**
 2. Click **Connect Telegram**
 3. Copy the generated command: `/connect <code>`
 4. Open a direct message with your bot in Telegram

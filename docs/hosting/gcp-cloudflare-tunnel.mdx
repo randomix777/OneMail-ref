@@ -1,9 +1,9 @@
 ---
 title: 'GCP + Cloudflare Tunnel'
-description: 'Deploy Inbox Zero on Google Cloud Compute Engine with Cloudflare Tunnel for HTTPS — no reverse proxy or SSL certificates required'
+description: 'Deploy OneMail on Google Cloud Compute Engine with Cloudflare Tunnel for HTTPS — no reverse proxy or SSL certificates required'
 ---
 
-This guide covers deploying Inbox Zero on a GCP Compute Engine VM using Cloudflare Tunnel for secure HTTPS access. Cloudflare Tunnel eliminates the need for a reverse proxy (Nginx/Caddy) and SSL certificate management — the tunnel connects outbound from your VM to Cloudflare's edge, so no inbound firewall ports need to be opened.
+This guide covers deploying OneMail on a GCP Compute Engine VM using Cloudflare Tunnel for secure HTTPS access. Cloudflare Tunnel eliminates the need for a reverse proxy (Nginx/Caddy) and SSL certificate management — the tunnel connects outbound from your VM to Cloudflare's edge, so no inbound firewall ports need to be opened.
 
 **Why Cloudflare Tunnel?**
 - HTTPS with no Nginx, Caddy, or Let's Encrypt setup
@@ -105,7 +105,7 @@ Back in the Cloudflare dashboard tunnel settings:
 
 Your app will be reachable at `https://inbox.yourdomain.com` once the tunnel is running and the app is started.
 
-## 4. Set Up Inbox Zero
+## 4. Set Up OneMail
 
 ### Option A: CLI (recommended)
 
@@ -123,8 +123,8 @@ When prompted, enter your full Cloudflare Tunnel URL as the base URL (e.g. `http
 ### Option B: Manual
 
 ```bash
-git clone https://github.com/elie222/inbox-zero.git
-cd inbox-zero
+git clone https://github.com/randomix777/OneMail-ref.git
+cd OneMail-ref
 cp apps/web/.env.example apps/web/.env
 nano apps/web/.env
 ```

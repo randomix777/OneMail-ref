@@ -185,9 +185,9 @@ describe("richTextToSlackMrkdwn", () => {
   it("converts HTML anchor tags to Slack links", () => {
     expect(
       richTextToSlackMrkdwn(
-        'Drafted by <a href="https://example.com/ref">Inbox Zero</a>.',
+        'Drafted by <a href="https://example.com/ref">OneMail</a>.',
       ),
-    ).toBe("Drafted by <https://example.com/ref|Inbox Zero>.");
+    ).toBe("Drafted by <https://example.com/ref|OneMail>.");
   });
 
   it("strips layout tags while preserving line breaks", () => {
@@ -225,9 +225,9 @@ describe("richTextToSlackMrkdwn", () => {
   it("keeps literal placeholder-like text while replacing inserted links", () => {
     expect(
       richTextToSlackMrkdwn(
-        '__SLACK_LINK_TOKEN_0__ <a href="https://example.com">Inbox Zero</a>',
+        '__SLACK_LINK_TOKEN_0__ <a href="https://example.com">OneMail</a>',
       ),
-    ).toBe("__SLACK_LINK_TOKEN_0__ <https://example.com/|Inbox Zero>");
+    ).toBe("__SLACK_LINK_TOKEN_0__ <https://example.com/|OneMail>");
   });
 
   it("escapes href fallback labels when anchor text is empty", () => {

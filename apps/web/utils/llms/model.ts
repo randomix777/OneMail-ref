@@ -18,6 +18,7 @@ import type { UserAIFields } from "@/utils/llms/types";
 import { createScopedLogger } from "@/utils/logger";
 import { SafeError } from "../error";
 import { assertCliLlmEnabled, createCliLanguageModel } from "./cli-provider";
+import { BRAND_NAME } from "@/utils/branding";
 
 const DEFAULT_GOOGLE_THINKING_BUDGET = 128;
 const REASONING_EFFORT_BY_MODEL_TYPE = {
@@ -237,8 +238,8 @@ function selectModel(
       const openrouter = createOpenRouter({
         apiKey: resolveApiKey(aiApiKey, env.OPENROUTER_API_KEY),
         headers: {
-          "HTTP-Referer": "https://www.getinboxzero.com",
-          "X-Title": "Inbox Zero",
+          "HTTP-Referer": "https://www.jyisolutions.com",
+          "X-Title": BRAND_NAME,
         },
       });
       const chatModel = openrouter.chat(modelName, {
@@ -260,8 +261,8 @@ function selectModel(
       const gateway = createGateway({
         apiKey: aiGatewayApiKey,
         headers: {
-          "http-referer": "https://www.getinboxzero.com",
-          "x-title": "Inbox Zero",
+          "http-referer": "https://www.jyisolutions.com",
+          "x-title": BRAND_NAME,
         },
       });
       return {

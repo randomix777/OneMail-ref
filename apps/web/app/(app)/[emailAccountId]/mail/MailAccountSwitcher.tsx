@@ -37,7 +37,7 @@ import {
   getShortcutHint,
 } from "@/lib/shortcuts/registry";
 import { getMailAccountUrl } from "@/app/(app)/[emailAccountId]/mail/mail-account-url";
-import { getInboxZeroDesktopApp } from "@/utils/desktop-app";
+import { getDesktopApp } from "@/utils/desktop-app";
 import { cn } from "@/utils";
 
 export const MailAccountSwitcher = memo(function MailAccountSwitcher({
@@ -235,7 +235,7 @@ function AccountItem({
         const shouldOpenWindow = openInNewWindow.current;
         openInNewWindow.current = false;
         if (shouldOpenWindow) {
-          const openWindow = getInboxZeroDesktopApp()?.openWindow;
+          const openWindow = getDesktopApp()?.openWindow;
           if (openWindow) {
             openWindow(getMailAccountUrl(account.id, "")).catch(() => {});
             return;

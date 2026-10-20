@@ -239,12 +239,12 @@ describe("handlePreviousDraftDeletion", () => {
     mockFindFirst.mockResolvedValue({
       ...previousDraftAction,
       content:
-        'Hello, this is a test draft\n\nDrafted by <a href="http://localhost:3000/?ref=ABC">Inbox Zero</a>.',
+        'Hello, this is a test draft\n\nDrafted by <a href="http://localhost:3000/?ref=ABC">OneMail</a>.',
     });
     mockGetDraft.mockResolvedValue(
       createParsedMessage({
         textPlain:
-          '<html><head>\r\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body><div dir="ltr">Hello, this is a test draft<br><br>Drafted by <a href="http://localhost:3000/?ref=ABC">Inbox Zero</a>.</div><br><div class="gmail_quote gmail_quote_container"><div dir="ltr" class="gmail_attr">On Tue, 11 Nov 2025 at 2:18, John wrote:<br></div><blockquote class="gmail_quote" style="margin:0px 0px 0px 0.8ex; border-left:1px solid rgb(204,204,204); padding-left:1ex"><div dir="ltr">Previous message content</div></blockquote></div></body></html>',
+          '<html><head>\r\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body><div dir="ltr">Hello, this is a test draft<br><br>Drafted by <a href="http://localhost:3000/?ref=ABC">OneMail</a>.</div><br><div class="gmail_quote gmail_quote_container"><div dir="ltr" class="gmail_attr">On Tue, 11 Nov 2025 at 2:18, John wrote:<br></div><blockquote class="gmail_quote" style="margin:0px 0px 0px 0.8ex; border-left:1px solid rgb(204,204,204); padding-left:1ex"><div dir="ltr">Previous message content</div></blockquote></div></body></html>',
         bodyContentType: "html",
         snippet: "Hello",
       }),
@@ -531,10 +531,10 @@ describe("isDraftUnmodified", () => {
   it("should handle HTML content with links (Outlook case)", () => {
     const result = isDraftUnmodified({
       originalContent:
-        'My reply\n\nDrafted by <a href="http://localhost:3000/?ref=ABC">Inbox Zero</a>.',
+        'My reply\n\nDrafted by <a href="http://localhost:3000/?ref=ABC">OneMail</a>.',
       currentDraft: createParsedMessage({
         textPlain:
-          '<html><head>\r\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body><div dir="ltr">My reply<br><br>Drafted by <a href="http://localhost:3000/?ref=ABC">Inbox Zero</a>.</div><br><div class="gmail_quote gmail_quote_container"><div dir="ltr" class="gmail_attr">On Tue, 11 Nov 2025 at 2:18, John wrote:<br></div><blockquote class="gmail_quote" style="margin:0px 0px 0px 0.8ex; border-left:1px solid rgb(204,204,204); padding-left:1ex"><div dir="ltr">Quote content</div></blockquote></div></body></html>',
+          '<html><head>\r\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body><div dir="ltr">My reply<br><br>Drafted by <a href="http://localhost:3000/?ref=ABC">OneMail</a>.</div><br><div class="gmail_quote gmail_quote_container"><div dir="ltr" class="gmail_attr">On Tue, 11 Nov 2025 at 2:18, John wrote:<br></div><blockquote class="gmail_quote" style="margin:0px 0px 0px 0.8ex; border-left:1px solid rgb(204,204,204); padding-left:1ex"><div dir="ltr">Quote content</div></blockquote></div></body></html>',
         bodyContentType: "html",
       }),
       logger,
@@ -546,12 +546,12 @@ describe("isDraftUnmodified", () => {
   it("should compare Gmail drafts using structural HTML when available", () => {
     const result = isDraftUnmodified({
       originalContent:
-        'My reply\n\nDrafted by <a href="http://localhost:3000/?ref=ABC">Inbox Zero</a>.',
+        'My reply\n\nDrafted by <a href="http://localhost:3000/?ref=ABC">OneMail</a>.',
       currentDraft: createParsedMessage({
         textPlain:
-          "My reply\n\nDrafted by Inbox Zero [http://localhost:3000/?ref=ABC].\n\nLe lun. 27 avr. 2026, Sender a écrit:\nQuoted content",
+          "My reply\n\nDrafted by OneMail [http://localhost:3000/?ref=ABC].\n\nLe lun. 27 avr. 2026, Sender a écrit:\nQuoted content",
         textHtml:
-          '<div dir="ltr">My reply<br><br>Drafted by <a href="http://localhost:3000/?ref=ABC">Inbox Zero</a>.</div><br><div class="gmail_quote gmail_quote_container"><div dir="ltr" class="gmail_attr">Le lun. 27 avr. 2026, Sender a écrit:<br></div><blockquote class="gmail_quote"><div>Quoted content</div></blockquote></div>',
+          '<div dir="ltr">My reply<br><br>Drafted by <a href="http://localhost:3000/?ref=ABC">OneMail</a>.</div><br><div class="gmail_quote gmail_quote_container"><div dir="ltr" class="gmail_attr">Le lun. 27 avr. 2026, Sender a écrit:<br></div><blockquote class="gmail_quote"><div>Quoted content</div></blockquote></div>',
       }),
       logger,
     });

@@ -77,6 +77,7 @@ import {
   attachmentSourceInputSchema,
   selectedAttachmentSchema,
 } from "@/utils/attachments/source-schema";
+import { BRAND_NAME } from "@/utils/branding";
 
 const DRAFT_PREVIEW_MAX_CHARS = 900;
 const SUMMARY_PREVIEW_MAX_CHARS = 2000;
@@ -2642,8 +2643,8 @@ function getLinkedProviderLimitationText({
 
   if (isDraftReplyActionType(actionType)) {
     return provider === MessagingProvider.TEAMS
-      ? "One-click draft editing and sending aren't available in Teams yet. Use Inbox Zero to review or send this draft."
-      : "Draft editing isn't available in Telegram yet. You can send this draft from Telegram or use Inbox Zero to revise it first.";
+      ? `One-click draft editing and sending aren't available in Teams yet. Use ${BRAND_NAME} to review or send this draft.`
+      : `Draft editing isn't available in Telegram yet. You can send this draft from Telegram or use ${BRAND_NAME} to revise it first.`;
   }
 
   return `Quick actions like archive and mark read are Slack-only right now, so this ${providerName} message is view-only.`;

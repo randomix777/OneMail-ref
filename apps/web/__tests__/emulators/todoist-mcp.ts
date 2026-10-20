@@ -8,7 +8,7 @@ import {
 
 /**
  * Mini Todoist MCP emulator: a local streamable-HTTP MCP server mimicking
- * ai.todoist.net/mcp for the tools Inbox Zero uses (`add-tasks`,
+ * ai.todoist.net/mcp for the tools OneMail uses (`add-tasks`,
  * `find-projects`). Auth is ignored. Point the app at it with
  * MCP_SERVER_URL_OVERRIDES={"todoist":"http://localhost:<port>/mcp"}.
  */

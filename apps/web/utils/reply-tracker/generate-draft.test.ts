@@ -42,7 +42,7 @@ vi.mock("@/utils/referral/referral-code", () => ({
 vi.mock("@/utils/referral/referral-link", () => ({
   generateReferralLink: vi
     .fn()
-    .mockReturnValue("https://getinboxzero.com/?ref=TEST123"),
+    .mockReturnValue("https://jyisolutions.com/?ref=TEST123"),
 }));
 
 vi.mock("@/utils/ai/knowledge/extract", () => ({
@@ -95,7 +95,7 @@ vi.mock("@/utils/ai/knowledge/extract-from-email-history", () => ({
 
 vi.mock("@/env", () => ({
   env: {
-    NEXT_PUBLIC_BRAND_NAME: "Inbox Zero",
+    NEXT_PUBLIC_BRAND_NAME: "OneMail",
     NEXT_PUBLIC_DISABLE_REFERRAL_SIGNATURE: false,
   },
 }));
@@ -214,7 +214,7 @@ describe("fetchMessagesAndGenerateDraft - AI content escaping", () => {
 
     // Referral signature HTML should NOT be escaped - link should work
     expect(result).toContain(
-      '<a href="https://getinboxzero.com/?ref=TEST123">Inbox Zero</a>',
+      '<a href="https://jyisolutions.com/?ref=TEST123">OneMail</a>',
     );
 
     // User signature HTML should NOT be escaped
@@ -441,7 +441,7 @@ describe("fetchMessagesAndGenerateDraft - AI content escaping", () => {
     );
 
     expect(result).toBe(
-      'What do you think about it?\n\nCheers!<br>Barbara\n\nDrafted by <a href="https://getinboxzero.com/?ref=TEST123">Inbox Zero</a>.',
+      'What do you think about it?\n\nCheers!<br>Barbara\n\nDrafted by <a href="https://jyisolutions.com/?ref=TEST123">OneMail</a>.',
     );
   });
 

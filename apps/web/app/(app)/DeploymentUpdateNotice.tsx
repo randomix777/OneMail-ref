@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { toastInfo } from "@/components/Toast";
 import type { DeploymentResponse } from "@/app/api/deployment/route";
+import { BRAND_NAME } from "@/utils/branding";
 
 const CHECK_INTERVAL_MS = 10 * 60 * 1000;
 const MIN_CHECK_GAP_MS = 60 * 1000;
@@ -29,7 +30,7 @@ export function DeploymentUpdateNotice() {
         notified = true;
         toastInfo({
           id: "deployment-update",
-          title: "Inbox Zero has been updated",
+          title: `${BRAND_NAME} has been updated`,
           description: "Reload to get the latest version.",
           duration: Number.POSITIVE_INFINITY,
           action: { label: "Reload", onClick: () => window.location.reload() },

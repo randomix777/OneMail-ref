@@ -11,6 +11,7 @@ import {
 } from "./aws-setup/ssm-urls";
 import { getDefaultLlmModels } from "./llm";
 import { generateSecret } from "./utils";
+import { BRAND_NAME } from "./brand";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Types
@@ -97,7 +98,7 @@ const ENVIRONMENT_NAME_ERROR =
 // ═══════════════════════════════════════════════════════════════════════════
 
 export async function runAwsSetup(options: AwsSetupOptions) {
-  p.intro("AWS Copilot Setup for Inbox Zero");
+  p.intro(`AWS Copilot Setup for ${BRAND_NAME}`);
 
   const environmentError = validateEnvironmentName(options.environment);
   if (environmentError) {
@@ -1479,7 +1480,7 @@ function resetServiceManifestVariables(): void {
   let content = readFileSync(manifestPath, "utf-8");
   content = content.replace(
     /^\s*NEXT_PUBLIC_BASE_URL:.*$/m,
-    "  NEXT_PUBLIC_BASE_URL: # YOUR_DOMAIN, e.g. https://www.getinboxzero.com (with http or https)",
+    "  NEXT_PUBLIC_BASE_URL: # YOUR_DOMAIN, e.g. https://www.jyisolutions.com (with http or https)",
   );
   content = content.replace(/^\s*DEFAULT_LLM_PROVIDER:.*\n?/m, "");
   content = content.replace(/^\s*DEFAULT_LLM_MODEL:.*\n?/m, "");

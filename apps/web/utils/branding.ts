@@ -1,10 +1,18 @@
 import { env } from "@/env";
+import { DEFAULT_BRAND_NAME } from "@/utils/constants/brand";
 
-export const BRAND_NAME = env.NEXT_PUBLIC_BRAND_NAME;
+export const BRAND_NAME = env.NEXT_PUBLIC_BRAND_NAME || DEFAULT_BRAND_NAME;
 export const BRAND_LOGO_URL = env.NEXT_PUBLIC_BRAND_LOGO_URL?.trim();
 export const BRAND_ICON_URL =
   env.NEXT_PUBLIC_BRAND_ICON_URL?.trim() || "/icon.png";
 export const SUPPORT_EMAIL = env.NEXT_PUBLIC_SUPPORT_EMAIL;
+
+/**
+ * Legal entity shown in the footer. A white-labelled deployment keeps its own
+ * name, so only the default brand gets the company suffix.
+ */
+export const BRAND_LEGAL_NAME =
+  BRAND_NAME === DEFAULT_BRAND_NAME ? `${BRAND_NAME} Inc.` : BRAND_NAME;
 
 export function getBrandTitle(pageTitle: string) {
   return `${BRAND_NAME} | ${pageTitle}`;

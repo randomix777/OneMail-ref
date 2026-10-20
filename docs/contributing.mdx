@@ -1,15 +1,15 @@
 ---
 title: 'Contributing'
-description: 'Set up Inbox Zero for local development'
+description: 'Set up OneMail for local development'
 ---
 
-This guide is for developers who want to run Inbox Zero locally and contribute to the project.
+This guide is for developers who want to run OneMail locally and contribute to the project.
 
 <iframe
   width="560"
   height="315"
   src="https://www.youtube.com/embed/hVQENQ4WT2Y"
-  title="Set up Inbox Zero locally"
+  title="Set up OneMail locally"
   frameBorder="0"
   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
   allowFullScreen
@@ -96,6 +96,49 @@ The fastest way to get started is using [devcontainers](https://containers.dev/)
    ```
 
 The app will be available at [http://localhost:3000](http://localhost:3000).
+
+## Syncing with the upstream project
+
+OneMail is a fork of [elie222/inbox-zero](https://github.com/elie222/inbox-zero). The
+original project is the code base everything is built on, and it still receives
+upstream fixes. Your fork is `randomix777/OneMail-ref`, so `origin` already points
+at your copy.
+
+Add the original project as a second remote so you can pull its changes in:
+
+```bash
+git remote add upstream https://github.com/elie222/inbox-zero.git
+git fetch upstream
+```
+
+Bring upstream changes into a branch:
+
+```bash
+git checkout main
+git fetch upstream
+git merge upstream/main
+```
+
+Or rebase your branch on top of upstream instead:
+
+```bash
+git checkout main
+git rebase upstream/main
+```
+
+### What still points at the original project
+
+Some identifiers cannot be renamed from this repository, because they are
+contracts with software that is published separately:
+
+| Identifier | What it is |
+| --- | --- |
+| `com.getinboxzero.app` | The published iOS and Android apps. The push topic, the Android asset links and the in-app sign-in all use it. |
+| `com.getinboxzero.desktop` | The published desktop app. |
+| `com.getinboxzero.starter.*.v2` | Apple in-app purchase product ids. |
+| `inboxzero://` | The custom URL scheme the mobile app opens for sign-in. |
+| `@inboxzero/*` | The published npm packages. |
+| `inbox-zero-ai` | The workspace package name used by `pnpm --filter inbox-zero-ai ...`. |
 
 ## Configuration
 
@@ -185,4 +228,4 @@ To understand the codebase, we recommend connecting the repo to an AI coding too
 
 For troubleshooting common issues (rate limiting, OAuth errors, etc.), see the [Troubleshooting](/hosting/troubleshooting) page.
 
-View open tasks in [GitHub Issues](https://github.com/elie222/inbox-zero/issues) and join the [Discord](https://www.getinboxzero.com/discord) to discuss what's being worked on.
+View open tasks in [GitHub Issues](https://github.com/randomix777/OneMail-ref/issues) and join the [Discord](https://www.jyisolutions.com/discord) to discuss what's being worked on.

@@ -168,7 +168,7 @@ describe("sendEmailWithHtml", () => {
       client,
       {
         to: "Recipient Name <recipient@example.com>",
-        replyTo: "Inbox Zero Assistant <owner+ai@example.com>",
+        replyTo: "OneMail Assistant <owner+ai@example.com>",
         subject: "Subject",
         messageHtml: "<p>Hello</p>",
       },
@@ -189,7 +189,7 @@ describe("sendEmailWithHtml", () => {
           {
             emailAddress: {
               address: "owner+ai@example.com",
-              name: "Inbox Zero Assistant",
+              name: "OneMail Assistant",
             },
           },
         ],

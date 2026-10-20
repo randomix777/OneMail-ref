@@ -15,7 +15,7 @@
 
 services:
   app:
-    image: ${FULL_IMAGE:-ghcr.io/your-username/inbox-zero}:latest
+    image: ${FULL_IMAGE:-ghcr.io/your-username/one-mail}:latest
     ports:
       - "3000:3000"
     env_file:

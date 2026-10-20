@@ -31,7 +31,7 @@ export default function NotFound() {
               <Link href="/llms.txt">Agent Instructions</Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="https://docs.getinboxzero.com">Documentation</Link>
+              <Link href="https://docs.jyisolutions.com">Documentation</Link>
             </Button>
           </div>
         }

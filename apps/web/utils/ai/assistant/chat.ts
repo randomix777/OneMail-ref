@@ -50,6 +50,7 @@ import { getAssistantChatProvider } from "./chat-provider-shared";
 import { LlmUseCase } from "@/utils/llms/use-cases";
 import { isIntegrationActionEnabledForUserId } from "@/utils/integration-action.server";
 import { trimStaleToolResults } from "@/utils/ai/assistant/trim-stale-tool-results";
+import { BRAND_NAME } from "@/utils/branding";
 
 export const maxDuration = 800;
 // Increment when chat prompts, tools, or routing change so run quality remains attributable.
@@ -731,7 +732,7 @@ export function buildResolvedSystemPrompt({
 }) {
   const providerPolicy = getAssistantChatProvider(provider);
   const sections = [
-    "You are the Inbox Zero assistant. You help users understand their inbox, take inbox actions, update account features, and manage automation rules.",
+    `You are the ${BRAND_NAME} assistant. You help users understand their inbox, take inbox actions, update account features, and manage automation rules.`,
     `Core responsibilities:
 1. Search and summarize inbox activity, especially what is new and what needs attention
 2. Take inbox actions such as archive, trash/delete, mark read, bulk archive by sender, and sender unsubscribe

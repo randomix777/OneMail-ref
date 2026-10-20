@@ -174,7 +174,7 @@ async function waitForMetadataCoverage(page: Page) {
     .poll(
       async () =>
         page.evaluate(async () => {
-          const seam = window.__inboxZeroMailInspect;
+          const seam = window.__mailInspect;
           if (!seam) return { present: false, coverageComplete: false };
           const diagnostics = (await seam.read()) as {
             coverage?: Array<{ metadata: string }>;
@@ -196,7 +196,7 @@ async function waitForMetadataCoverage(page: Page) {
 async function readAssistantCatchUp(page: Page) {
   try {
     return await page.evaluate(async (messageId) => {
-      const seam = window.__inboxZeroMailInspect;
+      const seam = window.__mailInspect;
       if (!seam?.inspect) return;
       const snapshot = (await seam.inspect()) as {
         accounts?: Array<{ assistantCursor: string | null }>;

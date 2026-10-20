@@ -28,7 +28,7 @@ Connect to your VPS and install:
 
 ### 2. Setup and Configure
 
-The easiest way to get started is with the Inbox Zero CLI. You can either use it standalone or from within the cloned repo.
+The easiest way to get started is with the OneMail CLI. You can either use it standalone or from within the cloned repo.
 
 **Option A: Standalone (no clone needed)**
 
@@ -44,8 +44,8 @@ Recommended choices for first-time self-hosting:
 **Option B: From the cloned repo**
 
 ```bash
-git clone https://github.com/elie222/inbox-zero.git
-cd inbox-zero
+git clone https://github.com/randomix777/OneMail-ref.git
+cd OneMail-ref
 corepack enable
 pnpm install
 pnpm run setup
@@ -90,7 +90,7 @@ Start the services with the command setup printed. From a cloned repo, you can a
 NEXT_PUBLIC_BASE_URL=https://yourdomain.com docker compose --env-file apps/web/.env --profile all up -d
 ```
 
-The pre-built Docker image is hosted at `ghcr.io/elie222/inbox-zero:latest` and will be automatically pulled.
+The pre-built Docker image is hosted at `ghcr.io/randomix777/OneMail-ref:latest` and will be automatically pulled.
 
 **Important**: Compose-time `${...}` values are resolved before service-level `env_file` entries are loaded. If you're running from a cloned repo, make sure Compose can see the same values as the app by linking or copying `apps/web/.env` to the repo root as `.env`. The CLI setup does this automatically for the default configuration and preserves existing user-managed root files. Copied files are refreshed only while their contents match the last CLI-written version; changed copies and retargeted links are preserved with a warning. For manual setup, run `ln -s apps/web/.env .env` once from the repo root before `docker compose up`. If a root `.env` already exists, review it before replacing it, or use `docker compose --env-file apps/web/.env --profile all up -d`. Shell environment values still take precedence.
 
@@ -185,7 +185,7 @@ Replace `YOUR_CRON_SECRET` with the value of `CRON_SECRET` from your `.env` file
 
 ## Optional: Background Job Backends
 
-Inbox Zero supports multiple background job backends for self-hosted deployments:
+OneMail supports multiple background job backends for self-hosted deployments:
 
 - **QStash**: best when you want a managed queue and are already using Upstash.
 - **BullMQ worker**: best when you're running Docker or another long-lived environment and want a local durable queue backed by Redis.
@@ -241,8 +241,8 @@ If you prefer to build the image yourself instead of using the pre-built one:
 
 ```bash
 # Clone the repository
-git clone https://github.com/elie222/inbox-zero.git
-cd inbox-zero
+git clone https://github.com/randomix777/OneMail-ref.git
+cd OneMail-ref
 
 # Install dependencies and configure environment (auto-generates secrets)
 corepack enable

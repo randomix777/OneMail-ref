@@ -3,6 +3,7 @@
 import { AnnouncementVideo } from "@/components/feature-announcements/AnnouncementVideo";
 import { EMAIL_CLIENT_LAUNCH_VIDEO_ID } from "@/utils/announcements";
 import { OnboardingFeatureStep } from "./OnboardingFeatureStep";
+import { BRAND_NAME } from "@/utils/branding";
 
 export function StepMailApp({ onNext }: { onNext: () => void }) {
   return (
@@ -12,7 +13,7 @@ export function StepMailApp({ onNext }: { onNext: () => void }) {
           <AnnouncementVideo
             playbackId={EMAIL_CLIENT_LAUNCH_VIDEO_ID}
             thumbnailTime={1.5}
-            title="Meet the Inbox Zero email app"
+            title={`Meet the ${BRAND_NAME} email app`}
           />
         </div>
       }

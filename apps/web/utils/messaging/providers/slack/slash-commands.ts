@@ -21,6 +21,7 @@ import { markdownToSlackMrkdwn } from "@/utils/messaging/providers/slack/format"
 import { disableSlackLinkUnfurls } from "@/utils/messaging/providers/slack/send";
 import prisma from "@/utils/prisma";
 import { getEmailAccountWithAi } from "@/utils/user/get";
+import { BRAND_NAME } from "@/utils/branding";
 
 const MAX_CHAT_CONTEXT_MESSAGES = 12;
 
@@ -63,7 +64,7 @@ export async function processSlackSlashCommand({
   if (!channel) {
     await postToSlackResponseUrl(responseUrl, {
       response_type: "ephemeral",
-      text: "Your Slack account isn't connected to Inbox Zero. Connect it from your Inbox Zero settings page.",
+      text: `Your Slack account isn't connected to ${BRAND_NAME}. Connect it from your ${BRAND_NAME} settings page.`,
     });
     return;
   }

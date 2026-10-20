@@ -15,10 +15,10 @@ function release(
   return {
     tag_name: tagName,
     prerelease,
-    html_url: `https://github.com/elie222/inbox-zero/releases/tag/${tagName}`,
+    html_url: `https://github.com/randomix777/OneMail-ref/releases/tag/${tagName}`,
     assets: assets.map((name) => ({
       name,
-      browser_download_url: `https://github.com/elie222/inbox-zero/releases/download/${tagName}/${name}`,
+      browser_download_url: `https://github.com/randomix777/OneMail-ref/releases/download/${tagName}/${name}`,
     })),
   };
 }
@@ -26,15 +26,15 @@ function release(
 const DOWNLOADS: DesktopDownloadLinks = {
   version: "0.2.0",
   releaseUrl:
-    "https://github.com/elie222/inbox-zero/releases/tag/desktop-v0.2.0",
+    "https://github.com/randomix777/OneMail-ref/releases/tag/desktop-v0.2.0",
   macArm64Dmg:
-    "https://github.com/elie222/inbox-zero/releases/download/desktop-v0.2.0/Inbox-Zero-0.2.0-mac-arm64.dmg",
+    "https://github.com/randomix777/OneMail-ref/releases/download/desktop-v0.2.0/Inbox-Zero-0.2.0-mac-arm64.dmg",
   macX64Dmg:
-    "https://github.com/elie222/inbox-zero/releases/download/desktop-v0.2.0/Inbox-Zero-0.2.0-mac-x64.dmg",
+    "https://github.com/randomix777/OneMail-ref/releases/download/desktop-v0.2.0/Inbox-Zero-0.2.0-mac-x64.dmg",
   winX64Exe:
-    "https://github.com/elie222/inbox-zero/releases/download/desktop-v0.2.0/Inbox-Zero-0.2.0-win-x64.exe",
+    "https://github.com/randomix777/OneMail-ref/releases/download/desktop-v0.2.0/Inbox-Zero-0.2.0-win-x64.exe",
   winArm64Exe:
-    "https://github.com/elie222/inbox-zero/releases/download/desktop-v0.2.0/Inbox-Zero-0.2.0-win-arm64.exe",
+    "https://github.com/randomix777/OneMail-ref/releases/download/desktop-v0.2.0/Inbox-Zero-0.2.0-win-arm64.exe",
 };
 
 describe("pickLatestDesktopRelease", () => {

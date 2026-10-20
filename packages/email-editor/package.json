@@ -2,7 +2,7 @@
   "name": "@inboxzero/email-editor",
   "version": "0.1.0",
   "private": true,
-  "description": "Portable email HTML contracts and a Squire web editor for Inbox Zero",
+  "description": "Portable email HTML contracts and a Squire web editor for OneMail",
   "license": "SEE LICENSE IN ../../LICENSE",
   "keywords": [
     "email",
@@ -11,13 +11,13 @@
     "react",
     "squire"
   ],
-  "homepage": "https://github.com/elie222/inbox-zero/tree/main/packages/email-editor#readme",
+  "homepage": "https://github.com/randomix777/OneMail-ref/tree/main/packages/email-editor#readme",
   "bugs": {
-    "url": "https://github.com/elie222/inbox-zero/issues"
+    "url": "https://github.com/randomix777/OneMail-ref/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elie222/inbox-zero.git",
+    "url": "git+https://github.com/randomix777/OneMail-ref.git",
     "directory": "packages/email-editor"
   },
   "type": "module",

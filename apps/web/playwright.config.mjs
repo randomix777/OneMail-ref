@@ -295,7 +295,7 @@ export default defineConfig({
         RESEND_API_KEY: "playwright-email-key",
         RESEND_BASE_URL: emailBaseUrl,
         RESEND_AUDIENCE_ID: "playwright-audience",
-        RESEND_FROM_EMAIL: "Inbox Zero <signin@example.com>",
+        RESEND_FROM_EMAIL: "OneMail <signin@example.com>",
         LOOPS_API_SECRET: "",
         DUB_API_KEY: "",
         FB_CONVERSION_API_ACCESS_TOKEN: "",
@@ -491,7 +491,7 @@ function createCalendarInviteMessage({ recipient, start, end }) {
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Inbox Zero//Playwright//EN",
+    "PRODID:-//OneMail//Playwright//EN",
     "METHOD:REQUEST",
     "BEGIN:VEVENT",
     "UID:playwright-calendar-invite@example.com",

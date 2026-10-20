@@ -13,7 +13,7 @@ The **Call webhook** rule action sends a JSON request to an external service whe
 3. Enter a publicly reachable HTTP or HTTPS endpoint.
 4. Save the rule.
 
-Inbox Zero validates webhook destinations and rejects unsafe or private-network addresses.
+OneMail validates webhook destinations and rejects unsafe or private-network addresses.
 
 ## Request Contract
 
@@ -23,7 +23,7 @@ Inbox Zero validates webhook destinations and rejects unsafe or private-network 
 - **Success response:** Any `2xx` status
 - **Timeout:** 1 second
 
-Inbox Zero does not wait for or parse the response body. A timeout, blocked destination, network failure, or non-`2xx` response is logged but does not stop the remaining rule actions. Webhook calls are not retried, so the endpoint should acknowledge quickly and queue longer work asynchronously.
+OneMail does not wait for or parse the response body. A timeout, blocked destination, network failure, or non-`2xx` response is logged but does not stop the remaining rule actions. Webhook calls are not retried, so the endpoint should acknowledge quickly and queue longer work asynchronously.
 
 ## Payload
 

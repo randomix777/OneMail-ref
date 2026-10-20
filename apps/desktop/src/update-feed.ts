@@ -5,7 +5,7 @@ import {
   isPrereleaseDesktopVersion,
 } from "../../web/utils/desktop/desktop-version.ts";
 
-export const DESKTOP_GITHUB_REPO = "elie222/inbox-zero";
+export const DESKTOP_GITHUB_REPO = "randomix777/OneMail-ref";
 export const DESKTOP_UPDATE_FEED_TAG = "desktop-updates";
 export const DESKTOP_TAG_PREFIX = "desktop-v";
 

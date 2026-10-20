@@ -556,9 +556,9 @@ const testCases = [
   {
     email: getEmail({
       from: "lisa@techcrunch.com",
-      subject: "Interview request — Inbox Zero feature for TechCrunch",
+      subject: "Interview request — OneMail feature for TechCrunch",
       content:
-        "Hi Elie,\n\nI'm writing a piece about the new wave of AI email tools for TechCrunch and would love to include Inbox Zero. Could we schedule a 20-minute call this week or early next week? I'm flexible on timing.\n\nAlternatively, I can send over questions via email if that's easier.\n\nThanks,\nLisa Chen\nSenior Reporter, TechCrunch",
+        "Hi Elie,\n\nI'm writing a piece about the new wave of AI email tools for TechCrunch and would love to include OneMail. Could we schedule a 20-minute call this week or early next week? I'm flexible on timing.\n\nAlternatively, I can send over questions via email if that's easier.\n\nThanks,\nLisa Chen\nSenior Reporter, TechCrunch",
     }),
     expectedRule: ["Calendar", "Conversations"],
   },
@@ -580,7 +580,7 @@ const testCases = [
       from: "team@producthunt.com",
       subject: "Top 5 products this week + exclusive launch offer",
       content:
-        "This week on Product Hunt:\n\n1. ArcBrowser 2.0 — The browser that thinks for you (4,200 upvotes)\n2. Notion Calendar — Finally, a calendar that connects to your docs\n3. Cursor Pro — AI-powered IDE goes enterprise\n4. Inbox Zero — AI email management hits 100K users 🎉\n5. Fig 2.0 — Terminal autocomplete gets smarter\n\n🔥 Special offer: Get 50% off any Product of the Day this week with code PH50.\n\nHappy hunting,\nThe Product Hunt Team",
+        "This week on Product Hunt:\n\n1. ArcBrowser 2.0 — The browser that thinks for you (4,200 upvotes)\n2. Notion Calendar — Finally, a calendar that connects to your docs\n3. Cursor Pro — AI-powered IDE goes enterprise\n4. OneMail — AI email management hits 100K users 🎉\n5. Fig 2.0 — Terminal autocomplete gets smarter\n\n🔥 Special offer: Get 50% off any Product of the Day this week with code PH50.\n\nHappy hunting,\nThe Product Hunt Team",
     }),
     expectedRule: ["Newsletter", "Marketing"],
   },

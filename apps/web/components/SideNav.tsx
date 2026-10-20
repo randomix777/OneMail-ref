@@ -301,7 +301,7 @@ export function SideNav({
         {state.includes("left-sidebar") ? (
           <div className="flex items-center rounded-md pl-2 pr-0.5 py-3 text-foreground">
             <Link href={navigation.homeHref} data-hide-on-desktop-mac>
-              <Logo className="h-3.5" />
+              <Logo className="text-sm" />
             </Link>
             <SidebarTrigger name="left-sidebar" className="ml-auto" />
           </div>

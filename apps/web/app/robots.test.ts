@@ -20,7 +20,7 @@ describe("robots route", () => {
 
   it("returns the existing production rules", async () => {
     const robots = await loadRobots(
-      "https://www.getinboxzero.com",
+      "https://www.jyisolutions.com",
       "production",
     );
 
@@ -31,15 +31,15 @@ describe("robots route", () => {
         disallow: "/components",
       },
       sitemap: [
-        "https://www.getinboxzero.com/sitemap.xml",
-        "https://docs.getinboxzero.com/sitemap.xml",
+        "https://www.jyisolutions.com/sitemap.xml",
+        "https://docs.jyisolutions.com/sitemap.xml",
       ],
     });
   });
 
   it("disallows every path and omits the sitemap when indexing is off", async () => {
     const robots = await loadRobots(
-      "https://staging.getinboxzero.com",
+      "https://staging.jyisolutions.com",
       "production",
     );
 

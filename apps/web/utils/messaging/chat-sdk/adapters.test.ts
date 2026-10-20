@@ -38,7 +38,7 @@ import { getMessagingAdapterRegistry } from "@/utils/messaging/chat-sdk/adapters
 describe("getMessagingAdapterRegistry", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.inboxZeroMessagingAdapterRegistry = undefined;
+    global.mailMessagingAdapterRegistry = undefined;
     resetMockEnv();
   });
 

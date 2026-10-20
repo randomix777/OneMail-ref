@@ -480,7 +480,7 @@ describe("trackSentDraftStatus", () => {
 
   it("records body similarity after removing product referral footer text", async () => {
     const draftText =
-      'Generated reply.\n\nDrafted by <a href="https://example.com/ref">Inbox Zero</a>.';
+      'Generated reply.\n\nDrafted by <a href="https://example.com/ref">OneMail</a>.';
     vi.mocked(prisma.executedAction.findFirst).mockResolvedValue({
       id: "action-1",
       draftId: "draft-1",
@@ -496,7 +496,7 @@ describe("trackSentDraftStatus", () => {
       emailAccountId: "account-1",
       message: {
         ...createSentMessage(),
-        textPlain: "Generated reply.\n\nDrafted by Inbox Zero.",
+        textPlain: "Generated reply.\n\nDrafted by OneMail.",
         textHtml: undefined,
       },
       provider: {

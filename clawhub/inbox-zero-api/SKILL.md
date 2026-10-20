@@ -1,7 +1,7 @@
 ---
 name: inbox-zero-api
 description: Use the Inbox Zero API CLI to inspect the live API schema, list and manage automation rules, and read inbox analytics through the public API. Use this when a task involves Inbox Zero rules, stats, or API-driven automation and can be solved through the CLI instead of browser interaction.
-homepage: https://www.getinboxzero.com/api-reference/cli
+homepage: https://www.jyisolutions.com/api-reference/cli
 metadata: { "openclaw": { "skillKey": "inboxZeroApi", "requires": { "bins": ["inbox-zero-api"], "env": ["INBOX_ZERO_API_KEY"] }, "primaryEnv": "INBOX_ZERO_API_KEY", "install": [ { "id": "node", "kind": "node", "package": "@inbox-zero/api", "bins": ["inbox-zero-api"], "label": "Install Inbox Zero API CLI (npm)" } ] } }
 ---
 

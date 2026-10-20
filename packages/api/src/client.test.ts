@@ -11,14 +11,14 @@ afterEach(() => {
 
 describe("normalizeBaseUrl", () => {
   it("appends the API path when given a site origin", () => {
-    expect(normalizeBaseUrl("https://www.getinboxzero.com")).toBe(
-      "https://www.getinboxzero.com/api/v1",
+    expect(normalizeBaseUrl("https://www.jyisolutions.com")).toBe(
+      "https://www.jyisolutions.com/api/v1",
     );
   });
 
   it("keeps an existing api/v1 base URL unchanged", () => {
-    expect(normalizeBaseUrl("https://www.getinboxzero.com/api/v1")).toBe(
-      "https://www.getinboxzero.com/api/v1",
+    expect(normalizeBaseUrl("https://www.jyisolutions.com/api/v1")).toBe(
+      "https://www.jyisolutions.com/api/v1",
     );
   });
 
@@ -38,21 +38,21 @@ describe("normalizeBaseUrl", () => {
 describe("buildApiUrl", () => {
   it("joins the base URL, path, and query params", () => {
     expect(
-      buildApiUrl("https://www.getinboxzero.com", "/stats/by-period", {
+      buildApiUrl("https://www.jyisolutions.com", "/stats/by-period", {
         period: "week",
         fromDate: "123",
       }),
     ).toBe(
-      "https://www.getinboxzero.com/api/v1/stats/by-period?period=week&fromDate=123",
+      "https://www.jyisolutions.com/api/v1/stats/by-period?period=week&fromDate=123",
     );
   });
 
   it("keeps empty-string query values", () => {
     expect(
-      buildApiUrl("https://www.getinboxzero.com", "/stats/by-period", {
+      buildApiUrl("https://www.jyisolutions.com", "/stats/by-period", {
         fromDate: "",
       }),
-    ).toBe("https://www.getinboxzero.com/api/v1/stats/by-period?fromDate=");
+    ).toBe("https://www.jyisolutions.com/api/v1/stats/by-period?fromDate=");
   });
 });
 
@@ -74,7 +74,7 @@ describe("ApiClient errors", () => {
 
     const client = new ApiClient({
       apiKey: "test-key",
-      baseUrl: "https://www.getinboxzero.com",
+      baseUrl: "https://www.jyisolutions.com",
     });
 
     await expect(client.get("/rules")).rejects.toThrow("Missing API key");

@@ -20,12 +20,12 @@ permissions:
 
 env:
   DOCKER_IMAGE_REGISTRY: "ghcr.io"
-  DOCKER_USERNAME: "elie222"
+  DOCKER_USERNAME: "randomix777"
   DEPOT_PROJECT_ID: "2s1sh2pjrf"
 
 jobs:
   build-docker:
-    if: github.repository == 'elie222/inbox-zero'
+    if: github.repository == 'randomix777/OneMail-ref'
     name: "Build Docker Image"
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -41,8 +41,8 @@ jobs:
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: |
-            ghcr.io/${{ env.DOCKER_USERNAME }}/inbox-zero
-            ${{ env.DOCKER_USERNAME }}/inbox-zero
+            ghcr.io/${{ env.DOCKER_USERNAME }}/one-mail
+            ${{ env.DOCKER_USERNAME }}/one-mail
           tags: |
             # Always tag with short SHA
             type=sha,prefix=
@@ -84,6 +84,6 @@ jobs:
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ env.DOCKER_USERNAME }}/inbox-zero
-          short-description: "Inbox Zero - AI email assistant for Gmail and Outlook to reach inbox zero fast"
+          repository: ${{ env.DOCKER_USERNAME }}/one-mail
+          short-description: "OneMail - AI email assistant for Gmail, Outlook and any IMAP mailbox to reach inbox zero fast"
           readme-filepath: ./README.md

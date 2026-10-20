@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Inbox Zero Documentation",
+  "name": "OneMail Documentation",
   "colors": {
     "primary": "#2563eb",
     "light": "#60a5fa",
@@ -191,12 +191,12 @@
         },
         {
           "anchor": "Community",
-          "href": "https://getinboxzero.com/discord",
+          "href": "https://jyisolutions.com/discord",
           "icon": "discord"
         },
         {
           "anchor": "Blog",
-          "href": "https://www.getinboxzero.com/blog",
+          "href": "https://www.jyisolutions.com/blog",
           "icon": "newspaper"
         }
       ]
@@ -213,20 +213,20 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:support@getinboxzero.com"
+        "href": "mailto:support@jyisolutions.com"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://www.getinboxzero.com/welcome"
+      "href": "https://www.jyisolutions.com/welcome"
     }
   },
   "footer": {
     "socials": {
-      "twitter": "https://www.getinboxzero.com/twitter",
-      "github": "https://www.getinboxzero.com/github",
-      "linkedin": "https://www.getinboxzero.com/linkedin"
+      "twitter": "https://www.jyisolutions.com/twitter",
+      "github": "https://www.jyisolutions.com/github",
+      "linkedin": "https://www.jyisolutions.com/linkedin"
     }
   }
 }

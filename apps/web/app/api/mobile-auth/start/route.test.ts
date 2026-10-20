@@ -12,7 +12,7 @@ const {
   mockEnv: {
     DESKTOP_AUTH_ORIGIN: "inboxzero://",
     MOBILE_AUTH_ORIGIN: "inboxzero://",
-    NEXT_PUBLIC_BASE_URL: "https://www.getinboxzero.com",
+    NEXT_PUBLIC_BASE_URL: "https://www.jyisolutions.com",
   },
   storeMobileAuthStateMock: vi.fn(),
 }));
@@ -46,7 +46,7 @@ describe("mobile auth start route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockEnv.MOBILE_AUTH_ORIGIN = "inboxzero://";
-    mockEnv.NEXT_PUBLIC_BASE_URL = "https://www.getinboxzero.com";
+    mockEnv.NEXT_PUBLIC_BASE_URL = "https://www.jyisolutions.com";
     createMobileAuthStateMock.mockReturnValue("state-1234567890");
     storeMobileAuthStateMock.mockResolvedValue(undefined);
     handlerMock.mockResolvedValue(
@@ -70,7 +70,7 @@ describe("mobile auth start route", () => {
   it("rejects clients that omit codeChallenge", async () => {
     await expect(
       POST(
-        new NextRequest("https://www.getinboxzero.com/api/mobile-auth/start", {
+        new NextRequest("https://www.jyisolutions.com/api/mobile-auth/start", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ provider: "google" }),
@@ -83,7 +83,7 @@ describe("mobile auth start route", () => {
 
   it("starts mobile social auth with a server-generated state", async () => {
     const response = await POST(
-      new NextRequest("https://www.getinboxzero.com/api/mobile-auth/start", {
+      new NextRequest("https://www.jyisolutions.com/api/mobile-auth/start", {
         body: JSON.stringify({
           provider: "google",
           codeChallenge: "a".repeat(43),
@@ -99,7 +99,7 @@ describe("mobile auth start route", () => {
     await expect(response.json()).resolves.toEqual({
       authorizationURL:
         "https://accounts.google.com/o/oauth2/v2/auth?client_id=client&state=provider-state",
-      authSessionReturnUrl: "https://www.getinboxzero.com/auth-callback",
+      authSessionReturnUrl: "https://www.jyisolutions.com/auth-callback",
       oauthState: "encrypted-oauth-state",
       state: "state-1234567890",
     });
@@ -114,16 +114,16 @@ describe("mobile auth start route", () => {
     expect(handlerMock).toHaveBeenCalledOnce();
     const [signInRequest] = handlerMock.mock.calls[0] as [Request];
     expect(signInRequest.url).toBe(
-      "https://www.getinboxzero.com/api/auth/sign-in/social",
+      "https://www.jyisolutions.com/api/auth/sign-in/social",
     );
     await expect(signInRequest.json()).resolves.toEqual({
       provider: "google",
       callbackURL:
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890&completion=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890&completion=state-1234567890",
       errorCallbackURL:
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890",
       newUserCallbackURL:
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890&completion=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890&completion=state-1234567890",
       disableRedirect: true,
     });
   });
@@ -175,7 +175,7 @@ describe("mobile auth start route", () => {
 
   it("starts mobile social auth with a custom-scheme return URL when requested", async () => {
     const response = await POST(
-      new NextRequest("https://www.getinboxzero.com/api/mobile-auth/start", {
+      new NextRequest("https://www.jyisolutions.com/api/mobile-auth/start", {
         body: JSON.stringify({
           provider: "google",
           codeChallenge: "a".repeat(43),
@@ -208,11 +208,11 @@ describe("mobile auth start route", () => {
     await expect(signInRequest.json()).resolves.toEqual({
       provider: "google",
       callbackURL:
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890&completion=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890&completion=state-1234567890",
       errorCallbackURL:
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890",
       newUserCallbackURL:
-        "https://www.getinboxzero.com/api/mobile-auth/callback?state=state-1234567890&completion=state-1234567890",
+        "https://www.jyisolutions.com/api/mobile-auth/callback?state=state-1234567890&completion=state-1234567890",
       disableRedirect: true,
     });
   });
@@ -228,7 +228,7 @@ describe("mobile auth start route", () => {
     );
 
     const response = await POST(
-      new NextRequest("https://www.getinboxzero.com/api/mobile-auth/start", {
+      new NextRequest("https://www.jyisolutions.com/api/mobile-auth/start", {
         body: JSON.stringify({
           provider: "google",
           codeChallenge: "a".repeat(43),
@@ -251,7 +251,7 @@ describe("mobile auth start route", () => {
 
   it("starts desktop social auth with a desktop-scheme return URL when requested", async () => {
     const response = await POST(
-      new NextRequest("https://www.getinboxzero.com/api/mobile-auth/start", {
+      new NextRequest("https://www.jyisolutions.com/api/mobile-auth/start", {
         body: JSON.stringify({
           provider: "google",
           codeChallenge: "a".repeat(43),
@@ -300,7 +300,7 @@ describe("mobile auth start route", () => {
     );
 
     const response = await POST(
-      new NextRequest("https://www.getinboxzero.com/api/mobile-auth/start", {
+      new NextRequest("https://www.jyisolutions.com/api/mobile-auth/start", {
         body: JSON.stringify({
           provider: "google",
           codeChallenge: "a".repeat(43),

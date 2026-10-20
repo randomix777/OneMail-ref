@@ -9,6 +9,7 @@ import {
   Tailwind,
   Text,
 } from "@react-email/components";
+import { BRAND_NAME } from "../src/brand";
 
 export type GuestBriefing = {
   name: string;
@@ -73,7 +74,7 @@ function renderInternalTeamNote(internalTeamMembers: InternalTeamMember[]) {
 }
 
 export default function MeetingBriefingEmail({
-  baseUrl = "https://www.getinboxzero.com",
+  baseUrl = "https://www.jyisolutions.com",
   emailAccountId,
   meetingTitle,
   formattedTime,
@@ -153,7 +154,7 @@ export default function MeetingBriefingEmail({
             <Section className="px-8 pb-8">
               <Text className="text-xs text-gray-500 mt-0 mb-2">
                 You're receiving this briefing because you enabled Meeting
-                Briefs in your Inbox Zero settings.
+                Briefs in your {BRAND_NAME} settings.
               </Text>
               <Text className="text-xs text-gray-500 mt-0 mb-0">
                 <Link
@@ -172,7 +173,7 @@ export default function MeetingBriefingEmail({
 }
 
 MeetingBriefingEmail.PreviewProps = {
-  baseUrl: "https://www.getinboxzero.com",
+  baseUrl: "https://www.jyisolutions.com",
   unsubscribeToken: "test-token",
   emailAccountId: "test-account",
   meetingTitle: "Product Strategy Review with Acme Corp",

@@ -170,7 +170,7 @@ test("requires client consent, enforces read-only access, and disconnects existi
   ).toBeVisible();
   await expect(
     connectDialog.getByRole("link", { name: "Full setup guide" }),
-  ).toHaveAttribute("href", "https://docs.getinboxzero.com/essentials/mcp");
+  ).toHaveAttribute("href", "https://docs.jyisolutions.com/essentials/mcp");
   await capturePlaywrightCheckpoint(connectDialog, testInfo, "mcp-connect-url");
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: /^MCP apps/ }).click();

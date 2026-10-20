@@ -123,7 +123,7 @@ export async function openControlOnboarding(page: Page) {
 
 export async function chooseSignupIntent(page: Page, option: string) {
   await expect(
-    page.getByRole("heading", { name: "How do you want to use Inbox Zero?" }),
+    page.getByRole("heading", { name: "How do you want to use OneMail?" }),
   ).toBeVisible({ timeout: 60_000 });
   await page.getByRole("button", { name: new RegExp(`^${option}`) }).click();
 }

@@ -20,6 +20,7 @@ import {
   getMailClientResourceUri,
   readMailClientHtml,
 } from "@/utils/mcp/mail-client-bundle";
+import { BRAND_NAME } from "@/utils/branding";
 
 export function registerMailClient(
   server: McpServer,
@@ -55,9 +56,8 @@ export function registerMailClient(
   server.registerTool(
     "open_mail",
     {
-      title: "Open Inbox Zero",
-      description:
-        "Open the mail client to browse, read, compose, and organize linked mailboxes. Link an Inbox Zero account first. Does not change mail.",
+      title: `Open ${BRAND_NAME}`,
+      description: `Open the mail client to browse, read, compose, and organize linked mailboxes. Link an ${BRAND_NAME} account first. Does not change mail.`,
       inputSchema: {
         emailAccountId: z
           .string()
@@ -73,7 +73,7 @@ export function registerMailClient(
           ),
       },
       annotations: {
-        title: "Open Inbox Zero",
+        title: `Open ${BRAND_NAME}`,
         readOnlyHint: true,
         destructiveHint: false,
         openWorldHint: false,

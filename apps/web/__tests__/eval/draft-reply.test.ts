@@ -551,7 +551,7 @@ Carlos`,
                 subject: "Question about routing and language support",
                 content: `Hi,
 
-Can Inbox Zero move emails into specific folders or tabs automatically?
+Can OneMail move emails into specific folders or tabs automatically?
 
 Also, does the AI work for non-English emails, or only English?
 
@@ -566,7 +566,7 @@ Nina`,
             messages,
             emailAccount: emailAccountWithBookingLink,
             knowledgeBaseContent: [
-              "Inbox Zero can create automated rules to route emails to labels, folders, or tabs.",
+              "OneMail can create automated rules to route emails to labels, folders, or tabs.",
               "The AI can draft and classify emails in the language of the latest message.",
             ].join("\n"),
             emailHistorySummary: null,
@@ -660,7 +660,7 @@ Also, what model or provider does the assistant use by default?`,
               "Reply guidance for product-feedback questions:",
               "- If someone asks about setup quality, mention that a cleaner inbox usually leads to better results during setup.",
               "- If someone asks for rule examples, give concrete examples such as 'Archive newsletters you never read' and 'Label billing emails as Finance'.",
-              "- If someone asks what powers the assistant by default, say that Inbox Zero manages the model stack by default.",
+              "- If someone asks what powers the assistant by default, say that OneMail manages the model stack by default.",
               "- You may also mention that users can bring their own API key if they prefer.",
               "- Do not name a specific provider or model unless it is explicitly stated here.",
             ].join("\n"),
@@ -2134,7 +2134,7 @@ async function maybeJudgeGroundedReply({
       "Reply briefly and helpfully.",
       "Acknowledge that a cleaner inbox tends to improve setup results.",
       "Give one or two concrete rule examples.",
-      "Say that Inbox Zero manages the model stack by default.",
+      "Say that OneMail manages the model stack by default.",
       "Optional: mention that users can bring their own API key.",
       "Do not introduce a specific provider or model that was not present in the provided context.",
     ].join("\n"),

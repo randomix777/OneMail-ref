@@ -32,7 +32,7 @@ vi.mock("@/providers/EmailAccountProvider", () => ({
   useAccount: () => mocks.account,
 }));
 vi.mock("@/utils/desktop-app", () => ({
-  getInboxZeroDesktopApp: () => ({ setUnreadCount: mocks.setUnreadCount }),
+  getDesktopApp: () => ({ setUnreadCount: mocks.setUnreadCount }),
 }));
 
 describe("desktop inbox badge subscription", () => {

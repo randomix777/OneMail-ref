@@ -96,7 +96,7 @@ describe("handleRuleNotificationAction", () => {
         id: "draft-1",
         threadId: "thread-1",
         textPlain:
-          'Thanks for the note.\n\nTry opening the &quot;Test&quot; tab.\n\nDrafted by <a href="https://getinboxzero.com/?ref=ABC">Inbox Zero</a>.',
+          'Thanks for the note.\n\nTry opening the &quot;Test&quot; tab.\n\nDrafted by <a href="https://jyisolutions.com/?ref=ABC">OneMail</a>.',
         subject: "Re: Test subject",
         date: new Date().toISOString(),
         snippet: "Thanks for the note.",
@@ -142,7 +142,7 @@ describe("handleRuleNotificationAction", () => {
       type: ActionType.DRAFT_MESSAGING_CHANNEL,
       accountProvider,
       content:
-        'Thanks for the note.\n\nTry opening the &quot;Test&quot; tab.\n\nDrafted by <a href="https://getinboxzero.com/?ref=ABC">Inbox Zero</a>.',
+        'Thanks for the note.\n\nTry opening the &quot;Test&quot; tab.\n\nDrafted by <a href="https://jyisolutions.com/?ref=ABC">OneMail</a>.',
       mailboxDraftAction: {
         id: "draft-action-1",
         draftId: "draft-1",
@@ -182,7 +182,7 @@ describe("handleRuleNotificationAction", () => {
     expect(cardText).toContain("I drafted a reply for you:");
     expect(cardText).toContain('Try opening the \\"Test\\" tab.');
     expect(cardText).toContain(
-      "Drafted by <https://getinboxzero.com/?ref=ABC|Inbox Zero>.",
+      "Drafted by <https://jyisolutions.com/?ref=ABC|OneMail>.",
     );
     expect(cardText).toContain("Status: Reply sent. ✅");
     if (accountProvider === "microsoft") {
@@ -1075,13 +1075,13 @@ describe("buildNotificationReplySendBody", () => {
       } as ParsedMessage,
       fallbackThreadId: "thread-fallback",
       content: "Thanks for checking in.",
-      formattedFrom: "Elie Steinbock <elie@getinboxzero.com>",
+      formattedFrom: "Elie Steinbock <elie@jyisolutions.com>",
       attachments: [],
     });
 
     expect(body).toEqual(
       expect.objectContaining({
-        from: "Elie Steinbock <elie@getinboxzero.com>",
+        from: "Elie Steinbock <elie@jyisolutions.com>",
       }),
     );
   });
@@ -1184,7 +1184,7 @@ describe("sendMessagingRuleNotification", () => {
         id: "draft-1",
         threadId: "thread-1",
         textPlain:
-          "Mailbox draft body\n\nDrafted by Inbox Zero.\n\nOn Thu, 30 Apr 2026 at 19:04, Sender <sender@example.com> wrote:\n\n> Quoted body that should be hidden.",
+          "Mailbox draft body\n\nDrafted by OneMail.\n\nOn Thu, 30 Apr 2026 at 19:04, Sender <sender@example.com> wrote:\n\n> Quoted body that should be hidden.",
         subject: "Re: Test subject",
         date: new Date().toISOString(),
         snippet: "Mailbox draft body",
@@ -1238,7 +1238,7 @@ describe("sendMessagingRuleNotification", () => {
     const serializedBlocks = JSON.stringify(args.blocks);
 
     expect(serializedBlocks).toContain("Mailbox draft body");
-    expect(serializedBlocks).toContain("Drafted by Inbox Zero.");
+    expect(serializedBlocks).toContain("Drafted by OneMail.");
     expect(serializedBlocks).not.toContain("Messaging draft body");
     expect(serializedBlocks).not.toContain("Quoted body that should be hidden");
     expect(serializedBlocks).not.toContain("On Thu, 30 Apr 2026");

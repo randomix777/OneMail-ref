@@ -5,7 +5,7 @@ import { getComposeSignature } from "./compose-signature";
 
 const mockedEnv = vi.hoisted(() => ({
   NEXT_PUBLIC_BASE_URL: "https://app.example.com",
-  NEXT_PUBLIC_BRAND_NAME: "Inbox Zero",
+  NEXT_PUBLIC_BRAND_NAME: "OneMail",
   NEXT_PUBLIC_DISABLE_REFERRAL_SIGNATURE: false as boolean | undefined,
 }));
 
@@ -33,7 +33,7 @@ describe("getComposeSignature", () => {
     ).toEqual({
       signatureHtml: "<div>Example Person</div>",
       footerHtml:
-        '<div>Sent with <a href="https://app.example.com/?ref=abc123">Inbox Zero</a></div>',
+        '<div>Sent with <a href="https://app.example.com/?ref=abc123">OneMail</a></div>',
     });
   });
 
@@ -68,7 +68,7 @@ describe("getComposeSignature", () => {
       (await getComposeSignature({ emailAccountId: "account", userId: "user" }))
         .footerHtml,
     ).toBe(
-      '<div>Sent with <a href="https://app.example.com">Inbox Zero</a></div>',
+      '<div>Sent with <a href="https://app.example.com">OneMail</a></div>',
     );
   });
 });

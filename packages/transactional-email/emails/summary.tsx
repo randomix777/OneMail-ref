@@ -40,7 +40,7 @@ const BADGES = {
 
 export default function SummaryEmail(props: SummaryEmailProps) {
   const {
-    baseUrl = "https://www.getinboxzero.com",
+    baseUrl = "https://www.jyisolutions.com",
     archivedEmailCount = 0,
     archivedEmails = [],
     coldEmailers,
@@ -86,7 +86,7 @@ export default function SummaryEmail(props: SummaryEmailProps) {
 }
 
 SummaryEmail.PreviewProps = {
-  baseUrl: "https://www.getinboxzero.com",
+  baseUrl: "https://www.jyisolutions.com",
   periodEnd: new Date("2024-03-20"),
   archivedEmailCount: 8,
   archivedEmails: [

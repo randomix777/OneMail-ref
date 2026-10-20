@@ -15,7 +15,7 @@ const {
   mockEnv: {
     DESKTOP_AUTH_ORIGIN: "inboxzero://",
     MOBILE_AUTH_ORIGIN: "inboxzero://",
-    NEXT_PUBLIC_BASE_URL: "https://www.getinboxzero.com",
+    NEXT_PUBLIC_BASE_URL: "https://www.jyisolutions.com",
   },
   storeMobileAuthStateMock: vi.fn(),
 }));
@@ -81,7 +81,7 @@ describe("startMobileSocialAuth", () => {
     );
     const [signInRequest] = handlerMock.mock.calls[0] as [Request];
     expect(signInRequest.url).toBe(
-      "https://www.getinboxzero.com/api/auth/sign-in/social",
+      "https://www.jyisolutions.com/api/auth/sign-in/social",
     );
     await expect(signInRequest.json()).resolves.toMatchObject({
       provider: "google",
@@ -103,7 +103,7 @@ describe("startMobileSocialAuth", () => {
     );
     const [signInRequest] = handlerMock.mock.calls[0] as [Request];
     expect(signInRequest.url).toBe(
-      "https://www.getinboxzero.com/api/auth/sign-in/social",
+      "https://www.jyisolutions.com/api/auth/sign-in/social",
     );
     await expect(signInRequest.json()).resolves.toMatchObject({
       provider: "google",

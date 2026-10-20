@@ -3,7 +3,7 @@ import {
   isPrereleaseDesktopVersion,
 } from "./desktop-version";
 
-export const DESKTOP_GITHUB_REPO = "elie222/inbox-zero";
+export const DESKTOP_GITHUB_REPO = "randomix777/OneMail-ref";
 export const DESKTOP_TAG_PREFIX = "desktop-v";
 
 export type GitHubReleaseAsset = {

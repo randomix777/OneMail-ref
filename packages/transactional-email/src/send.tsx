@@ -1,6 +1,7 @@
 import { render } from "@react-email/render";
 import { nanoid } from "nanoid";
 import type { ReactElement } from "react";
+import { BRAND_NAME } from "./brand";
 import {
   deliverTransactionalEmail,
   isTransactionalEmailConfigured,
@@ -278,7 +279,7 @@ export const sendInvitationEmail = async ({
   sendEmail({
     from,
     to,
-    subject: `You're invited to join ${emailProps.organizationName} on Inbox Zero`,
+    subject: `You're invited to join ${emailProps.organizationName} on ${BRAND_NAME}`,
     react: <InvitationEmail {...emailProps} />,
     test,
     unsubscribeToken: emailProps.unsubscribeToken,
@@ -570,7 +571,7 @@ export const sendInvoiceEmail = async ({
   sendTransactionalEmail({
     from,
     to,
-    subject: "Your Inbox Zero invoice",
+    subject: `Your ${BRAND_NAME} invoice`,
     react: <InvoiceEmail {...emailProps} />,
     test,
     attachments: attachmentUrl

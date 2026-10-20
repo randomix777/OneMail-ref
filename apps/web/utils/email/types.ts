@@ -1,7 +1,7 @@
 import type { MailPredicate } from "@inboxzero/mail-core/queries";
 import type { ProviderFamily } from "@/utils/email/provider-registry";
 import type { ParsedMessage } from "@/utils/types";
-import type { InboxZeroLabel } from "@/utils/label";
+import type { BrandLabel } from "@/utils/label";
 import type { ThreadsQuery } from "@/utils/threads/validation";
 import type {
   OutlookFolder,
@@ -354,8 +354,8 @@ export interface EmailProvider {
     messages: ParsedMessage[];
     nextPageToken?: string;
   }>;
+  getOrCreateBrandLabel(key: BrandLabel): Promise<EmailLabel>;
   getOrCreateFolderIdByName(folderName: string): Promise<string>;
-  getOrCreateInboxZeroLabel(key: InboxZeroLabel): Promise<EmailLabel>;
   getOriginalMessage(
     originalMessageId: string | undefined,
   ): Promise<ParsedMessage | null>;

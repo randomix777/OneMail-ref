@@ -13,7 +13,7 @@ import {
   processThreadMessagesFallback,
   runThreadMessageMutation,
 } from "@/utils/outlook/thread-helpers";
-import { inboxZeroLabels, type InboxZeroLabel } from "@/utils/label";
+import { brandLabels, type BrandLabel } from "@/utils/label";
 import {
   normalizeOutlookCategoryName,
   sanitizeOutlookCategoryName,
@@ -757,16 +757,16 @@ export async function markStarredMessage({
   );
 }
 
-export async function getOrCreateInboxZeroLabel({
+export async function getOrCreateBrandLabel({
   client,
   key,
   logger,
 }: {
   client: OutlookClient;
-  key: InboxZeroLabel;
+  key: BrandLabel;
   logger: Logger;
 }) {
-  const { name } = inboxZeroLabels[key];
+  const { name } = brandLabels[key];
   const labels = await getLabels(client);
 
   // Return label if it exists

@@ -1,14 +1,14 @@
 import type { Provider } from "@inboxzero/mail-core/identities";
 import type { MailClient } from "@inboxzero/mail-core/engine";
 import { createMailIpcClient } from "@inboxzero/mail-core/protocol/mail-ipc-client";
-import { getInboxZeroDesktopApp } from "@/utils/desktop-app";
+import { getDesktopApp } from "@/utils/desktop-app";
 import {
   pageConnectivityOnline,
   requestSyncUnlessOffline,
 } from "@/utils/mail-engine/worker-protocol";
 
 export function hasDesktopMailEngineIpc() {
-  const desktop = getInboxZeroDesktopApp();
+  const desktop = getDesktopApp();
   return Boolean(
     desktop?.mailEngine &&
       desktop.mailEngineSubscribe &&
@@ -18,7 +18,7 @@ export function hasDesktopMailEngineIpc() {
 }
 
 export function createDesktopIpcMailClient(input?: { provider?: Provider }) {
-  const desktop = getInboxZeroDesktopApp();
+  const desktop = getDesktopApp();
   const invoke = desktop?.mailEngine;
   const subscribe = desktop?.mailEngineSubscribe;
   const unsubscribe = desktop?.mailEngineUnsubscribe;

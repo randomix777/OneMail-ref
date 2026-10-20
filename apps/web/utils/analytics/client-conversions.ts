@@ -14,7 +14,7 @@ import {
 
 declare global {
   interface Window {
-    inboxZeroConversionQueue?: ConversionEvent[];
+    conversionQueue?: ConversionEvent[];
   }
 }
 
@@ -67,8 +67,8 @@ function trackGoogleTagManagerConversion(event: ConversionEvent) {
 function trackPrivateConversion(event: ConversionEvent) {
   if (!env.NEXT_PUBLIC_CONVERSION_ANALYTICS_SCRIPT_URL) return;
 
-  window.inboxZeroConversionQueue ??= [];
-  window.inboxZeroConversionQueue.push(event);
+  window.conversionQueue ??= [];
+  window.conversionQueue.push(event);
   window.dispatchEvent(
     new CustomEvent(CONVERSION_BROWSER_EVENT, { detail: event }),
   );

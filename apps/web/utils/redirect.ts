@@ -1,5 +1,5 @@
 import { normalizeInternalPath } from "@/utils/path";
-import { isInboxZeroAppCallbackUrl } from "@/utils/mobile-auth/app-callback-url";
+import { isAppCallbackUrl } from "@/utils/mobile-auth/app-callback-url";
 import { isNativeAcceptableRedirectUri } from "@/utils/mcp/oauth-registration";
 
 type SafeRedirectUrlOptions = {
@@ -55,7 +55,7 @@ export function getSafeRedirectUrl(
       );
     }
 
-    if (options.allowAppCallback && isInboxZeroAppCallbackUrl(redirectUrl)) {
+    if (options.allowAppCallback && isAppCallbackUrl(redirectUrl)) {
       return parsedUrl.toString();
     }
 

@@ -10,7 +10,7 @@ const senderQueue = vi.hoisted(() => ({ clear: vi.fn() }));
 const searchHistory = vi.hoisted(() => ({ clear: vi.fn() }));
 
 vi.mock("@/utils/desktop-app", () => ({
-  getInboxZeroDesktopApp: () => desktop.app,
+  getDesktopApp: () => desktop.app,
 }));
 vi.mock("@/utils/mail-engine/wasm-sqlite", () => ({
   wipeOpfsMailEngine: () => opfs.wipe(),

@@ -61,7 +61,7 @@ vi.mock("@/utils/prisma", () => ({
 const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS;
 const TEST_EMAIL = "learned-exclusions@example.com";
 const TEST_MESSAGE_ID = "msg_learned_exclusion";
-const TEST_SENDER = "updates@transactional.getinboxzero.com";
+const TEST_SENDER = "updates@transactional.jyisolutions.com";
 
 // `@/env` validates on first evaluation and the Nylas transport reads its URI
 // and key from it, so they have to be in place before the imports above resolve.

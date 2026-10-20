@@ -32,7 +32,7 @@ test("completes account setup and persists onboarding choices", async ({
     .click();
   await expect(
     page.getByRole("heading", {
-      name: "How did you hear about Inbox Zero?",
+      name: "How did you hear about OneMail?",
     }),
   ).toBeVisible({ timeout: 60_000 });
 

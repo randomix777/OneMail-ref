@@ -257,7 +257,7 @@ describe("aiDraftReply formatting", () => {
     expect(callArgs.prompt).not.toContain("<reply_memories>");
   });
 
-  it("uses the active Inbox Zero booking link ahead of the external calendar link", async () => {
+  it("uses the active OneMail booking link ahead of the external calendar link", async () => {
     mockGenerateObject.mockResolvedValueOnce({
       object: {
         reply: "Please use my booking link.",

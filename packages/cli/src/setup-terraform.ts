@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 import * as p from "@clack/prompts";
 import { getDefaultLlmModels } from "./llm";
+import { BRAND_NAME } from "./brand";
 
 const DEFAULT_APP_NAME = "inbox-zero";
 const DEFAULT_ENVIRONMENT = "production";
@@ -120,7 +121,7 @@ interface TerraformVarsConfig {
 }
 
 export async function runTerraformSetup(options: TerraformSetupOptions) {
-  p.intro("Terraform Setup for Inbox Zero");
+  p.intro(`Terraform Setup for ${BRAND_NAME}`);
 
   const nonInteractive = options.yes === true;
   const outputDir = resolveOutputDir(options.outputDir);
@@ -1201,7 +1202,7 @@ resource "aws_elasticache_replication_group" "main" {
   count = var.enable_redis ? 1 : 0
 
   replication_group_id          = "\${local.name_prefix}-redis"
-  description                   = "Redis for Inbox Zero"
+  description                   = "Redis for ${BRAND_NAME}"
   engine                        = "redis"
   engine_version                = "7.1"
   node_type                     = var.redis_instance_class
@@ -1472,7 +1473,7 @@ variable "acm_certificate_arn" {
 
 variable "container_image" {
   type    = string
-  default = "ghcr.io/elie222/inbox-zero:latest"
+  default = "ghcr.io/randomix777/OneMail-ref:latest"
 }
 
 variable "container_port" {
@@ -1677,9 +1678,9 @@ output "ssm_prefix" {
 }
 `;
 
-const TERRAFORM_README_MD = `# Inbox Zero Terraform (AWS)
+const TERRAFORM_README_MD = `# ${BRAND_NAME} Terraform (AWS)
 
-This directory contains Terraform configuration to deploy Inbox Zero on AWS using ECS Fargate, RDS, and optional ElastiCache Redis.
+This directory contains Terraform configuration to deploy ${BRAND_NAME} on AWS using ECS Fargate, RDS, and optional ElastiCache Redis.
 
 ## Quick Start
 

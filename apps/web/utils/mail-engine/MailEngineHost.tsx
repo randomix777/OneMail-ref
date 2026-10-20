@@ -26,7 +26,7 @@ import type { MailClient } from "@inboxzero/mail-core/engine";
 import { MailEngineProvider } from "@inboxzero/mail-react/MailEngineProvider";
 import { LoadingContent } from "@/components/LoadingContent";
 import { env } from "@/env";
-import { getInboxZeroDesktopApp } from "@/utils/desktop-app";
+import { getDesktopApp } from "@/utils/desktop-app";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import {
   createBrowserMailEngine,
@@ -197,7 +197,7 @@ function MailEngineRuntimeInner({ children }: { children: ReactNode }) {
       if (abort.signal.aborted) return;
       reportMailEngineStartupFailure(error, {
         runtimeMode: mode,
-        platform: getInboxZeroDesktopApp() ? "desktop" : "web",
+        platform: getDesktopApp() ? "desktop" : "web",
         capabilities,
         stage,
       });
@@ -401,7 +401,7 @@ function publishMailEngineInspect(
   transport: MailEngineInspectTransport,
 ) {
   if (!canExposeMailEngineInspect()) return;
-  window.__inboxZeroMailInspect = {
+  window.__mailInspect = {
     accountId,
     role,
     transport,
@@ -421,7 +421,7 @@ function publishMailEngineInspect(
 
 function clearMailEngineInspect() {
   if (typeof window === "undefined") return;
-  window.__inboxZeroMailInspect = undefined;
+  window.__mailInspect = undefined;
 }
 
 function canExposeMailEngineInspect() {
@@ -438,7 +438,7 @@ function subscribeNever() {
 
 declare global {
   interface Window {
-    __inboxZeroMailInspect?: {
+    __mailInspect?: {
       accountId: string;
       role: "owner" | "follower";
       transport: MailEngineInspectTransport;

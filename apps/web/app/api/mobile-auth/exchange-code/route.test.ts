@@ -65,7 +65,7 @@ describe("mobile auth exchange-code route", () => {
     await expect(
       POST(
         new NextRequest(
-          "https://www.getinboxzero.com/api/mobile-auth/exchange-code",
+          "https://www.jyisolutions.com/api/mobile-auth/exchange-code",
           {
             method: "POST",
             headers: { "content-type": "application/json" },
@@ -84,7 +84,7 @@ describe("mobile auth exchange-code route", () => {
   it("exchanges a one-time code for a mobile session cookie", async () => {
     const response = await POST(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/exchange-code",
+        "https://www.jyisolutions.com/api/mobile-auth/exchange-code",
         {
           body: JSON.stringify({
             code: "one-time-code",
@@ -136,7 +136,7 @@ describe("mobile auth exchange-code route", () => {
 
     const response = await POST(
       new NextRequest(
-        "https://www.getinboxzero.com/api/mobile-auth/exchange-code",
+        "https://www.jyisolutions.com/api/mobile-auth/exchange-code",
         {
           body: JSON.stringify({
             code: "one-time-code",

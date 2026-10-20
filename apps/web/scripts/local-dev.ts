@@ -143,7 +143,7 @@ async function main() {
     env.PLAYWRIGHT_RUN_ID = "local-dev";
     env.RESEND_API_KEY = "local-email-key";
     env.RESEND_BASE_URL = `http://127.0.0.1:${emailPort}`;
-    env.RESEND_FROM_EMAIL = "Inbox Zero <signin@example.com>";
+    env.RESEND_FROM_EMAIL = "OneMail <signin@example.com>";
     env.RESEND_AUDIENCE_ID = "playwright-audience";
     manager = createProcessManager(APP_DIR, env);
     const processes = manager;

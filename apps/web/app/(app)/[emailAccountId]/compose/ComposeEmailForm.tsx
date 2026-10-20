@@ -2175,7 +2175,7 @@ function findSelectableSendAs(
   return findReplySendAsAddress(candidates, addresses);
 }
 
-// The default address keeps the signature set in Inbox Zero; an alias uses
+// The default address keeps the signature set in OneMail; an alias uses
 // its own when the provider has one.
 function getSendAsSignatureHtml(
   address: SendAsAddress | undefined,

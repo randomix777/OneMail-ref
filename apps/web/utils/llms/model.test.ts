@@ -519,8 +519,8 @@ describe("Models", () => {
       expect(createGateway).toHaveBeenCalledWith({
         apiKey: "test-ai-gateway-key",
         headers: {
-          "http-referer": "https://www.getinboxzero.com",
-          "x-title": "Inbox Zero",
+          "http-referer": "https://www.jyisolutions.com",
+          "x-title": "OneMail",
         },
       });
     });

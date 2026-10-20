@@ -7,7 +7,7 @@ import { aiDraftFollowUp } from "@/utils/ai/reply/draft-follow-up";
 
 const { envMock } = vi.hoisted(() => ({
   envMock: {
-    NEXT_PUBLIC_BRAND_NAME: "Inbox Zero",
+    NEXT_PUBLIC_BRAND_NAME: "OneMail",
     NEXT_PUBLIC_AUTO_DRAFT_DISABLED: false,
     NEXT_PUBLIC_DISABLE_REFERRAL_SIGNATURE: true,
   },
@@ -47,7 +47,7 @@ vi.mock("@/utils/referral/referral-code", () => ({
 vi.mock("@/utils/referral/referral-link", () => ({
   generateReferralLink: vi
     .fn()
-    .mockReturnValue("https://getinboxzero.com/?ref=TEST123"),
+    .mockReturnValue("https://jyisolutions.com/?ref=TEST123"),
 }));
 
 vi.mock("@/env", () => ({
@@ -315,7 +315,7 @@ describe("generateFollowUpDraft", () => {
       userMessage,
       expect.objectContaining({
         content:
-          'What do you think about it?\n\nCheers!<br>Barbara\n\nDrafted by <a href="https://getinboxzero.com/?ref=TEST123">Inbox Zero</a>.',
+          'What do you think about it?\n\nCheers!<br>Barbara\n\nDrafted by <a href="https://jyisolutions.com/?ref=TEST123">OneMail</a>.',
       }),
       "user@example.com",
       undefined,

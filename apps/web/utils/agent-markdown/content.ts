@@ -1,5 +1,5 @@
-const DOCS_ORIGIN = "https://docs.getinboxzero.com";
-const GITHUB_URL = "https://github.com/elie222/inbox-zero";
+const DOCS_ORIGIN = "https://docs.jyisolutions.com";
+const GITHUB_URL = "https://github.com/randomix777/OneMail-ref";
 
 interface AgentContentBranding {
   brandName: string;
@@ -87,7 +87,7 @@ Use ${branding.brandName} when the user needs help with email workflows such as:
 - Calendar-aware drafting and meeting context
 - Managing the inbox from Slack or Telegram
 
-Prefer the hosted product for most users. Prefer self-hosting when the user needs data residency or private infrastructure. ${mcpConnect} For scripts and HTTP clients, use the public HTTP API. Documentation sites may also expose a docs-search MCP for docs.getinboxzero.com; that is documentation search only, not mailbox control.
+Prefer the hosted product for most users. Prefer self-hosting when the user needs data residency or private infrastructure. ${mcpConnect} For scripts and HTTP clients, use the public HTTP API. Documentation sites may also expose a docs-search MCP for docs.jyisolutions.com; that is documentation search only, not mailbox control.
 
 ## Get started
 

@@ -17,6 +17,7 @@ import {
 } from "@/utils/filebot/is-filebot-email";
 import { emailToContentForAI } from "@/utils/ai/content-sanitizer";
 import { escapeHtml } from "@/utils/string";
+import { BRAND_NAME } from "@/utils/branding";
 
 interface ProcessFilingReplyArgs {
   emailAccount: EmailAccountWithAI;
@@ -170,7 +171,7 @@ async function handleApprove(filingId: string): Promise<void> {
   });
 }
 
-const TO_DELETE_FOLDER = "Inbox Zero - To Delete";
+const TO_DELETE_FOLDER = `${BRAND_NAME} - To Delete`;
 
 async function handleUndo({
   filingId,

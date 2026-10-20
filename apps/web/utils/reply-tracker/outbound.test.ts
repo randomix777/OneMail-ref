@@ -186,7 +186,7 @@ describe("handleOutboundReply", () => {
     const message = getMockMessage({
       id: "filing-msg-1",
       threadId: "thread1",
-      from: `Inbox Zero Assistant <${emailAccount.email}>`,
+      from: `OneMail Assistant <${emailAccount.email}>`,
       to: emailAccount.email,
       subject: "✓ Filed Receipt.pdf",
     });

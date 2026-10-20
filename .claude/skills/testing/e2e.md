@@ -44,7 +44,7 @@ gh run view <run-id> --repo inbox-zero/inbox-zero-e2e --log
 
 Before running tests with new changes:
 
-1. Merge changes to `main` on `elie222/inbox-zero`
+1. Merge changes to `main` on `randomix777/OneMail-ref`
 2. Sync to E2E repo:
    ```bash
    gh workflow run sync-upstream.yml --repo inbox-zero/inbox-zero-e2e
@@ -177,7 +177,7 @@ A failing E2E test due to webhook misconfiguration is CORRECT behavior.
 
 ## Repository Structure
 
-- **Main repo**: `elie222/inbox-zero` (or `inbox-zero/inbox-zero`)
+- **Main repo**: `randomix777/OneMail-ref` (or `inbox-zero/inbox-zero`)
 - **E2E repo**: `inbox-zero/inbox-zero-e2e`
 
 The E2E repo has:

@@ -44,7 +44,7 @@ test("shows a queue_full toast when a second archive cannot be admitted", async 
   page,
 }, testInfo) => {
   await page.addInitScript(() => {
-    window.__inboxZeroMailMaxPendingOperations = 1;
+    window.__mailMaxPendingOperations = 1;
   });
   const { conversations, emailAccountId } = await openMail(page);
   const first = conversationWithSubject(

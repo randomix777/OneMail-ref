@@ -2,9 +2,9 @@ import type { gmail_v1 } from "@googleapis/gmail";
 import { publishArchive, type TinybirdEmailAction } from "@inboxzero/tinybird";
 import {
   getLabelColor,
-  inboxZeroLabels,
+  brandLabels,
   PARENT_LABEL,
-  type InboxZeroLabel,
+  type BrandLabel,
 } from "@/utils/label";
 import { findLabelByName } from "@/utils/label/find-label-by-name";
 import { normalizeLabelName } from "@/utils/label/normalize-label-name";
@@ -377,14 +377,14 @@ export async function getOrCreateLabel({
   return createdLabel;
 }
 
-export async function getOrCreateInboxZeroLabel({
+export async function getOrCreateBrandLabel({
   gmail,
   key,
 }: {
   gmail: gmail_v1.Gmail;
-  key: InboxZeroLabel;
+  key: BrandLabel;
 }) {
-  const { name, color, messageListVisibility } = inboxZeroLabels[key];
+  const { name, color, messageListVisibility } = brandLabels[key];
   const labels = await getLabels(gmail);
 
   // Create parent label if it doesn't exist

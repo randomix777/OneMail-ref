@@ -18,18 +18,18 @@ describe("shouldSkipAutomatedArchiveForSender", () => {
   });
 
   it("skips archive actions for the whitelisted sender", () => {
-    envMock.WHITELIST_FROM = "onboarding@getinboxzero.com";
+    envMock.WHITELIST_FROM = "onboarding@jyisolutions.com";
 
     expect(
       shouldSkipAutomatedArchiveForSender({
         actionType: ActionType.ARCHIVE,
-        from: "Inbox Zero <onboarding@getinboxzero.com>",
+        from: "OneMail <onboarding@jyisolutions.com>",
       }),
     ).toBe(true);
   });
 
   it("does not skip archive actions for ordinary senders", () => {
-    envMock.WHITELIST_FROM = "onboarding@getinboxzero.com";
+    envMock.WHITELIST_FROM = "onboarding@jyisolutions.com";
 
     expect(
       shouldSkipAutomatedArchiveForSender({
@@ -40,12 +40,12 @@ describe("shouldSkipAutomatedArchiveForSender", () => {
   });
 
   it("does not skip non-archive actions for company senders", () => {
-    envMock.WHITELIST_FROM = "onboarding@getinboxzero.com";
+    envMock.WHITELIST_FROM = "onboarding@jyisolutions.com";
 
     expect(
       shouldSkipAutomatedArchiveForSender({
         actionType: ActionType.LABEL,
-        from: "Inbox Zero <onboarding@getinboxzero.com>",
+        from: "OneMail <onboarding@jyisolutions.com>",
       }),
     ).toBe(false);
   });

@@ -1,4 +1,5 @@
 import { Link, Section, Text } from "@react-email/components";
+import { BRAND_NAME } from "../../src/brand";
 
 export function StatsEmailFooter({
   baseUrl,
@@ -10,7 +11,7 @@ export function StatsEmailFooter({
   return (
     <Section>
       <Text>
-        You're receiving this email because you're subscribed to Inbox Zero
+        You're receiving this email because you're subscribed to {BRAND_NAME}
         stats updates. You can change this in your{" "}
         <Link
           href={`${baseUrl}/settings#email-updates`}

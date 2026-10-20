@@ -56,7 +56,7 @@ declare global {
   }
 }
 
-export function getInboxZeroDesktopApp(): InboxZeroDesktopApi | undefined {
+export function getDesktopApp(): InboxZeroDesktopApi | undefined {
   if (typeof window === "undefined") return;
   return window.inboxZeroDesktop;
 }

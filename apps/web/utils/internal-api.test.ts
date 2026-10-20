@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 async function loadInternalApiModule({
   nextPublicBaseUrl = "https://mail.example.com",
-  internalApiUrl = "https://www.getinboxzero.com",
+  internalApiUrl = "https://www.jyisolutions.com",
   internalApiKey = "expected-internal-key",
 }: {
   nextPublicBaseUrl?: string;
@@ -46,7 +46,7 @@ describe("internal-api", () => {
   it("includes a compact caller identity for self-hosted callers", async () => {
     const { getInternalApiHeaders } = await loadInternalApiModule({
       nextPublicBaseUrl: "https://mail.example.com",
-      internalApiUrl: "https://www.getinboxzero.com",
+      internalApiUrl: "https://www.jyisolutions.com",
     });
 
     const headers = getInternalApiHeaders();

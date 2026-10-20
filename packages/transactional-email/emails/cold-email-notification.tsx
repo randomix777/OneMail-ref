@@ -11,6 +11,7 @@ import {
   Text,
 } from "@react-email/components";
 import type { FC } from "react";
+import { BRAND_NAME } from "../src/brand";
 
 export type ColdEmailNotificationProps = {
   baseUrl: string;
@@ -21,7 +22,7 @@ type ColdEmailNotificationComponent = FC<ColdEmailNotificationProps> & {
 };
 
 const ColdEmailNotification: ColdEmailNotificationComponent = ({
-  baseUrl = "https://www.getinboxzero.com",
+  baseUrl = "https://www.jyisolutions.com",
 }: ColdEmailNotificationProps) => (
   <Html>
     <Head />
@@ -31,15 +32,17 @@ const ColdEmailNotification: ColdEmailNotificationComponent = ({
           <Section className="p-8 text-center">
             <Link href={baseUrl} className="text-[15px]">
               <Img
-                src={"https://www.getinboxzero.com/icon.png"}
+                src={`${baseUrl}/icon.png`}
                 width="40"
                 height="40"
-                alt="Inbox Zero"
+                alt={BRAND_NAME}
                 className="mx-auto my-0"
               />
             </Link>
             <Text className="mx-0 mb-8 mt-4 p-0 text-center text-2xl font-normal">
-              <span className="font-semibold tracking-tighter">Inbox Zero</span>
+              <span className="font-semibold tracking-tighter">
+                {BRAND_NAME}
+              </span>
             </Text>
           </Section>
 
@@ -47,7 +50,7 @@ const ColdEmailNotification: ColdEmailNotificationComponent = ({
             <Text className="text-[16px] text-gray-700 mb-4 mt-0">
               The recipient uses{" "}
               <Link href={baseUrl} className="text-blue-600 underline">
-                Inbox Zero
+                {BRAND_NAME}
               </Link>{" "}
               to automatically detect and filter cold emails from first-time
               senders.
@@ -67,7 +70,7 @@ const ColdEmailNotification: ColdEmailNotificationComponent = ({
             <Text className="m-0">
               This is an automated message from{" "}
               <Link href={baseUrl} className="text-blue-600 underline">
-                Inbox Zero
+                {BRAND_NAME}
               </Link>
               .
             </Text>
@@ -81,5 +84,5 @@ const ColdEmailNotification: ColdEmailNotificationComponent = ({
 export default ColdEmailNotification;
 
 ColdEmailNotification.PreviewProps = {
-  baseUrl: "https://www.getinboxzero.com",
+  baseUrl: "https://www.jyisolutions.com",
 };

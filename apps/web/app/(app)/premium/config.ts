@@ -416,7 +416,7 @@ const enterpriseTier: Tier = {
     },
   ],
   cta: "Speak to sales",
-  ctaLink: "https://www.getinboxzero.com/sales",
+  ctaLink: "https://www.jyisolutions.com/sales",
   mostPopular: false,
 };
 

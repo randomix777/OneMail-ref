@@ -4,6 +4,7 @@ import type { Logger } from "@/utils/logger";
 import type { CalendarEvent } from "@/utils/calendar/event-types";
 import { posthogCaptureEvent } from "@/utils/posthog";
 import { createCalendarEventProviders } from "@/utils/calendar/event-provider";
+import { BRAND_NAME } from "@/utils/branding";
 
 const getCalendarEventsInputSchema = z.object({
   startDate: z
@@ -45,8 +46,7 @@ export const getCalendarEventsTool = ({
 
         if (providers.length === 0) {
           return {
-            error:
-              "No calendar connected. The user needs to connect their calendar in Inbox Zero settings.",
+            error: `No calendar connected. The user needs to connect their calendar in ${BRAND_NAME} settings.`,
           };
         }
 

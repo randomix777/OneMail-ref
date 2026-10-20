@@ -1,20 +1,20 @@
 ---
 title: "Microsoft Teams Integration Setup"
-description: "Set up the Teams bot for Inbox Zero assistant chat."
+description: "Set up the Teams bot for OneMail assistant chat."
 ---
 
-This guide is for self-hosted deployments that want to enable Teams chat with the Inbox Zero assistant.
+This guide is for self-hosted deployments that want to enable Teams chat with the OneMail assistant.
 
 ## What Teams currently supports
 
-- AI assistant chat in **direct messages** with the Inbox Zero bot
+- AI assistant chat in **direct messages** with the OneMail bot
 - Account linking with one-time `/connect <code>` commands
 - Direct-message delivery for meeting briefs, follow-up reminders, email digests, filing alerts, and rule notifications configured from **Channels**
 
 Currently not supported on Teams:
 
 - Delivery into Teams channels; automated notifications are delivered in the linked bot DM
-- One-click draft editing and sending inside Teams; review or send those drafts in Inbox Zero
+- One-click draft editing and sending inside Teams; review or send those drafts in OneMail
 
 ## 1. Create an Azure Bot resource
 
@@ -79,12 +79,12 @@ Create a `manifest.json` file with your bot details:
     "termsOfUseUrl": "https://your-domain.com/terms"
   },
   "name": {
-    "short": "Inbox Zero",
-    "full": "Inbox Zero Assistant"
+    "short": "OneMail",
+    "full": "OneMail Assistant"
   },
   "description": {
-    "short": "Manage email with Inbox Zero for Microsoft Teams",
-    "full": "Manage email with your Inbox Zero AI assistant in Microsoft Teams. An active Inbox Zero account is required. Sign up or get started at https://your-domain.com. For help, visit https://your-domain.com/docs/essentials/channels or contact support@your-domain.com. AI-generated content may be inaccurate and should be reviewed before use. Report objectionable AI-generated content to support@your-domain.com."
+    "short": "Manage email with OneMail for Microsoft Teams",
+    "full": "Manage email with your OneMail AI assistant in Microsoft Teams. An active OneMail account is required. Sign up or get started at https://your-domain.com. For help, visit https://your-domain.com/docs/essentials/channels or contact support@your-domain.com. AI-generated content may be inaccurate and should be reviewed before use. Report objectionable AI-generated content to support@your-domain.com."
   },
   "icons": {
     "outline": "outline.png",
@@ -101,8 +101,8 @@ Create a `manifest.json` file with your bot details:
         {
           "scopes": ["personal"],
           "commands": [
-            { "title": "connect", "description": "Link an Inbox Zero account with a connect code" },
-            { "title": "switch", "description": "List or switch linked Inbox Zero accounts" },
+            { "title": "connect", "description": "Link an OneMail account with a connect code" },
+            { "title": "switch", "description": "List or switch linked OneMail accounts" },
             { "title": "help", "description": "Show help and supported commands" },
             { "title": "cleanup", "description": "Help clean up your inbox" },
             { "title": "summary", "description": "Summarize what needs attention" },
@@ -147,14 +147,14 @@ TEAMS_BOT_APP_TENANT_ID=      # required for the single-tenant Teams bot
 
 If `TEAMS_BOT_APP_ID`, `TEAMS_BOT_APP_PASSWORD`, or `TEAMS_BOT_APP_TENANT_ID` is missing, the Teams connect option is hidden in the UI and `/api/teams/events` returns `503`.
 
-## 7. Connect a user account from Inbox Zero
+## 7. Connect a user account from OneMail
 
-Each Inbox Zero email account links to a Teams user via a connect code:
+Each OneMail email account links to a Teams user via a connect code:
 
-1. In Inbox Zero, go to **Settings** → **Connected Apps**
+1. In OneMail, go to **Settings** → **Connected Apps**
 2. Click **Connect Teams**
 3. Copy the generated command: `/connect <code>`
-4. Open a DM with the Inbox Zero bot in Teams
+4. Open a DM with the OneMail bot in Teams
 5. Send the command
 
 After linking, the user can chat with the assistant in that DM.
@@ -178,7 +178,7 @@ You can also set up most of this integration with the Azure CLI (`az`) instead o
 Example prompt:
 
 ```text
-Use Azure CLI to set up the Microsoft Teams integration for Inbox Zero. Create a single-tenant Entra app registration with a client secret, create an Azure Bot resource on the F0 tier, point it at https://<your-domain>/api/teams/events, enable the Teams channel, and then tell me exactly which environment variables and manual Azure/Teams UI steps are left for me to complete.
+Use Azure CLI to set up the Microsoft Teams integration for OneMail. Create a single-tenant Entra app registration with a client secret, create an Azure Bot resource on the F0 tier, point it at https://<your-domain>/api/teams/events, enable the Teams channel, and then tell me exactly which environment variables and manual Azure/Teams UI steps are left for me to complete.
 ```
 
 </Tip>

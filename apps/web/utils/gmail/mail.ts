@@ -40,6 +40,7 @@ import {
   buildQuotedPlainText,
   quotePlainTextContent,
 } from "@/utils/email/quoted-plain-text";
+import { BRAND_NAME } from "@/utils/branding";
 
 const logger = createScopedLogger("gmail/mail");
 
@@ -100,7 +101,7 @@ const createRawMailMessage = async ({
       headerMessageId: replyToEmail?.headerMessageId || "",
       references: replyToEmail?.references,
     }),
-    headers: { "X-Mailer": "Inbox Zero Web" },
+    headers: { "X-Mailer": `${BRAND_NAME} Web` },
   });
 };
 

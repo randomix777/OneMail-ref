@@ -9,6 +9,7 @@ import {
   isMcpServerAvailable,
 } from "@/utils/mcp/config";
 import { applyNativeMcpClientRegistration } from "@/utils/mcp/oauth-registration";
+import { BRAND_NAME } from "@/utils/branding";
 
 export function mcpOAuthPlugins() {
   if (!isMcpServerAvailable()) return [];
@@ -23,7 +24,7 @@ export function mcpOAuthPlugins() {
       resources: [
         {
           identifier: getMcpResourceUrl(),
-          name: "Inbox Zero MCP",
+          name: `${BRAND_NAME} MCP`,
           allowedScopes: [...MCP_SCOPES],
         },
       ],

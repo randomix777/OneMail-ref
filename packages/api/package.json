@@ -1,7 +1,7 @@
 {
   "name": "@inbox-zero/api",
   "version": "2.29.2",
-  "description": "CLI tool for managing Inbox Zero through the external API",
+  "description": "CLI tool for managing OneMail through the external API",
   "keywords": [
     "inbox-zero",
     "api",
@@ -10,7 +10,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elie222/inbox-zero.git",
+    "url": "git+https://github.com/randomix777/OneMail-ref.git",
     "directory": "packages/api"
   },
   "license": "AGPL-3.0-only",

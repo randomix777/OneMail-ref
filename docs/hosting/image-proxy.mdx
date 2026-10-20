@@ -3,9 +3,9 @@ title: 'Image Proxy'
 description: 'Deploy the optional email image proxy for stronger privacy in web and desktop clients'
 ---
 
-Inbox Zero can proxy remote email images and CSS-loaded assets so senders do not see the end user's IP address when an email is rendered.
+OneMail can proxy remote email images and CSS-loaded assets so senders do not see the end user's IP address when an email is rendered.
 
-This is optional, but recommended if you host Inbox Zero for other people.
+This is optional, but recommended if you host OneMail for other people.
 
 ## What It Does
 
@@ -19,7 +19,7 @@ The proxy is a separate service from the main app. The app signs proxy URLs, and
 
 ## Deploy On Cloudflare Workers
 
-The repo includes a ready-to-deploy Worker in [apps/image-proxy](https://github.com/elie222/inbox-zero/tree/main/apps/image-proxy).
+The repo includes a ready-to-deploy Worker in [apps/image-proxy](https://github.com/randomix777/OneMail-ref/tree/main/apps/image-proxy).
 
 ### 1. Log In To Cloudflare
 
@@ -55,7 +55,7 @@ pnpm exec wrangler deploy --domains img.example.com
 
 This is the recommended self-hosting path because it avoids editing `wrangler.jsonc` just to choose a domain.
 
-### 5. Configure the Inbox Zero App
+### 5. Configure the OneMail App
 
 In your app environment:
 
@@ -85,7 +85,7 @@ IMAGE_PROXY_SIGNING_SECRET=server-secret,desktop-secret
 
 ## Unsigned Custom Proxy Mode
 
-If you set `NEXT_PUBLIC_IMAGE_PROXY_BASE_URL` without `IMAGE_PROXY_SIGNING_SECRET`, Inbox Zero emits unsigned `?u=` proxy URLs.
+If you set `NEXT_PUBLIC_IMAGE_PROXY_BASE_URL` without `IMAGE_PROXY_SIGNING_SECRET`, OneMail emits unsigned `?u=` proxy URLs.
 
 That mode is only for a custom proxy that intentionally accepts unsigned requests. The bundled Cloudflare Worker expects signed URLs when `IMAGE_PROXY_SIGNING_SECRET` is set.
 
@@ -93,7 +93,7 @@ For production use, signed mode is recommended.
 
 ## AWS Option
 
-If you do not want Cloudflare, the repo also includes an AWS Lambda adapter in [apps/image-proxy-aws](https://github.com/elie222/inbox-zero/tree/main/apps/image-proxy-aws).
+If you do not want Cloudflare, the repo also includes an AWS Lambda adapter in [apps/image-proxy-aws](https://github.com/randomix777/OneMail-ref/tree/main/apps/image-proxy-aws).
 
 The deployment model is:
 
@@ -104,7 +104,7 @@ The deployment model is:
 
 ## Self-Hosted Next.js Option
 
-If you are self-hosting and want the simplest setup, Inbox Zero can proxy remote images through its own Next.js app route instead of a separate service.
+If you are self-hosting and want the simplest setup, OneMail can proxy remote images through its own Next.js app route instead of a separate service.
 
 Set these app environment variables:
 
@@ -113,7 +113,7 @@ NEXT_PUBLIC_IMAGE_PROXY_USE_APP_ROUTE=true
 IMAGE_PROXY_SIGNING_SECRET=your-generated-secret
 ```
 
-In this mode, Inbox Zero signs image proxy URLs and routes them to `${NEXT_PUBLIC_BASE_URL}/api/image-proxy`.
+In this mode, OneMail signs image proxy URLs and routes them to `${NEXT_PUBLIC_BASE_URL}/api/image-proxy`.
 
 Notes:
 

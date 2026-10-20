@@ -17,6 +17,7 @@ import {
   MailReaderToolbar,
 } from "./MailReaderSurface";
 import { MailThreadRow } from "./MailThreadRow";
+import { BRAND_NAME } from "./brand";
 
 type MailAccountSummary = {
   id: string;
@@ -96,7 +97,7 @@ export function MailApp({
 
   const sidebar = (
     <aside style={styles.sidebar}>
-      <div style={styles.brand}>Inbox Zero</div>
+      <div style={styles.brand}>{BRAND_NAME}</div>
       {host.compose ? (
         <button
           style={styles.primaryButton}

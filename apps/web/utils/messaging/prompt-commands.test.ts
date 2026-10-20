@@ -21,7 +21,7 @@ describe("expandPromptCommand", () => {
   });
 
   it("maps command variants that include a bot username suffix", () => {
-    expect(expandPromptCommand("/summary@InboxZeroBot")).toBe(
+    expect(expandPromptCommand("/summary@OneMailBot")).toBe(
       "Summarize what needs attention in my inbox today.",
     );
   });
@@ -43,7 +43,7 @@ describe("isHelpCommand", () => {
   });
 
   it("returns true for help command with bot username", () => {
-    expect(isHelpCommand("/help@InboxZeroBot")).toBe(true);
+    expect(isHelpCommand("/help@OneMailBot")).toBe(true);
   });
 
   it("returns false when additional text is appended", () => {
@@ -54,7 +54,7 @@ describe("isHelpCommand", () => {
 describe("isTelegramStartCommand", () => {
   it("recognizes Telegram start command variants", () => {
     expect(isTelegramStartCommand("/start")).toBe(true);
-    expect(isTelegramStartCommand("/start@InboxZeroBot")).toBe(true);
+    expect(isTelegramStartCommand("/start@OneMailBot")).toBe(true);
     expect(isTelegramStartCommand("/start referral-code")).toBe(true);
   });
 });
@@ -64,7 +64,7 @@ describe("getHelpText", () => {
     const helpText = getHelpText("teams", HELP_OPTIONS);
     expect(helpText).toContain("Commands:");
     expect(helpText).toContain("Microsoft Teams");
-    expect(helpText).toContain("An active Inbox Zero account is required.");
+    expect(helpText).toContain("An active OneMail account is required.");
     expect(helpText).toContain("https://example.com/channels");
     expect(helpText).toContain("support@example.com");
 
@@ -88,7 +88,7 @@ describe("getHelpText", () => {
 describe("isUnsupportedSlashCommand", () => {
   it("identifies unknown slash commands", () => {
     expect(isUnsupportedSlashCommand("/unknown")).toBe(true);
-    expect(isUnsupportedSlashCommand("/unknown@InboxZeroBot value")).toBe(true);
+    expect(isUnsupportedSlashCommand("/unknown@OneMailBot value")).toBe(true);
   });
 
   it("allows supported commands and regular messages", () => {
