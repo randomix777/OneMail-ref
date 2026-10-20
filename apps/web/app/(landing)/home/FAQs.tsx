@@ -20,7 +20,7 @@ const faqs: {
   {
     question: `Which email providers does ${BRAND_NAME} support?`,
     answer:
-      "We support Gmail, Google Workspace, and Microsoft Outlook email accounts.",
+      "Gmail and Google Workspace, Outlook and Microsoft 365, Yahoo Mail, Zoho Mail, Fastmail, iCloud Mail, and any other IMAP server. Google and Microsoft connect with a sign-in; the rest connect with an app password.",
   },
   {
     question: "How can I request a feature?",
@@ -40,14 +40,14 @@ const faqs: {
     question: `Will ${BRAND_NAME} replace my current email app?`,
     answer: (
       <span>
-        It doesn't have to. {BRAND_NAME} works inside Gmail and Outlook, so you
-        can keep using them as normal while the assistant works in the
-        background. {BRAND_NAME} also has its own{" "}
+        It doesn't have to. {BRAND_NAME} works alongside whichever mailbox you
+        already use, so you can keep using it as normal while the assistant
+        works in the background. {BRAND_NAME} also has its own{" "}
         <Anchor href="/email-client">email app</Anchor> for the web, desktop,
         and iPhone if you'd like to use it.
       </span>
     ),
-    answerText: `It doesn't have to. ${BRAND_NAME} works inside Gmail and Outlook, so you can keep using them as normal while the assistant works in the background. ${BRAND_NAME} also has its own email app for the web, desktop, and iPhone if you'd like to use it.`,
+    answerText: `It doesn't have to. ${BRAND_NAME} works alongside whichever mailbox you already use, so you can keep using it as normal while the assistant works in the background. ${BRAND_NAME} also has its own email app for the web, desktop, and iPhone if you'd like to use it.`,
   },
   {
     question: "Is there a mobile app?",

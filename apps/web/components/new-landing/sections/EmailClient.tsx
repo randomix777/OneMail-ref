@@ -17,12 +17,13 @@ import {
 } from "@/components/new-landing/common/Typography";
 import { tiers } from "@/app/(app)/premium/config";
 import { MAIL_CLIENT_SIGNUP_PATH } from "@/utils/config";
+import { BRAND_NAME } from "@/utils/branding";
 
 export const EMAIL_CLIENT_SECTION_ID = "email-client";
 
 const LAUNCH_VIDEO = {
   playbackId: "1K01tCypmkqhB3OZwCzO9j0202K0089aqXX02tYpgoUzztmc",
-  title: "Meet the Inbox Zero email app",
+  title: `Meet the ${BRAND_NAME} email app`,
   thumbnailTime: 1.5,
 };
 

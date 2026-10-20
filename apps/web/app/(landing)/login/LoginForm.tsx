@@ -8,10 +8,7 @@ import { useState } from "react";
 import { Button } from "@/components/Button";
 import { Button as UIButton } from "@/components/ui/button";
 import { signIn, signInWithSocialRedirect } from "@/utils/auth-client";
-import {
-  getInboxZeroDesktopApp,
-  type DesktopAuthProvider,
-} from "@/utils/desktop-app";
+import { getDesktopApp, type DesktopAuthProvider } from "@/utils/desktop-app";
 import { WELCOME_PATH } from "@/utils/config";
 import { toastError } from "@/components/Toast";
 import { normalizeInternalPath } from "@/utils/path";
@@ -296,7 +293,7 @@ async function startDesktopAuthIfAvailable(
   provider: DesktopAuthProvider,
   callbackPath: string,
 ) {
-  const desktopApp = getInboxZeroDesktopApp();
+  const desktopApp = getDesktopApp();
   if (!desktopApp) return false;
   await desktopApp.startAuth(provider, { callbackPath });
   return true;

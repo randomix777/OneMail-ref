@@ -29,6 +29,7 @@ import {
 import { ActionType } from "@/generated/prisma/enums";
 import { ChatProvider } from "@/providers/ChatProvider";
 import { EmailAccountPreviewProvider } from "@/providers/EmailAccountProvider";
+import { BRAND_NAME } from "@/utils/branding";
 
 export default function ToolsPage() {
   const assistantToolThreadLookup = getAssistantToolThreadLookup();
@@ -882,7 +883,7 @@ function getAssistantSendEmailOutput(state: EmailActionState) {
       bcc: null,
       subject: "Weekly update",
       messageHtml: "<p>Hi team,<br/>Here is this week's update.</p>",
-      from: "Inbox Zero <assistant@example.com>",
+      from: `${BRAND_NAME} <assistant@example.com>`,
     },
     ...(state === "confirmed"
       ? {

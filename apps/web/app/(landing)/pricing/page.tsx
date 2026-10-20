@@ -1,25 +1,19 @@
 import type { Metadata } from "next";
 import { BasicLayout } from "@/components/layouts/BasicLayout";
-import { Pricing } from "@/components/new-landing/sections/Pricing";
-import { PricingComparisonTable } from "@/app/(landing)/pricing/PricingComparisonTable";
-import { PricingFAQs } from "@/app/(landing)/pricing/PricingFAQs";
-import { SectionContent } from "@/components/new-landing/common/Section";
+import { SelfHostedPricing } from "@/components/new-landing/sections/SelfHostedPricing";
 import { getBrandTitle } from "@/utils/branding";
 
 export const metadata: Metadata = {
   title: getBrandTitle("Pricing"),
-  description: "Simple, transparent pricing. No hidden fees. Cancel anytime.",
+  description:
+    "Free to self-host. You pay for your server and your model provider, nothing else.",
   alternates: { canonical: "/pricing" },
 };
 
 export default function PricingPage() {
   return (
     <BasicLayout>
-      <Pricing />
-      <SectionContent>
-        <PricingComparisonTable />
-      </SectionContent>
-      <PricingFAQs />
+      <SelfHostedPricing />
     </BasicLayout>
   );
 }

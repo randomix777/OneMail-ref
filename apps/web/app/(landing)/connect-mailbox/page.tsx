@@ -9,7 +9,7 @@ import prisma from "@/utils/prisma";
 
 export const metadata: Metadata = {
   title: getBrandTitle("Connect Mailbox"),
-  description: `Connect a Google or Microsoft mailbox to continue to ${BRAND_NAME}.`,
+  description: `Connect a Gmail, Outlook, Yahoo, Fastmail, iCloud, Zoho or IMAP mailbox to continue to ${BRAND_NAME}.`,
   alternates: { canonical: "/connect-mailbox" },
 };
 
@@ -37,7 +37,8 @@ export default async function ConnectMailboxPage(props: {
             Connect your mailbox
           </h1>
           <p className="mt-4 text-muted-foreground">
-            Connect Gmail or Outlook to start using {BRAND_NAME}.
+            Connect Gmail, Outlook, Yahoo, Fastmail, iCloud, Zoho or any IMAP
+            server to start using {BRAND_NAME}.
           </p>
         </div>
 

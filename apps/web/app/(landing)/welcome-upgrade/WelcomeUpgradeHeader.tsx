@@ -1,7 +1,6 @@
 "use client";
 
 import { CheckCircleIcon } from "lucide-react";
-import { userCount } from "@/utils/config";
 import { BRAND_NAME } from "@/utils/branding";
 
 export function WelcomeUpgradeHeader() {
@@ -16,7 +15,7 @@ export function WelcomeUpgradeHeader() {
             Start your 7-day FREE trial
           </h1>
           <p className="mt-2 text-base text-gray-900 sm:text-xl">
-            {`Join ${userCount} users that use ${BRAND_NAME} to be more productive!`}
+            {`Get your inbox back with ${BRAND_NAME}.`}
           </p>
         </div>
       </div>

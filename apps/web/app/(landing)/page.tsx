@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import { Testimonials } from "@/components/new-landing/sections/Testimonials";
 import { Hero, HeroContent } from "@/app/(landing)/home/Hero";
-import { Pricing } from "@/components/new-landing/sections/Pricing";
-import { Awards } from "@/components/new-landing/sections/Awards";
 import { EverythingElseSection } from "@/components/new-landing/sections/EverythingElseSection";
 import { StartedInMinutes } from "@/components/new-landing/sections/StartedInMinutes";
 import { BulkUnsubscribe } from "@/components/new-landing/sections/BulkUnsubscribe";
@@ -13,6 +10,10 @@ import {
   EMAIL_CLIENT_SECTION_ID,
   EmailClient,
 } from "@/components/new-landing/sections/EmailClient";
+import { MailboxSupport } from "@/components/new-landing/sections/MailboxSupport";
+import { SelfHostedHighlights } from "@/components/new-landing/sections/SelfHostedHighlights";
+import { SelfHostedPricing } from "@/components/new-landing/sections/SelfHostedPricing";
+import { SelfHostedWhy } from "@/components/new-landing/sections/SelfHostedWhy";
 import { BasicLayout } from "@/components/layouts/BasicLayout";
 import { FAQs } from "@/app/(landing)/home/FAQs";
 import { FinalCTA } from "@/app/(landing)/home/FinalCTA";
@@ -29,8 +30,10 @@ export default function NewLanding() {
       <BasicLayout>
         <Hero
           title={`${BRAND_NAME} for self-hosted teams`}
-          subtitle={`Deploy ${BRAND_NAME} on your own infrastructure and automate your inbox with full data control.`}
+          subtitle={`Deploy ${BRAND_NAME} on your own infrastructure and automate your inbox with full data control. Works with Gmail, Outlook, Yahoo, Fastmail, iCloud, Zoho and any IMAP server.`}
         />
+        <SelfHostedHighlights />
+        <MailboxSupport />
       </BasicLayout>
     );
   }
@@ -40,7 +43,7 @@ export default function NewLanding() {
       <Hero
         badge={
           <SectionLink sectionId={EMAIL_CLIENT_SECTION_ID}>
-            New: Inbox Zero Mail app →
+            New: {BRAND_NAME} Mail app →
           </SectionLink>
         }
         title={
@@ -62,12 +65,12 @@ export default function NewLanding() {
       >
         <HeroContent />
       </Hero>
+      <MailboxSupport />
       <OrganizedInbox
         title={
           <>
             Automatically organized.
-            <br />
-            Never miss an important email again.
+            <br /> Never miss an important email again.
           </>
         }
         subtitle="Drowning in emails? Don't waste energy trying to prioritize your emails. Our AI assistant will label everything automatically."
@@ -84,9 +87,8 @@ export default function NewLanding() {
       />
       <BulkUnsubscribe />
       <EverythingElseSection />
-      <Awards />
-      <Pricing />
-      <Testimonials />
+      <SelfHostedWhy />
+      <SelfHostedPricing />
       <FinalCTA />
       <FAQs />
     </BasicLayout>

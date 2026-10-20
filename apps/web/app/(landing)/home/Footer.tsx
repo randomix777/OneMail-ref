@@ -2,7 +2,7 @@ import type { ComponentProps } from "react";
 import Link from "next/link";
 import { env } from "@/env";
 import { EXTENSION_URL } from "@/utils/config";
-import { BRAND_NAME } from "@/utils/branding";
+import { BRAND_LEGAL_NAME, BRAND_NAME } from "@/utils/branding";
 import { CookieSettingsButton } from "@/components/CookieConsent";
 
 export const footerNavigation = {
@@ -87,7 +87,7 @@ export const footerNavigation = {
     { name: "Contact us", href: `mailto:${env.NEXT_PUBLIC_SUPPORT_EMAIL}` },
     {
       name: "Documentation",
-      href: "https://docs.getinboxzero.com",
+      href: "https://docs.jyisolutions.com",
       target: "_blank",
     },
     { name: "Feature Requests", href: "/feature-requests", target: "_blank" },
@@ -122,7 +122,7 @@ export const footerNavigation = {
     { name: "Privacy", href: "/privacy" },
     {
       name: "SOC2 Compliant",
-      href: "https://security.getinboxzero.com",
+      href: "https://security.jyisolutions.com",
       target: "_blank",
     },
   ],
@@ -172,7 +172,7 @@ const selfHostedFooter = {
   resources: [
     {
       name: "Documentation",
-      href: "https://docs.getinboxzero.com",
+      href: "https://docs.jyisolutions.com",
       target: "_blank",
     },
     { name: "Contact us", href: `mailto:${env.NEXT_PUBLIC_SUPPORT_EMAIL}` },
@@ -186,8 +186,7 @@ const selfHostedFooter = {
 };
 
 export function Footer() {
-  const copyrightName =
-    BRAND_NAME === "Inbox Zero" ? "Inbox Zero Inc." : BRAND_NAME;
+  const copyrightName = BRAND_LEGAL_NAME;
 
   if (env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) {
     return (
@@ -222,12 +221,10 @@ export function Footer() {
           <p className="mt-6 text-center text-xs leading-5 text-gray-500">
             Powered by{" "}
             <Link
-              href="https://getinboxzero.com"
-              target="_blank"
-              rel="noopener noreferrer"
+              href={env.NEXT_PUBLIC_BASE_URL}
               className="hover:text-gray-900"
             >
-              Inbox Zero
+              {BRAND_NAME}
             </Link>
           </p>
         </div>

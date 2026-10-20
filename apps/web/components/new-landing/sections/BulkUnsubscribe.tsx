@@ -8,12 +8,13 @@ import {
   SectionHeading,
   SectionSubtitle,
 } from "@/components/new-landing/common/Typography";
+import { BRAND_NAME } from "@/utils/branding";
 
 export function BulkUnsubscribe() {
   return (
     <Section>
       <SectionHeading>
-        Get to Inbox Zero fast.
+        Get to {BRAND_NAME} fast.
         <br />
         Bulk unsubscribe from emails you never read.
       </SectionHeading>

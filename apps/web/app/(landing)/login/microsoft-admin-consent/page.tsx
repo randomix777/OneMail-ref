@@ -24,7 +24,7 @@ export default async function MicrosoftAdminConsentPage(props: {
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto grid min-h-screen w-full max-w-6xl gap-14 px-6 py-12 md:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] md:items-center lg:px-8">
         <section className="max-w-xl">
-          <Logo className="mb-12 h-auto w-56 text-primary" />
+          <Logo className="mb-12 text-4xl text-primary" />
           <h1 className="font-title text-4xl font-semibold tracking-normal text-foreground sm:text-5xl">
             Approve {BRAND_NAME} for your organization
           </h1>

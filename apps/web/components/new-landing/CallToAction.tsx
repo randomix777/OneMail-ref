@@ -5,6 +5,7 @@ import { usePostHog } from "posthog-js/react";
 import { Button } from "@/components/new-landing/common/Button";
 import { Chat } from "@/components/new-landing/icons/Chat";
 import { landingPageAnalytics } from "@/hooks/useAnalytics";
+import { SUPPORT_EMAIL } from "@/utils/branding";
 import { cn } from "@/utils";
 
 interface CallToActionProps {
@@ -37,11 +38,11 @@ export function CallToAction({
       {showSalesButton ? (
         <Button variant="secondary-two" size={buttonSize} asChild>
           <Link
-            href="https://www.getinboxzero.com/sales"
+            href={`mailto:${SUPPORT_EMAIL}`}
             onClick={() => landingPageAnalytics.talkToSalesClicked(posthog)}
           >
             <Chat />
-            Talk to sales
+            Talk to us
           </Link>
         </Button>
       ) : null}

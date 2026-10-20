@@ -6,7 +6,7 @@ import { FooterLineLogo } from "@/components/new-landing/FooterLineLogo";
 import { Paragraph } from "@/components/new-landing/common/Typography";
 import { UnicornScene } from "@/components/new-landing/UnicornScene";
 import { footerNavigation } from "@/app/(landing)/home/Footer";
-import { BRAND_LOGO_URL } from "@/utils/branding";
+import { BRAND_LOGO_URL, BRAND_NAME } from "@/utils/branding";
 
 interface FooterProps {
   className: string;
@@ -18,7 +18,7 @@ const selfHostedFooter = {
   resources: [
     {
       name: "Documentation",
-      href: "https://docs.getinboxzero.com",
+      href: "https://docs.jyisolutions.com",
       target: "_blank",
     },
     { name: "Contact us", href: `mailto:${env.NEXT_PUBLIC_SUPPORT_EMAIL}` },
@@ -66,12 +66,10 @@ export function Footer({ className, variant = "default" }: FooterProps) {
           <p className="mt-6 text-center text-xs leading-5 text-gray-500">
             Powered by{" "}
             <Link
-              href="https://getinboxzero.com"
-              target="_blank"
-              rel="noopener noreferrer"
+              href={env.NEXT_PUBLIC_BASE_URL}
               className="hover:text-gray-900"
             >
-              Inbox Zero
+              {BRAND_NAME}
             </Link>
           </p>
         </div>

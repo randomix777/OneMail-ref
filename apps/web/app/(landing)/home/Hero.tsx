@@ -1,6 +1,4 @@
 import Image from "next/image";
-import { Gmail } from "@/components/new-landing/icons/Gmail";
-import { Outlook } from "@/components/new-landing/icons/Outlook";
 import {
   Section,
   SectionContent,
@@ -16,8 +14,9 @@ import {
   Badge,
   type BadgeVariant,
 } from "@/components/new-landing/common/Badge";
-import { BrandScroller } from "@/components/new-landing/BrandScroller";
 import { HeroVideoDialog } from "@/app/(landing)/home/HeroVideoDialog";
+import { MailboxMark } from "@/components/new-landing/MailboxMark";
+import { MAILBOXES } from "@/components/new-landing/mailboxes";
 
 interface HeroProps {
   badge?: React.ReactNode;
@@ -39,7 +38,11 @@ export function Hero({
   icon,
 }: HeroProps) {
   return (
-    <Section className={badge || icon ? "mt-7 md:mt-7" : "mt-10 md:mt-20"}>
+    <Section className="relative mt-7 md:mt-12">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 -top-40 -z-10 h-[420px] bg-[radial-gradient(60%_60%_at_50%_0%,rgba(0,110,255,0.12),transparent_70%)]"
+      />
       {icon ? (
         <HeroReveal className="mb-7 flex justify-center">{icon}</HeroReveal>
       ) : null}
@@ -54,22 +57,47 @@ export function Hero({
           {subtitle}
         </Paragraph>
       </HeroReveal>
-      <SectionContent noMarginTop className="mt-6 md:mt-8">
-        <div className="mb-8 space-y-3">
+      <SectionContent noMarginTop className="mt-8 md:mt-10">
+        <div className="mb-10 space-y-6">
           <HeroReveal delay={0.125 * 7}>{cta ?? <CallToAction />}</HeroReveal>
           <HeroReveal delay={0.125 * 8}>
-            <div className="mb-12 flex items-center justify-center gap-2">
-              <Paragraph color="light" size="sm">
-                Works with
-              </Paragraph>
-              <Outlook />
-              <Gmail />
-            </div>
+            <MailboxRow />
           </HeroReveal>
         </div>
         {children}
       </SectionContent>
     </Section>
+  );
+}
+
+/**
+ * The mailboxes the assistant can be connected to. The same list the app
+ * accepts, so the landing page cannot promise a provider we do not support.
+ */
+export function MailboxRow() {
+  return (
+    <div className="flex flex-col items-center gap-3 md:flex-row md:justify-center md:gap-4">
+      <Paragraph color="light" size="sm" className="shrink-0">
+        Works with
+      </Paragraph>
+      <ul className="flex flex-wrap items-center justify-center gap-2">
+        {MAILBOXES.map((mailbox) => (
+          <li
+            key={mailbox.family}
+            className="flex items-center gap-1.5 rounded-full border border-[#E7E7E7] bg-white py-1 pr-3 pl-1 shadow-[0px_1px_2px_0px_#97979714]"
+          >
+            <MailboxMark
+              mark={mailbox.mark}
+              color={mailbox.color}
+              className="size-5 text-[10px]"
+            />
+            <span className="text-xs font-medium text-gray-600">
+              {mailbox.shortName}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -108,10 +136,5 @@ export function HeroVideoPlayer({
 }
 
 export function HeroContent() {
-  return (
-    <>
-      <BrandScroller />
-      <HeroVideoPlayer />
-    </>
-  );
+  return <HeroVideoPlayer />;
 }
