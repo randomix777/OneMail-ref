@@ -100,6 +100,12 @@ const parsedEnv = createEnv({
     APPLE_KEY_ID: z.string().optional(),
     APPLE_PRIVATE_KEY: z.string().optional(),
     APPLE_APP_BUNDLE_IDENTIFIER: z.string().optional(),
+    // JYI's own OAuth provider. When it is configured, the login page sends
+    // the user straight there instead of to a third party's consent screen.
+    JYI_OAUTH_DISCOVERY_URL: z.string().url().optional(),
+    JYI_OAUTH_CLIENT_ID: z.string().optional(),
+    JYI_OAUTH_CLIENT_SECRET: z.string().optional(),
+    JYI_OAUTH_SCOPES: z.string().default("openid email profile"),
     // Nylas carries Google mail so we inherit its CASA assessment instead of
     // running our own. Optional so the app still boots without it; Google
     // mailboxes simply cannot be connected until it is configured.

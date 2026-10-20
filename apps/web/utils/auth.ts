@@ -34,6 +34,10 @@ import {
 } from "@/utils/gmail/scopes";
 import { hasNylasConfig } from "@/utils/nylas/client";
 import {
+  isJyiOauthEnabled,
+  JYI_OAUTH_PROVIDER_ID,
+} from "@/utils/oauth/jyi-oauth";
+import {
   fetchGoogleOpenIdProfile,
   getGoogleOauthDiscoveryUrl,
   isGoogleOauthEmulationEnabled,
@@ -192,6 +196,24 @@ const appleSocialProvider = appleLoginEnabled
     }
   : null;
 const genericOauthConfig: GenericOAuthConfig[] = [
+  // JYI's own OAuth provider. It is the identity provider, so the login page
+  // sends the user straight there rather than to a third party's screen.
+  ...(isJyiOauthEnabled()
+    ? [
+        {
+          providerId: JYI_OAUTH_PROVIDER_ID,
+          discoveryUrl: env.JYI_OAUTH_DISCOVERY_URL!,
+          clientId: env.JYI_OAUTH_CLIENT_ID!,
+          clientSecret: env.JYI_OAUTH_CLIENT_SECRET!,
+          scopes: env.JYI_OAUTH_SCOPES.split(/\s+/).filter(Boolean),
+          pkce: true,
+          accessType: "offline" as const,
+          ...(env.OAUTH_PROXY_URL && {
+            redirectURI: `${env.OAUTH_PROXY_URL}/api/auth/callback/${JYI_OAUTH_PROVIDER_ID}`,
+          }),
+        },
+      ]
+    : []),
   ...(googleLoginEnabled && useGoogleOauthEmulator
     ? [
         {

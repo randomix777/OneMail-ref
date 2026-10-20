@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { LoginForm } from "@/app/(landing)/login/LoginForm";
 import { EmailOtpForm } from "@/app/(landing)/login/email/EmailOtpForm";
+import { JyiOAuthRedirect } from "@/app/(landing)/login/JyiOAuthRedirect";
 import {
   getEmailAlreadyLinkedDescription,
   getRequiresReconsentDescription,
@@ -12,6 +13,7 @@ import { env } from "@/env";
 import { auth } from "@/utils/auth";
 import { isGoogleOauthEmulationEnabled } from "@/utils/gmail/oauth";
 import { getEnabledLoginProviders } from "@/utils/oauth/login-providers";
+import { isJyiOauthEnabled } from "@/utils/oauth/jyi-oauth";
 import { AlertBasic } from "@/components/Alert";
 import { Button } from "@/components/ui/button";
 import { WELCOME_PATH } from "@/utils/config";
@@ -44,6 +46,24 @@ export default async function AuthenticationPage(props: {
   }
 
   const enabledProviders = Array.from(getEnabledLoginProviders());
+  const callbackURL = nextPath ?? WELCOME_PATH;
+
+  // JYI's own OAuth provider is the sign-in: the user goes straight there
+  // instead of onto a third party's consent screen.
+  if (isJyiOauthEnabled()) {
+    return (
+      <div className="flex min-h-screen flex-col justify-center py-10 text-foreground">
+        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+          <div className="flex flex-col text-center">
+            <h1 className="font-title text-2xl text-foreground">
+              Sign in to {BRAND_NAME}
+            </h1>
+          </div>
+          <JyiOAuthRedirect callbackURL={callbackURL} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col justify-center py-10 text-foreground">
