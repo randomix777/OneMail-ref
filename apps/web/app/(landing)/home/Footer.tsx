@@ -11,6 +11,14 @@ export const footerNavigation = {
     { name: "Pricing", href: "/pricing" },
     { name: "Open source", href: "/github", target: "_blank" },
   ],
+  useCases: [
+    { name: "Founders", href: "/founders" },
+    { name: "Small Business", href: "/small-business" },
+    { name: "Content Creators", href: "/creator" },
+    { name: "Real Estate", href: "/real-estate" },
+    { name: "Customer Support", href: "/customer-support" },
+    { name: "E-commerce", href: "/ecommerce" },
+  ],
   support: [
     {
       name: "Documentation",
@@ -21,6 +29,8 @@ export const footerNavigation = {
     { name: "Changelog", href: "/changelog", target: "_blank" },
   ],
   company: [
+    { name: "Enterprise", href: "/enterprise" },
+    { name: "Use cases", href: "/case-studies" },
     { name: "GitHub", href: "/github", target: "_blank" },
     { name: "Discord", href: "/discord", target: "_blank" },
     { name: "OSS Friends", href: "/oss-friends" },

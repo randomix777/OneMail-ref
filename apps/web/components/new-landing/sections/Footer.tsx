@@ -104,6 +104,12 @@ export function Footer({ className, variant = "default" }: FooterProps) {
           <div className="mt-16 grid grid-cols-2 gap-8 lg:grid-cols-4 xl:mt-0">
             <div>
               <FooterList title="Product" items={footerNavigation.main} />
+              <div className="mt-6">
+                <FooterList
+                  title="Use cases"
+                  items={footerNavigation.useCases}
+                />
+              </div>
             </div>
             <div>
               <FooterList title="Support" items={footerNavigation.support} />
