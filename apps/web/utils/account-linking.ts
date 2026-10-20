@@ -47,7 +47,7 @@ export async function getAccountLinkingUrl(
       redirectTo?: string;
     } | null;
 
-    if (response.status === 401 && errorBody?.redirectTo) {
+    if (errorBody?.redirectTo) {
       return errorBody.redirectTo;
     }
 

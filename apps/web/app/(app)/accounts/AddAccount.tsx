@@ -12,7 +12,7 @@ import { redirectToSafeUrl } from "@/utils/redirect";
 import { ConnectImapAccount } from "./ConnectImapAccount";
 
 export function AddAccount({
-  helperText = "You will be billed for each account.",
+  helperText = "Google mail is billed per mailbox. Every other provider is free.",
 }: {
   helperText?: ReactNode;
 }) {

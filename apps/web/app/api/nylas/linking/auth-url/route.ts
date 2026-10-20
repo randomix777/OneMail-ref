@@ -16,6 +16,7 @@ import {
   NYLAS_LINKING_STATE_COOKIE_NAME,
 } from "@/utils/nylas/auth";
 import { hasNylasConfig } from "@/utils/nylas/client";
+import { hasPaidMailboxSubscription } from "@/utils/email/paid-mailbox";
 
 export type GetNylasAuthLinkUrlResponse = { url: string };
 
@@ -72,6 +73,20 @@ export const GET = withAuth("nylas/linking/auth-url", async (request) => {
     return NextResponse.json(
       { error: "Unauthorized", isKnownError: true, redirectTo: "/logout" },
       { status: 401 },
+    );
+  }
+
+  if (!(await hasPaidMailboxSubscription({ userId }))) {
+    // Google mail is the one family we pay a broker for, so it is the one
+    // family a subscription covers. Connecting one without a subscription
+    // would be a cost with no revenue behind it.
+    return NextResponse.json(
+      {
+        error: "Google mail is billed per mailbox.",
+        isKnownError: true,
+        redirectTo: "/accounts?error=google_mail_requires_subscription",
+      },
+      { status: 403 },
     );
   }
 

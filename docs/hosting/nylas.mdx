@@ -32,6 +32,15 @@ Two Nylas behaviours are worth knowing:
 - One grant per email address per application. Reconnecting updates the existing grant rather than creating a second one.
 - Grant health arrives as a `grant.expired` webhook. The route treats it as a connection event — logged separately from a rate limit or a mail event — rather than as new mail to process.
 
+## What a Google mailbox costs
+
+Nylas bills per connected account, so a Google mailbox is the one thing here that costs money. The subscription is priced per Google mailbox: the quantity is the number of Google mailboxes the customer has connected, and the Stripe price behind the subscription is a recurring CAD price of 499 per unit. Mailboxes on any other family connect straight to their provider and are free, and the client itself is free.
+
+Two rules follow from that:
+
+- **Connecting a Google mailbox needs a subscription.** The linking route refuses to start without one, because a grant is a cost from the moment it exists.
+- **Ending the subscription ends the mailboxes.** When the subscription is cancelled, the app deletes the Nylas grant and marks the mailbox as disconnected. The messages stay in the database, and reconnecting is one click of consent once the customer subscribes again. A mailbox that is disconnected is not billed either, so a customer who resubscribes is not charged for a mailbox they have not brought back.
+
 ## What Nylas does not do
 
 Some Gmail features have no Nylas API at all, and they are **disabled** for Google mailboxes rather than reimplemented on a side channel:

@@ -9,26 +9,13 @@ export type Tier = {
   price: { monthly: number; annually: number };
   discount: { monthly: number; annually: number };
   quantity?: number;
+  /** What one unit of the price covers, shown next to the amount. */
+  unit?: string;
   description: string;
   features: Feature[];
   cta: string;
   ctaLink?: string;
   mostPopular?: boolean;
-};
-
-const pricing: Record<PremiumTier, number> = {
-  BASIC_MONTHLY: 16,
-  BASIC_ANNUALLY: 8,
-  PRO_MONTHLY: 16,
-  PRO_ANNUALLY: 10,
-  STARTER_MONTHLY: 20,
-  STARTER_ANNUALLY: 18,
-  PLUS_MONTHLY: 35,
-  PLUS_ANNUALLY: 28,
-  PROFESSIONAL_MONTHLY: 50,
-  PROFESSIONAL_ANNUALLY: 42,
-  COPILOT_MONTHLY: 500,
-  LIFETIME: 299,
 };
 
 const variantIdToTier: Record<number, PremiumTier> = {
@@ -239,142 +226,44 @@ export function getPremiumTierName(
   return tierMap[tier] ?? "Premium";
 }
 
-function discount(monthly: number, annually: number) {
-  return ((monthly - annually) / monthly) * 100;
-}
-
 export const starterTierName = "Starter";
 
-const starterTier: Tier = {
-  name: starterTierName,
+/**
+ * The one thing that is billed.
+ *
+ * The client is free, and so is every provider that connects straight to its
+ * own server. Google mail is the exception: it reaches us through a broker we
+ * pay per account for, so it is billed per mailbox, every month.
+ */
+const googleMailTier: Tier = {
+  name: "Google mail",
   tiers: {
     monthly: "STARTER_MONTHLY",
-    annually: "STARTER_ANNUALLY",
+    annually: "STARTER_MONTHLY",
   },
   price: {
-    monthly: pricing.STARTER_MONTHLY,
-    annually: pricing.STARTER_ANNUALLY,
+    monthly: GOOGLE_MAILBOX_PRICE_CAD,
+    annually: GOOGLE_MAILBOX_PRICE_CAD,
   },
-  discount: {
-    monthly: 0,
-    annually: discount(pricing.STARTER_MONTHLY, pricing.STARTER_ANNUALLY),
-  },
+  discount: { monthly: 0, annually: 0 },
+  unit: "CAD per mailbox",
   description:
-    "For individuals, entrepreneurs, and executives looking to buy back their time.",
+    "Google mail reaches us through Nylas, because that is the only way to hold the scopes Google requires. Every Google mailbox you connect is billed every month. Every other provider is free.",
   features: [
     {
-      text: "Sorts and labels every email",
+      text: "The client is free, with every feature in it",
     },
     {
-      text: "Drafts replies in your voice",
+      text: "Outlook, Yahoo, Fastmail, iCloud, Zoho and any IMAP server connect for free",
     },
     {
-      text: "Blocks cold emails",
+      text: "The assistant is billed per token, not per seat",
     },
     {
-      text: "Bulk unsubscribe and archive emails",
+      text: "Another Google mailbox is billed the same day, prorated",
     },
     {
-      text: "Email analytics",
-    },
-    {
-      text: "Pre-meeting briefings",
-      tooltip:
-        "Get AI briefings before every meeting with research on attendees and context from your inbox.",
-    },
-  ],
-  cta: "Try free for 7 days",
-  mostPopular: false,
-};
-
-const plusTier: Tier = {
-  name: "Plus",
-  tiers: {
-    monthly: "PLUS_MONTHLY",
-    annually: "PLUS_ANNUALLY",
-  },
-  price: {
-    monthly: pricing.PLUS_MONTHLY,
-    annually: pricing.PLUS_ANNUALLY,
-  },
-  discount: {
-    monthly: 0,
-    annually: discount(pricing.PLUS_MONTHLY, pricing.PLUS_ANNUALLY),
-  },
-  description:
-    "For power users who need integrations and deeper knowledge base support.",
-  features: [
-    {
-      text: "Everything in Starter, plus:",
-    },
-    {
-      text: "2 email accounts included per user",
-      tooltip:
-        "Each user gets 2 email accounts included. Additional email accounts are billed at the standard per-seat rate.",
-    },
-    {
-      text: "AI meeting notetaker",
-      tooltip:
-        "A notetaker joins your video calls and turns them into transcripts, summaries, recap emails, and follow-up drafts.",
-    },
-    {
-      text: "Slack integration",
-      tooltip:
-        "Forward important emails and notifications to your Slack channels automatically.",
-    },
-    {
-      text: "App integrations",
-      tooltip:
-        "Connect Notion, Stripe, Monday.com, and more so the AI can use data from your tools when drafting replies and meeting briefs.",
-    },
-    {
-      text: "Email digests",
-      tooltip:
-        "Group emails from selected rules into a scheduled summary instead of reading each message individually.",
-    },
-    {
-      text: "Auto-file attachments",
-      tooltip:
-        "Automatically organize and file email attachments to your preferred storage.",
-    },
-    {
-      text: "Unlimited knowledge base",
-      tooltip:
-        "The knowledge base is used to help draft responses. Store unlimited content in your knowledge base.",
-    },
-  ],
-  cta: "Try free for 7 days",
-  mostPopular: true,
-};
-
-const professionalTier: Tier = {
-  name: "Professional",
-  tiers: {
-    monthly: "PROFESSIONAL_MONTHLY",
-    annually: "PROFESSIONAL_ANNUALLY",
-  },
-  price: {
-    monthly: pricing.PROFESSIONAL_MONTHLY,
-    annually: pricing.PROFESSIONAL_ANNUALLY,
-  },
-  discount: {
-    monthly: 0,
-    annually: discount(
-      pricing.PROFESSIONAL_MONTHLY,
-      pricing.PROFESSIONAL_ANNUALLY,
-    ),
-  },
-  description: "For teams and growing businesses handling high email volumes.",
-  features: [
-    {
-      text: "Everything in Plus, plus:",
-    },
-    { text: "Team-wide analytics" },
-    { text: "Priority support" },
-    {
-      text: "Dedicated onboarding manager",
-      tooltip:
-        "We'll help you get set up on an onboarding call. Book as many free calls as needed.",
+      text: "Cancel any time",
     },
   ],
   cta: "Try free for 7 days",
@@ -426,5 +315,5 @@ export function getLemonSubscriptionTier({
   return tier;
 }
 
-export const tiers: Tier[] = [starterTier, plusTier, professionalTier];
+export const tiers: Tier[] = [googleMailTier];
 export { enterpriseTier };

@@ -40,8 +40,8 @@ const reasons = [
   },
   {
     icon: <Zap className="size-5" />,
-    title: "Half the price of Superhuman",
-    description: `AI drafts and a sorted inbox from $${tiers[0].price.annually}/month, half what Superhuman charges.`,
+    title: "One window for every mailbox",
+    description: `Gmail, Outlook and every IMAP server in one place. Google mail is ${tiers[0].price.monthly} CAD a mailbox; every other provider is free.`,
   },
 ];
 

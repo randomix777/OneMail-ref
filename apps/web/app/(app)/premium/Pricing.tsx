@@ -68,10 +68,15 @@ export default function Pricing(props: PricingProps) {
   );
   const isLegacyStripePlan = shouldShowLegacyStripePricingNotice(premium);
 
-  const defaultFrequency = frequencies[1];
   const [chosenFrequency, setFrequency] = useState<
     (typeof frequencies)[number] | null
   >(null);
+  // The annual option is only offered when a plan actually bills differently
+  // for it. A single per-mailbox price has nothing to annualize.
+  const supportsAnnual = displayedTiers.some(
+    (tier) => tier.tiers.annually !== tier.tiers.monthly,
+  );
+  const defaultFrequency = supportsAnnual ? frequencies[1] : frequencies[0];
   const frequency = chosenFrequency ?? defaultFrequency;
 
   const userPremiumTier = getUserTier(premium);
@@ -181,29 +186,33 @@ export default function Pricing(props: PricingProps) {
           </div>
         )}
 
-        <PricingFrequencyToggle
-          frequency={frequency}
-          setFrequency={(nextFrequency) => {
-            posthog.capture("pricing_frequency_changed", {
-              source: pricingSource,
-              previousFrequency: frequency.value,
-              frequency: nextFrequency.value,
-              defaultFrequency: defaultFrequency.value,
-            });
-            setFrequency(nextFrequency);
-          }}
-        >
-          <div className="ml-1">
-            <DiscountBadge>Save up to 20%</DiscountBadge>
-          </div>
-        </PricingFrequencyToggle>
+        {supportsAnnual ? (
+          <PricingFrequencyToggle
+            frequency={frequency}
+            setFrequency={(nextFrequency) => {
+              posthog.capture("pricing_frequency_changed", {
+                source: pricingSource,
+                previousFrequency: frequency.value,
+                frequency: nextFrequency.value,
+                defaultFrequency: defaultFrequency.value,
+              });
+              setFrequency(nextFrequency);
+            }}
+          >
+            <div className="ml-1">
+              <DiscountBadge>Save up to 20%</DiscountBadge>
+            </div>
+          </PricingFrequencyToggle>
+        ) : null}
 
         <div
           className={cn(
             "isolate mx-auto mt-6 grid grid-cols-1 gap-y-8 gap-4 sm:mt-10",
-            displayedTiers.length === 2
-              ? "max-w-3xl lg:grid-cols-2"
-              : "max-w-7xl lg:mx-0 lg:max-w-none lg:grid-cols-3",
+            displayedTiers.length === 1
+              ? "max-w-2xl lg:grid-cols-1"
+              : displayedTiers.length === 2
+                ? "max-w-3xl lg:grid-cols-2"
+                : "max-w-7xl lg:mx-0 lg:max-none lg:grid-cols-3",
           )}
         >
           {displayedTiers.map((tier) => (
@@ -302,7 +311,7 @@ function PriceTier({
                 ${tier.price[frequency.value]}
               </span>
               <span className="text-sm font-semibold leading-6 text-gray-600">
-                /user
+                {tier.unit ?? "/user"}
               </span>
             </>
           )}
@@ -316,9 +325,11 @@ function PriceTier({
           )}
         </p>
 
-        <p className="mt-2 text-sm leading-6 text-gray-600">
-          {tier.price[frequency.value] ? frequency.priceSuffix : "\u00A0"}
-        </p>
+        {!tier.unit ? (
+          <p className="mt-2 text-sm leading-6 text-gray-600">
+            {tier.price[frequency.value] ? frequency.priceSuffix : "\u00A0"}
+          </p>
+        ) : null}
 
         <ul className="mt-8 space-y-3 text-sm leading-6 text-gray-600">
           {tier.features.map((feature) => (

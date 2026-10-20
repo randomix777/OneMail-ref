@@ -55,7 +55,7 @@ export async function revokeMailboxConnection({
   const transport = resolveMailTransport(account.provider, account.transport);
 
   if (transport === "nylas") {
-    await deleteNylasGrant({
+    await deleteNylasGrantById({
       grantId: account.providerAccountId,
       logger,
     });
@@ -140,7 +140,7 @@ export async function revokePaidMailboxesForPremium({
  * A grant that is already gone is not an error: the goal is that it does not
  * exist, and it does not.
  */
-async function deleteNylasGrant({
+export async function deleteNylasGrantById({
   grantId,
   logger,
 }: {

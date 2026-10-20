@@ -34,6 +34,7 @@ import { logOut } from "@/utils/user";
 import { getAndClearAuthErrorCookie } from "@/utils/auth-cookies";
 import { getActionErrorMessage } from "@/utils/error";
 import { BRAND_NAME } from "@/utils/branding";
+import { GOOGLE_MAILBOX_PRICE_CAD } from "@/app/(app)/premium/config";
 import {
   CALENDAR_SCOPES,
   SCOPES as MICROSOFT_EMAIL_SCOPES,
@@ -343,6 +344,17 @@ function getAccountErrorMessage(
         "Connecting or reconnecting a mailbox isn't available when you signed in with an email code. Sign in with Google or Microsoft and try again.",
       toastDescription:
         "Connecting or reconnecting a mailbox isn't available when you signed in with an email code. Sign in with Google or Microsoft and try again.",
+    },
+    google_mail_requires_subscription: {
+      title: "Google mail is billed per mailbox",
+      description: (
+        <span>
+          Google mail reaches {BRAND_NAME} through a broker we pay for, so every
+          Google mailbox costs {GOOGLE_MAILBOX_PRICE_CAD} CAD a month. Every
+          other provider is free. <Link href="/premium">See the plans</Link>
+        </span>
+      ),
+      toastDescription: `Google mail is ${GOOGLE_MAILBOX_PRICE_CAD} CAD per mailbox. Subscribe to connect a Google account.`,
     },
     invalid_state: {
       title: "Invalid request",

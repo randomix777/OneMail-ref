@@ -32,6 +32,8 @@ import {
   getNylasGrant,
   NYLAS_LINKING_STATE_COOKIE_NAME,
 } from "@/utils/nylas/auth";
+import { deleteNylasGrantById } from "@/utils/email/revoke-connection";
+import { hasPaidMailboxSubscription } from "@/utils/email/paid-mailbox";
 
 export const GET = withError("nylas/linking/callback", async (request) => {
   const actorSession = await auth(request.headers);
@@ -113,6 +115,18 @@ export const GET = withError("nylas/linking/callback", async (request) => {
     // Nylas brokers other providers too; this transport exists to carry Google.
     if (grant.provider !== "google") {
       throw new SafeError("Nylas returned a grant for a different provider.");
+    }
+
+    if (!(await hasPaidMailboxSubscription({ userId: targetUserId }))) {
+      // The subscription can lapse between the consent screen and this
+      // callback. The grant is a cost from the moment it exists, so it goes
+      // back before it starts costing.
+      await deleteNylasGrantById({ grantId, logger });
+
+      return createAccountLinkingRedirect({
+        query: { error: "google_mail_requires_subscription" },
+        stateCookieName: NYLAS_LINKING_STATE_COOKIE_NAME,
+      });
     }
 
     const providerAccountId = grant.id;

@@ -10,10 +10,11 @@ import {
   waitForTrialingSubscription,
 } from "./billing-test-helpers";
 
-const STARTER_TIER = "Starter";
+// The plan is named after what it pays for, which is Google mail.
+const GOOGLE_MAIL_TIER = "Google mail";
 // The helpers read the database directly, so they see the stored column value
-// rather than the Prisma enum name: STARTER_ANNUALLY is `@map("BUSINESS_ANNUALLY")`.
-const STARTER_ANNUALLY_TIER_COLUMN = "BUSINESS_ANNUALLY";
+// rather than the Prisma enum name: STARTER_MONTHLY is `@map("BUSINESS_MONTHLY")`.
+const GOOGLE_MAIL_TIER_COLUMN = "BUSINESS_MONTHLY";
 
 test.beforeEach(async () => {
   await resetBillingState();
@@ -43,17 +44,17 @@ test("starts a trial from the post-onboarding upgrade page", async ({
 
   await capturePlaywrightCheckpoint(page, test.info(), "welcome-upgrade");
 
-  await payOnStripeCheckout(page, STARTER_TIER);
+  await payOnStripeCheckout(page, GOOGLE_MAIL_TIER);
 
   await expect(page).toHaveURL(/\/setup(?:\?.*)?$/, { timeout: 60_000 });
   await expect.poll(getPremiumBillingState, { timeout: 60_000 }).toMatchObject({
     stripeSubscriptionStatus: "trialing",
-    tier: STARTER_ANNUALLY_TIER_COLUMN,
+    tier: GOOGLE_MAIL_TIER_COLUMN,
   });
 
   await page.goto("/premium");
   await expect(
-    page.locator(`button[aria-describedby="${STARTER_TIER}"]`),
+    page.locator(`button[aria-describedby="${GOOGLE_MAIL_TIER}"]`),
   ).toHaveText("Current plan", { timeout: 60_000 });
 });
 
@@ -61,7 +62,7 @@ test("records the paid conversion once the first invoice is paid", async ({
   page,
 }) => {
   await page.goto("/premium");
-  await payOnStripeCheckout(page, STARTER_TIER);
+  await payOnStripeCheckout(page, GOOGLE_MAIL_TIER);
   const subscriptionId = await waitForTrialingSubscription();
 
   await endStripeTrial(subscriptionId, "paid");
@@ -83,7 +84,7 @@ test("does not record a paid conversion when the first invoice fails", async ({
   page,
 }) => {
   await page.goto("/premium");
-  await payOnStripeCheckout(page, STARTER_TIER);
+  await payOnStripeCheckout(page, GOOGLE_MAIL_TIER);
   const subscriptionId = await waitForTrialingSubscription();
 
   // Stripe flips the subscription to active before it knows the card will be

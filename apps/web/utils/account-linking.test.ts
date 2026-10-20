@@ -72,4 +72,23 @@ describe("getAccountLinkingUrl", () => {
 
     await expect(getAccountLinkingUrl("google")).resolves.toBe("/logout");
   });
+
+  it("returns the redirect URL when the server sends the user somewhere else", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          error: "Google mail is billed per mailbox.",
+          isKnownError: true,
+          redirectTo: "/accounts?error=google_mail_requires_subscription",
+        }),
+      }),
+    );
+
+    await expect(getAccountLinkingUrl("google")).resolves.toBe(
+      "/accounts?error=google_mail_requires_subscription",
+    );
+  });
 });
