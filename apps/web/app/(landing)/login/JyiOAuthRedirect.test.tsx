@@ -21,7 +21,7 @@ describe("JyiOAuthRedirect", () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        url: "https://auth.jyisolutions.com/authorize?state=abc",
+        url: "https://identity.example.com/authorize?state=abc",
       }),
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -30,7 +30,7 @@ describe("JyiOAuthRedirect", () => {
 
     await waitFor(() => {
       expect(redirectToSafeUrl).toHaveBeenCalledWith(
-        "https://auth.jyisolutions.com/authorize?state=abc",
+        "https://identity.example.com/authorize?state=abc",
         { allowExternal: true },
       );
     });
@@ -40,7 +40,7 @@ describe("JyiOAuthRedirect", () => {
     );
   });
 
-  it("offers the one-time code when the provider cannot be reached", async () => {
+  it("does not bypass JYI sign-in when the provider cannot be reached", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -54,6 +54,6 @@ describe("JyiOAuthRedirect", () => {
     await waitFor(() => {
       expect(screen.getByText("Could not reach the sign-in page")).toBeTruthy();
     });
-    expect(screen.getByRole("link").getAttribute("href")).toBe("/login/email");
+    expect(screen.queryByRole("link")).toBeNull();
   });
 });

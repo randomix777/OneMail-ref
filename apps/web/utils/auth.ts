@@ -206,6 +206,8 @@ const genericOauthConfig: GenericOAuthConfig[] = [
           clientId: env.JYI_OAUTH_CLIENT_ID!,
           clientSecret: env.JYI_OAUTH_CLIENT_SECRET!,
           scopes: env.JYI_OAUTH_SCOPES.split(/\s+/).filter(Boolean),
+          requireIdTokenVerification: true,
+          requireEmailVerification: true,
           pkce: true,
           accessType: "offline" as const,
           ...(env.OAUTH_PROXY_URL && {
@@ -352,7 +354,7 @@ export const betterAuthConfig = betterAuth({
       enabled: true,
       // Microsoft Entra email claims can be mutable/unverified, so Microsoft
       // must not implicitly link users by email during social sign-in.
-      trustedProviders: ["google", "apple"],
+      trustedProviders: ["google", "apple", JYI_OAUTH_PROVIDER_ID],
     },
   },
   verification: {
@@ -395,11 +397,6 @@ export const betterAuthConfig = betterAuth({
         },
         after: async (user, context) => {
           markAuthContextAsNewUser(context?.context);
-          // The one-time code is the account login, so every account gets it.
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { emailOtpEnabled: true },
-          });
           await postSignUp({
             id: user.id,
             email: user.email,

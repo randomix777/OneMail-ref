@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { ApiKeysSection } from "@/app/(app)/[emailAccountId]/settings/ApiKeysSection";
 import { McpSection } from "@/app/(app)/[emailAccountId]/settings/McpSection";
-import { EmailOtpSection } from "@/app/(app)/settings/EmailOtpSection";
 import { AppearanceSection } from "@/app/(app)/settings/AppearanceSection";
 import { TeamSection } from "@/app/(app)/settings/TeamSection";
 import { BillingSection } from "@/app/(app)/[emailAccountId]/settings/BillingSection";
@@ -171,9 +170,12 @@ export function SettingsContent() {
 
       <SettingsGroup icon={<UserIcon className="size-5" />} title="Account">
         <ItemCard>
-          {env.NEXT_PUBLIC_EXTERNAL_API_ENABLED && <McpSection />}
-          <EmailOtpSection hasMultipleAccounts={emailAccounts.length > 1} />
-          <ItemSeparator />
+          {env.NEXT_PUBLIC_EXTERNAL_API_ENABLED && (
+            <>
+              <McpSection />
+              <ItemSeparator />
+            </>
+          )}
           <AppearanceSection />
           <ItemSeparator />
           <Item size="sm">

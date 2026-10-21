@@ -36,18 +36,7 @@ describe("MCP consent page", () => {
     getOAuthClientPublic.mockResolvedValue({ client_name: "Test client" });
   });
 
-  it("does not look up the client for an email code session", async () => {
-    auth.mockResolvedValue({
-      user: { id: "user-1" },
-      session: { emailOtp: true },
-    });
-    await expect(
-      McpConsentPage({ searchParams: Promise.resolve(searchParams) }),
-    ).resolves.toBeTruthy();
-    expect(getOAuthClientPublic).not.toHaveBeenCalled();
-  });
-
-  it("looks up the client for a provider session", async () => {
+  it("looks up the client for an authenticated session", async () => {
     auth.mockResolvedValue({
       user: { id: "user-1" },
       session: { emailOtp: false },

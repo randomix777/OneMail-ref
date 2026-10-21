@@ -10,5 +10,9 @@ export const JYI_OAUTH_PROVIDER_ID = "jyi";
  * happens on JYI's own screen rather than on a third party's consent screen.
  */
 export function isJyiOauthEnabled() {
-  return Boolean(env.JYI_OAUTH_DISCOVERY_URL && env.JYI_OAUTH_CLIENT_ID);
+  return Boolean(
+    env.JYI_OAUTH_DISCOVERY_URL &&
+      env.JYI_OAUTH_CLIENT_ID &&
+      env.JYI_OAUTH_CLIENT_SECRET,
+  );
 }

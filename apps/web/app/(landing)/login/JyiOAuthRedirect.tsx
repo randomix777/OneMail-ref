@@ -1,16 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { JYI_OAUTH_PROVIDER_ID } from "@/utils/oauth/jyi-oauth";
 import { redirectToSafeUrl } from "@/utils/redirect";
 
 /**
  * Sends the user to JYI's own OAuth provider.
  *
- * The sign-in happens on JYI's screen, so the app never drops the user on a
- * third party's consent page. The one-time code stays available as a way in
- * for anyone the provider cannot serve.
+ * JYI handles email/password sign-in and verified-email links for every
+ * deployment, so all accounts use the same identity provider.
  */
 export function JyiOAuthRedirect({
   callbackURL,
@@ -73,14 +71,9 @@ export function JyiOAuthRedirect({
 
   if (error) {
     return (
-      <div className="space-y-3 px-4 text-center">
+      <div className="px-4 text-center">
         <p role="alert" className="text-sm text-destructive">
           {error}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          <Link href="/login/email" className="underline underline-offset-4">
-            Sign in with a one-time code instead
-          </Link>
         </p>
       </div>
     );

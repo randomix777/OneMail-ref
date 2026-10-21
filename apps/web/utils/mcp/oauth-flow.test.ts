@@ -290,7 +290,7 @@ describe("MCP OAuth flow", () => {
       undefined,
       otpCookie,
     );
-    expect(authorize.status).toBe(403);
+    expect(authorize.status).toBe(401);
 
     // Reuse a valid signed decision from a provider session so the rejection
     // can only come from the session check.
@@ -308,7 +308,7 @@ describe("MCP OAuth flow", () => {
       { accept: true, oauth_query: signed },
       otpCookie,
     );
-    expect(accepted.status).toBe(403);
+    expect(accepted.status).toBe(401);
     expect(flow.consents()).toHaveLength(0);
   });
 
