@@ -33,6 +33,18 @@ const logger = createScopedLogger("llms/model");
 
 export type ModelType = "default" | "economy" | "chat" | "nano" | "draft";
 
+/**
+ * Who a model call is for.
+ *
+ * A gateway that fronts our own models bills the tokens it fronts, so it has
+ * to know which account the call belongs to. The id is the key the account is
+ * stored under; the email is the key the identity provider knows them by.
+ */
+type GatewayAttribution = {
+  id: string;
+  email: string;
+};
+
 export type ResolvedModel = {
   provider: string;
   modelName: string;
@@ -72,7 +84,10 @@ export function getModel(
         primaryModel: selectUserModel(userAi, modelType),
         fallbackModels: [],
       }
-    : selectDeploymentModelByType(modelType);
+    : selectDeploymentModelByType(modelType, {
+        id: userAi.id,
+        email: userAi.email,
+      });
   const { primaryModel, fallbackModels } = selectedModel;
 
   logger.info("Using model", {
@@ -101,6 +116,7 @@ function selectModel(
   modelType: ModelType,
   // biome-ignore lint/suspicious/noExplicitAny: existing loose external shape
   providerOptions?: Record<string, any>,
+  attribution?: GatewayAttribution,
 ): ResolvedModel {
   switch (aiProvider) {
     case Provider.OPEN_AI: {
@@ -267,6 +283,15 @@ function selectModel(
         headers: {
           "http-referer": "https://www.jyisolutions.com",
           "x-title": BRAND_NAME,
+          // That gateway bills the tokens it fronts, so it has to know who the
+          // call is for. The id is the key the account is stored under, and it
+          // only goes to our own gateway: the hosted one is a third party.
+          ...(attribution?.id && env.AI_GATEWAY_BASE_URL
+            ? {
+                "x-jyi-user-id": attribution.id,
+                "x-jyi-user-email": attribution.email,
+              }
+            : {}),
         },
       });
       return {
@@ -382,14 +407,17 @@ function createOpenRouterProviderOptions(
   };
 }
 
-function selectDeploymentModelByType(modelType: ModelType): {
+function selectDeploymentModelByType(
+  modelType: ModelType,
+  attribution?: GatewayAttribution,
+): {
   primaryModel: ResolvedModel;
   fallbackModels: ResolvedModel[];
 } {
   const selectedModel =
-    resolveRoleModelList(modelType) ??
+    resolveRoleModelList(modelType, attribution) ??
     getDeploymentModelFallbackTypes(modelType)
-      .map((fallbackType) => resolveRoleModelList(fallbackType))
+      .map((fallbackType) => resolveRoleModelList(fallbackType, attribution))
       .find((modelList) => !!modelList);
 
   if (!selectedModel) {
@@ -437,7 +465,10 @@ function selectUserModel(
   );
 }
 
-function resolveRoleModelList(modelType: ModelType): {
+function resolveRoleModelList(
+  modelType: ModelType,
+  attribution?: GatewayAttribution,
+): {
   primaryModel: ResolvedModel;
   fallbackModels: ResolvedModel[];
 } | null {
@@ -447,6 +478,7 @@ function resolveRoleModelList(modelType: ModelType): {
   const resolvedModels = resolveDeploymentModelEntries({
     entries: parseModelListConfig(modelListConfig),
     modelType,
+    attribution,
     getOpenRouterProviderOptions,
     warningMessages: {
       unsupportedProvider: "Skipping unsupported LLM list provider",
@@ -799,12 +831,14 @@ function parseModelListConfig(modelListConfig: string): ParsedModelEntry[] {
 function resolveDeploymentModelEntries({
   entries,
   modelType,
+  attribution,
   primaryModel,
   getOpenRouterProviderOptions,
   warningMessages,
 }: {
   entries: ParsedModelEntry[];
   modelType: ModelType;
+  attribution?: GatewayAttribution;
   primaryModel?: ResolvedModel;
   getOpenRouterProviderOptions: (
     modelType: ModelType,
@@ -854,6 +888,7 @@ function resolveDeploymentModelEntries({
       },
       modelType,
       providerOptions,
+      attribution,
     );
 
     if (

@@ -12,6 +12,8 @@ describe("getEvalJudgeUserAi", () => {
     vi.stubEnv("OPENROUTER_API_KEY", "test-key");
 
     expect(getEvalJudgeUserAi()).toEqual({
+      id: "eval-judge",
+      email: "judge@example.com",
       aiProvider: "openrouter",
       aiModel: "deepseek/deepseek-v4.1-flash",
       aiApiKey: "test-key",
@@ -24,6 +26,8 @@ describe("getEvalJudgeUserAi", () => {
     vi.stubEnv("GOOGLE_API_KEY", "test-key");
 
     expect(getEvalJudgeUserAi()).toEqual({
+      id: "eval-judge",
+      email: "judge@example.com",
       aiProvider: "google",
       aiModel: "google/test-model",
       aiApiKey: "test-key",

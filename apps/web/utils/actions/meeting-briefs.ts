@@ -55,6 +55,8 @@ export const sendBriefAction = actionClient
           calendarBookingLink: true,
           user: {
             select: {
+              id: true,
+              email: true,
               aiProvider: true,
               aiModel: true,
               aiApiKey: true,

@@ -151,6 +151,8 @@ export function getEmailAccountForModel(
   return {
     ...getEmailAccount(overrides),
     user: {
+      id: "eval-judge",
+      email: "judge@example.com",
       aiProvider: model.provider,
       aiModel: model.model,
       aiApiKey: getApiKeyForProvider(model.provider),

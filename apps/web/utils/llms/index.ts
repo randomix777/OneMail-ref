@@ -159,6 +159,9 @@ function prepareOptionsForToolBridge<TOptions extends { tools?: unknown }>({
 }
 
 const NO_USER_AI_FIELDS: UserAIFields = {
+  // A deployment-wide call has no user behind it, so there is nobody to bill.
+  id: "",
+  email: "",
   aiProvider: null,
   aiModel: null,
   aiApiKey: null,

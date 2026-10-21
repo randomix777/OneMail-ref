@@ -151,6 +151,7 @@ describe("Models", () => {
     vi.mocked(env).CEREBRAS_API_KEY = "test-cerebras-key";
     vi.mocked(env).OPENROUTER_API_KEY = "test-openrouter-key";
     vi.mocked(env).AI_GATEWAY_API_KEY = "test-ai-gateway-key";
+    vi.mocked(env).AI_GATEWAY_BASE_URL = undefined;
     vi.mocked(env).OLLAMA_BASE_URL = "http://localhost:11434/api";
     vi.mocked(env).OLLAMA_MODEL = "llama3";
     vi.mocked(env).OPENAI_COMPATIBLE_BASE_URL = "http://localhost:1234/v1";
@@ -523,6 +524,58 @@ describe("Models", () => {
           "x-title": "OneMail",
         },
       });
+    });
+
+    it("tells our own gateway who the call is for", () => {
+      // The gateway bills the tokens it fronts, so it has to know which
+      // account the call belongs to.
+      vi.mocked(env).AI_GATEWAY_BASE_URL = "https://gateway.jyisolutions.com";
+
+      setDefaultLlms(Provider.AI_GATEWAY, "openai/gpt-5.4-mini");
+
+      getModel(defaultUserAi());
+
+      expect(createGateway).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: "https://gateway.jyisolutions.com",
+          headers: expect.objectContaining({
+            "x-jyi-user-id": "user-1",
+            "x-jyi-user-email": "user@example.com",
+          }),
+        }),
+      );
+    });
+
+    it("does not tell a third-party gateway who the call is for", () => {
+      vi.mocked(env).AI_GATEWAY_BASE_URL = undefined;
+
+      setDefaultLlms(Provider.AI_GATEWAY, "openai/gpt-5.4-mini");
+
+      getModel(defaultUserAi());
+
+      expect(createGateway).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: expect.not.objectContaining({
+            "x-jyi-user-id": expect.anything(),
+          }),
+        }),
+      );
+    });
+
+    it("leaves the id out when there is no user behind the call", () => {
+      vi.mocked(env).AI_GATEWAY_BASE_URL = "https://gateway.jyisolutions.com";
+
+      setDefaultLlms(Provider.AI_GATEWAY, "openai/gpt-5.4-mini");
+
+      getModel(defaultUserAi({ id: "" }));
+
+      expect(createGateway).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: expect.not.objectContaining({
+            "x-jyi-user-id": expect.anything(),
+          }),
+        }),
+      );
     });
 
     it("should configure AI Gateway Azure model with low reasoning effort", () => {
@@ -1476,6 +1529,8 @@ describe("Models", () => {
 
 function defaultUserAi(overrides: Partial<UserAIFields> = {}): UserAIFields {
   return {
+    id: "user-1",
+    email: "user@example.com",
     aiApiKey: null,
     aiProvider: null,
     aiModel: null,

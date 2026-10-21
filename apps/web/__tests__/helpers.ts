@@ -233,6 +233,8 @@ export function getEmailAccount(
     timezone: null,
     calendarBookingLink: null,
     user: {
+      id: "test-user",
+      email: "user@test.com",
       aiModel: null,
       aiProvider: null,
       aiApiKey: null,

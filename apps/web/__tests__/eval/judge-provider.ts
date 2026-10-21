@@ -14,6 +14,8 @@ export function getEvalJudgeUserAi() {
   if (!aiApiKey) return;
 
   return {
+    id: "eval-judge",
+    email: "judge@example.com",
     aiProvider,
     aiModel,
     aiApiKey,

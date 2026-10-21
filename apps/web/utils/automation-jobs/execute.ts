@@ -53,6 +53,8 @@ export async function executeAutomationJobRun({
                   },
                   user: {
                     select: {
+                      id: true,
+                      email: true,
                       aiProvider: true,
                       aiModel: true,
                       aiApiKey: true,

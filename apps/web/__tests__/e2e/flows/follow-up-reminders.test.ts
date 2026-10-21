@@ -106,6 +106,8 @@ async function getEmailAccountForProcessing(emailAccountId: string) {
       followUpAutoDraftEnabled: true,
       user: {
         select: {
+          id: true,
+          email: true,
           aiProvider: true,
           aiModel: true,
           aiApiKey: true,

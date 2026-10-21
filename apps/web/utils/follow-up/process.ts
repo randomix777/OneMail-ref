@@ -71,6 +71,8 @@ const followUpReminderAccountSelect = {
   followUpAutoDraftEnabled: true,
   user: {
     select: {
+      id: true,
+      email: true,
       aiProvider: true,
       aiModel: true,
       aiApiKey: true,

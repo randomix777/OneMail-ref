@@ -298,6 +298,8 @@ export const fileAttachmentAction = actionClient
           filingConfirmationSendEmail: true,
           user: {
             select: {
+              id: true,
+              email: true,
               aiProvider: true,
               aiModel: true,
               aiApiKey: true,

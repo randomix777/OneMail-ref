@@ -88,6 +88,7 @@ The decision model receives the same email content as the LLM it replaces, with 
 
 ## Provider-specific details
 
+- `aigateway` points at the Vercel AI Gateway by default. Set `AI_GATEWAY_BASE_URL` to front your own gateway instead: the request then carries an `x-jyi-user-id` and an `x-jyi-user-email` header, so a gateway that bills the tokens it fronts can attribute them to an account: the id is the key the account is stored under, the email the key the identity provider knows the person by. The header only goes to a gateway you run, never to the hosted one.
 - `azure-foundry` requires `AZURE_FOUNDRY_API_KEY` and `AZURE_FOUNDRY_BASE_URL`. Use the deployment name as the model portion of the `azure-foundry:<deployment>` entry.
 - `cerebras` uses `CEREBRAS_API_KEY` (or `LLM_API_KEY`) against `https://api.cerebras.ai/v1`. Example chat model: `CHAT_LLMS=cerebras:qwen-3.8-27b`.
 - `openai-compatible` also requires `OPENAI_COMPATIBLE_BASE_URL`. Set `OPENAI_COMPATIBLE_AUTH_HEADER=api-key` when the server expects an `api-key` header instead of bearer authorization. This can point at Cerebras (`https://api.cerebras.ai/v1`) if you do not want the dedicated provider, but then you cannot also use a local OpenAI-compatible server.

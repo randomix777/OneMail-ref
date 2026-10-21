@@ -22,6 +22,8 @@ export type EmailAccountForBrief = {
   timezone: string | null;
   calendarBookingLink: string | null;
   user: {
+    id: string;
+    email: string;
     aiProvider: string | null;
     aiModel: string | null;
     aiApiKey: string | null;
@@ -101,6 +103,8 @@ export async function processMeetingBriefings({
       calendarBookingLink: true,
       user: {
         select: {
+          id: true,
+          email: true,
           aiProvider: true,
           aiModel: true,
           aiApiKey: true,
