@@ -12,10 +12,20 @@ import { redirectToSafeUrl } from "@/utils/redirect";
  * third party's consent page. The one-time code stays available as a way in
  * for anyone the provider cannot serve.
  */
-export function JyiOAuthRedirect({ callbackURL }: { callbackURL: string }) {
-  const [error, setError] = useState<string | null>(null);
+export function JyiOAuthRedirect({
+  callbackURL,
+  configured = true,
+}: {
+  callbackURL: string;
+  /** Whether the instance has JYI's OAuth provider configured. */
+  configured?: boolean;
+}) {
+  const [error, setError] = useState<string | null>(
+    configured ? null : "Sign-in is not configured on this instance.",
+  );
 
   useEffect(() => {
+    if (!configured) return;
     let cancelled = false;
 
     async function start() {
@@ -59,7 +69,7 @@ export function JyiOAuthRedirect({ callbackURL }: { callbackURL: string }) {
     return () => {
       cancelled = true;
     };
-  }, [callbackURL]);
+  }, [callbackURL, configured]);
 
   if (error) {
     return (
