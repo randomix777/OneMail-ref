@@ -54,13 +54,12 @@ const faqs: {
     answer: (
       <span>
         Not yet. The client runs on the web and on the desktop, and the
-        assistant can reach you on Slack or Telegram while you are away. A
-        mobile app is on the list, and we would rather say so than ship a
-        promise.
+        assistant can reach you on Slack or Telegram while you are away. The iOS
+        and Android apps are coming soon.
       </span>
     ),
     answerText:
-      "Not yet. The client runs on the web and on the desktop, and the assistant can reach you on Slack or Telegram while you are away. A mobile app is on the list, and we would rather say so than ship a promise.",
+      "Not yet. The client runs on the web and on the desktop, and the assistant can reach you on Slack or Telegram while you are away. The iOS and Android apps are coming soon.",
   },
   {
     question: "Is the code open-source?",
