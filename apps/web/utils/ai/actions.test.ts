@@ -166,7 +166,6 @@ describe("runActionFunction", () => {
 
     expect(resolveDraftAttachments).toHaveBeenCalledWith({
       emailAccountId: "account-1",
-      userId: "user-1",
       selectedAttachments: [
         {
           driveConnectionId: "drive-1",
@@ -535,7 +534,6 @@ describe("runActionFunction", () => {
 
     expect(resolveDraftAttachments).toHaveBeenCalledWith({
       emailAccountId: "account-1",
-      userId: "user-1",
       selectedAttachments: [
         {
           driveConnectionId: "drive-1",
@@ -603,7 +601,6 @@ describe("runActionFunction", () => {
 
     expect(resolveDraftAttachments).toHaveBeenCalledWith({
       emailAccountId: "account-1",
-      userId: "user-1",
       selectedAttachments: [
         {
           driveConnectionId: "drive-1",

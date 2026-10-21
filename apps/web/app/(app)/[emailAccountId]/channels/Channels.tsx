@@ -130,11 +130,8 @@ type Rule = RulesResponse[number];
 
 export function Channels() {
   const { emailAccountId } = useAccount();
-  const { tier, isLoading: isLoadingPremium } = usePremium();
-  const hasDigestAccess = hasTierAccess({
-    tier,
-    minimumTier: "PLUS_MONTHLY",
-  });
+  const { isLoading: isLoadingPremium } = usePremium();
+  const hasDigestAccess = hasTierAccess();
   const {
     data: channelsData,
     isLoading: isLoadingChannels,

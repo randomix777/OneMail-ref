@@ -18,7 +18,6 @@ import {
 import type { NormalizedTranscript } from "@/utils/meeting-recorder/bot-provider";
 import {
   MAX_PROCESSING_ATTEMPTS,
-  MEETING_RECORDER_MIN_TIER,
   STUCK_PROCESSING_MINUTES,
 } from "@/utils/meeting-recorder/config";
 import { sendMeetingRecapEmail } from "@/utils/meeting-recorder/send-recap";
@@ -139,10 +138,7 @@ async function runProcessingSteps({
   });
   if (!emailAccount) throw new Error("Email account not found");
 
-  const hasAccess = await checkHasAccess({
-    userId: emailAccount.userId,
-    minimumTier: MEETING_RECORDER_MIN_TIER,
-  });
+  const hasAccess = await checkHasAccess();
   if (!hasAccess) {
     logger.info("Skipping meeting because the plan does not include it");
     return;

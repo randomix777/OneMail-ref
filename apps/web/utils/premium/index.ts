@@ -214,15 +214,14 @@ export const getRemainingUnsubscribeCredits = ({
     ? (unsubscribeCredits ?? 0)
     : env.NEXT_PUBLIC_FREE_UNSUBSCRIBE_CREDITS;
 
-export const hasUnsubscribeAccess = (
-  tier: PremiumTier | null,
-  unsubscribeCredits?: number | null,
-): boolean => {
-  if (env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) return true;
-
-  if (tier) return true;
-  return (unsubscribeCredits ?? 0) > 0;
-};
+/**
+ * Whether an account may bulk unsubscribe.
+ *
+ * Unsubscribing is a provider-side action we pay nothing for, so it is open to
+ * every account. The credits that used to limit it are still counted, but they
+ * no longer stop anyone.
+ */
+export const hasUnsubscribeAccess = (): boolean => true;
 
 /**
  * Whether an account may use the assistant.
@@ -234,23 +233,15 @@ export const hasUnsubscribeAccess = (
  */
 export const hasAiAccess = (): boolean => true;
 
-export const hasTierAccess = ({
-  tier,
-  minimumTier,
-}: {
-  tier: PremiumTier | null;
-  minimumTier: PremiumTier;
-}): boolean => {
-  if (env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) return true;
-
-  if (!tier) return false;
-
-  const ranking = tierRanking[tier];
-
-  const hasAiAccess = ranking >= tierRanking[minimumTier];
-
-  return hasAiAccess;
-};
+/**
+ * Whether an account may use a feature that used to sit behind a plan.
+ *
+ * There is no plan any more. The client is free, the assistant is metered by
+ * the token through the gateway, and the only thing that is billed is Google
+ * mail. So nothing is held back here: what is left of the tier machinery is
+ * there for the billing, not for the features.
+ */
+export const hasTierAccess = (): boolean => true;
 
 export function isOnHigherTier(
   tier1?: PremiumTier | null,

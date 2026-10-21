@@ -25,7 +25,6 @@ import { Tiptap, type TiptapHandle } from "@/components/editor/Tiptap";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/utils";
 import { useAccount } from "@/providers/EmailAccountProvider";
-import { usePremium } from "@/hooks/usePremium";
 import { hasTierAccess } from "@/utils/premium";
 import { AlertWithButton } from "@/components/Alert";
 import { KNOWLEDGE_BASIC_MAX_ITEMS } from "@/utils/config";
@@ -42,12 +41,8 @@ export function KnowledgeForm({
   knowledgeItemsCount: number;
 }) {
   const { emailAccountId } = useAccount();
-  const { tier } = usePremium();
 
-  const hasFullAccess = hasTierAccess({
-    tier: tier || null,
-    minimumTier: "PLUS_MONTHLY",
-  });
+  const hasFullAccess = hasTierAccess();
 
   const {
     register,

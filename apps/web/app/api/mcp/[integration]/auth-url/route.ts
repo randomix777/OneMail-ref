@@ -11,7 +11,6 @@ import {
 } from "@/utils/oauth/state";
 import { resolveMcpIntegration } from "@/utils/mcp/resolve-integration";
 import { generateOAuthUrl } from "@/utils/mcp/oauth";
-import { assertIntegrationsTierAccess } from "@/utils/mcp/tier-access";
 import { getIntegrationProvider } from "@/utils/mcp/providers/registry";
 
 export type GetMcpAuthUrlResponse = { url: string };
@@ -26,8 +25,6 @@ export const GET = withEmailAccount(
     const logger = request.logger.with({
       integration,
     });
-
-    await assertIntegrationsTierAccess({ userId, logger });
 
     const integrationConfig = await resolveMcpIntegration({
       name: integration,

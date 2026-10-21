@@ -1,6 +1,5 @@
 "use server";
 
-import { PremiumTier } from "@/generated/prisma/enums";
 import { actionClient } from "@/utils/actions/safe-action";
 import { upsertRuleAttachmentSourcesBody } from "@/utils/actions/attachment-sources.validation";
 import { getAttachmentSourceKey } from "@/utils/attachments/source-schema";
@@ -12,10 +11,7 @@ export const upsertRuleAttachmentSourcesAction = actionClient
   .metadata({ name: "upsertRuleAttachmentSources" })
   .inputSchema(upsertRuleAttachmentSourcesBody)
   .action(
-    async ({
-      ctx: { emailAccountId, userId },
-      parsedInput: { ruleId, sources },
-    }) => {
+    async ({ ctx: { emailAccountId }, parsedInput: { ruleId, sources } }) => {
       const rule = await prisma.rule.findUnique({
         where: { id: ruleId, emailAccountId },
         select: { id: true },
@@ -24,10 +20,7 @@ export const upsertRuleAttachmentSourcesAction = actionClient
       if (!rule) throw new SafeError("Rule not found");
 
       if (sources.length > 0) {
-        const hasAccess = await checkHasAccess({
-          userId,
-          minimumTier: PremiumTier.PLUS_MONTHLY,
-        });
+        const hasAccess = await checkHasAccess();
 
         if (!hasAccess) {
           throw new SafeError(

@@ -41,10 +41,6 @@ import {
   runRulesAction,
   testAiCustomContentAction,
 } from "@/utils/actions/ai-rule";
-import {
-  RERUN_MINIMUM_TIER,
-  RERUN_UPGRADE_MESSAGE,
-} from "@/utils/premium/rerun";
 
 describe("runRulesAction", () => {
   beforeEach(() => {
@@ -216,8 +212,10 @@ describe("runRulesAction", () => {
     );
   });
 
-  it("blocks a rerun when the user is not on the required tier", async () => {
-    checkHasAccessMock.mockResolvedValue(false);
+  it("does not block a rerun on a plan any more", async () => {
+    // There is no plan to be above, so the tier is not what stops a rerun.
+    checkHasAccessMock.mockResolvedValue(true);
+    prisma.executedRule.findMany.mockResolvedValue([] as any);
 
     const result = await runRulesAction("account-1", {
       messageId: "message-1",
@@ -226,12 +224,8 @@ describe("runRulesAction", () => {
       rerun: true,
     });
 
-    expect(result?.serverError).toBe(RERUN_UPGRADE_MESSAGE);
-    expect(checkHasAccessMock).toHaveBeenCalledWith({
-      userId: "user-1",
-      minimumTier: RERUN_MINIMUM_TIER,
-    });
-    expect(runRulesMock).not.toHaveBeenCalled();
+    expect(result?.serverError).toBeUndefined();
+    expect(runRulesMock).toHaveBeenCalled();
   });
 
   it("runs rules again and ignores the existing result when the user has access", async () => {

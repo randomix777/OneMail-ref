@@ -1,6 +1,5 @@
 import { z } from "zod";
 import type { Attachment as MailAttachment } from "nodemailer/lib/mailer";
-import { PremiumTier } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 import { createGenerateObject } from "@/utils/llms";
 import { getModelForUseCase, LlmUseCase } from "@/utils/llms/use-cases";
@@ -83,7 +82,7 @@ export async function selectDraftAttachmentsForRule({
   selectedAttachments: SelectedAttachment[];
   attachmentContext: string | null;
 }> {
-  const hasAccess = await hasDraftAttachmentAccess(emailAccount.userId);
+  const hasAccess = await hasDraftAttachmentAccess();
   if (!hasAccess) {
     return { selectedAttachments: [], attachmentContext: null };
   }
@@ -182,18 +181,16 @@ export async function selectDraftAttachmentsForRule({
 
 export async function resolveDraftAttachments({
   emailAccountId,
-  userId,
   selectedAttachments,
   logger,
 }: {
   emailAccountId: string;
-  userId: string;
   selectedAttachments: SelectedAttachment[];
   logger: Logger;
 }): Promise<MailAttachment[]> {
   if (!selectedAttachments.length) return [];
 
-  const hasAccess = await hasDraftAttachmentAccess(userId);
+  const hasAccess = await hasDraftAttachmentAccess();
   if (!hasAccess) return [];
 
   const driveConnections = await prisma.driveConnection.findMany({
@@ -724,8 +721,8 @@ async function getDriveProvider({
   }
 }
 
-async function hasDraftAttachmentAccess(userId: string) {
-  return checkHasAccess({ userId, minimumTier: PremiumTier.PLUS_MONTHLY });
+async function hasDraftAttachmentAccess() {
+  return checkHasAccess();
 }
 
 function dedupeDocuments(documents: SourceDocument[]) {

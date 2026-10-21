@@ -15,7 +15,6 @@ import { SafeError } from "@/utils/error";
 import {
   MAX_EVENTS_PER_PROVIDER,
   MEETING_LOOKAHEAD_HOURS,
-  MEETING_RECORDER_MIN_TIER,
   RECONCILE_WINDOW_MINUTES,
 } from "@/utils/meeting-recorder/config";
 import { checkHasAccess } from "@/utils/premium/server";
@@ -60,12 +59,9 @@ export const deleteMeetingNotesAction = actionClient
 export const updateMeetingRecorderSettingsAction = actionClient
   .metadata({ name: "updateMeetingRecorderSettings" })
   .inputSchema(updateMeetingRecorderSettingsBody)
-  .action(async ({ ctx: { emailAccountId, userId, logger }, parsedInput }) => {
+  .action(async ({ ctx: { emailAccountId, logger }, parsedInput }) => {
     if (parsedInput.enabled === true) {
-      const hasAccess = await checkHasAccess({
-        userId,
-        minimumTier: MEETING_RECORDER_MIN_TIER,
-      });
+      const hasAccess = await checkHasAccess();
       if (!hasAccess) {
         throw new SafeError("The notetaker is not included in your plan");
       }
@@ -129,10 +125,7 @@ export const setMeetingJoinOverrideAction = actionClient
         // The cron filters on the paid tier before it books anything, and this
         // path books too, so it has to apply the same entitlement. Turning a
         // meeting off must remain available after a downgrade.
-        const hasAccess = await checkHasAccess({
-          userId: emailAccount.userId,
-          minimumTier: MEETING_RECORDER_MIN_TIER,
-        });
+        const hasAccess = await checkHasAccess();
         if (!hasAccess) {
           throw new SafeError("The notetaker is not included in your plan");
         }

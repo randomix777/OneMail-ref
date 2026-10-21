@@ -41,12 +41,8 @@ import {
 } from "@/utils/ai/choose-rule/selection-metadata-summary";
 import { useRules } from "@/hooks/useRules";
 import { useInfiniteMessages } from "@/hooks/useMessages";
-import { usePremium } from "@/hooks/usePremium";
 import { hasTierAccess } from "@/utils/premium";
-import {
-  RERUN_MINIMUM_TIER,
-  RERUN_UPGRADE_MESSAGE,
-} from "@/utils/premium/rerun";
+import { RERUN_UPGRADE_MESSAGE } from "@/utils/premium/rerun";
 import { Tooltip } from "@/components/Tooltip";
 
 type Message = MessagesResponse["messages"][number];
@@ -86,13 +82,10 @@ export function ProcessRulesContent({ testMode }: { testMode: boolean }) {
 
   const { data: rules } = useRules();
   const { emailAccountId, userEmail } = useAccount();
-  const { tier } = usePremium();
 
   // Re-applying rules costs a fresh LLM call, so it's gated. Re-testing isn't:
   // test runs never overwrite a stored result.
-  const canRerun =
-    testMode ||
-    hasTierAccess({ tier: tier || null, minimumTier: RERUN_MINIMUM_TIER });
+  const canRerun = testMode || hasTierAccess();
 
   // Fetch existing executed rules for current messages
   const messageIdsToFetch = useMemo(

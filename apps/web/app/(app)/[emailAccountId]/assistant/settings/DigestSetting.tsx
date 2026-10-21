@@ -26,13 +26,10 @@ import { hasTierAccess } from "@/utils/premium";
 export function DigestSetting() {
   const [open, setOpen] = useState(false);
   const { data, isLoading, mutate } = useEmailAccountFull();
-  const { tier, isLoading: isLoadingPremium } = usePremium();
+  const { isLoading: isLoadingPremium } = usePremium();
 
   const enabled = data?.digestSchedule != null;
-  const hasDigestAccess = hasTierAccess({
-    tier,
-    minimumTier: "PLUS_MONTHLY",
-  });
+  const hasDigestAccess = hasTierAccess();
 
   const { execute: executeToggle } = useAction(
     toggleDigestAction.bind(null, data?.id ?? ""),

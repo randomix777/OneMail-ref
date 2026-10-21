@@ -43,9 +43,7 @@ export function usePremium() {
     premium,
     canManageBilling,
     isPremium: isUserPremium,
-    hasUnsubscribeAccess:
-      isUserPremium ||
-      hasUnsubscribeAccess(tier || null, unsubscribeCreditsRemaining),
+    hasUnsubscribeAccess: hasUnsubscribeAccess(),
     unsubscribeCreditsRemaining,
     // The assistant is metered by the token rather than by the seat, so it
     // is open to every account.

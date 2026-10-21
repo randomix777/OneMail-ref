@@ -10,7 +10,6 @@ import {
   releaseDigestSummarySlot,
   reserveDigestSummarySlot,
 } from "@/utils/digest/summary-limit";
-import { checkHasAccess } from "@/utils/premium/server";
 import { upsertDigest } from "@/app/api/ai/digest/upsert-digest";
 
 export const POST = withError(
@@ -27,15 +26,6 @@ export const POST = withError(
       const emailAccount = await getEmailAccountWithAi({ emailAccountId });
       if (!emailAccount) {
         throw new Error("Email account not found");
-      }
-
-      const hasDigestAccess = await checkHasAccess({
-        userId: emailAccount.userId,
-        minimumTier: "PLUS_MONTHLY",
-      });
-      if (!hasDigestAccess) {
-        logger.info("Skipping digest item because plan does not include it");
-        return new NextResponse("OK", { status: 200 });
       }
 
       // Don't summarize Digest emails (this will actually block all emails that we send, but that's okay)

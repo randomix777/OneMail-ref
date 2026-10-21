@@ -57,7 +57,6 @@ export async function resolveActionAttachments({
 
   const attachments = await resolveDraftAttachments({
     emailAccountId: emailAccount.id,
-    userId: emailAccount.userId,
     selectedAttachments: allSelected,
     logger,
   });

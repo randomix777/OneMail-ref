@@ -14,7 +14,6 @@ import {
   CUSTOM_INTEGRATION_PREFIX,
   toDbAuthType,
 } from "@/utils/mcp/resolve-integration";
-import { assertIntegrationsTierAccess } from "@/utils/mcp/tier-access";
 import { findIntegration } from "@/utils/mcp/integrations";
 import { getIntegrationProvider } from "@/utils/mcp/providers/registry";
 import { syncMcpTools } from "@/utils/mcp/sync-tools";
@@ -81,11 +80,9 @@ export const createCustomMcpServerAction = actionClient
   .inputSchema(createCustomMcpServerBody)
   .action(
     async ({
-      ctx: { emailAccountId, userId, logger },
+      ctx: { emailAccountId, logger },
       parsedInput: { displayName, serverUrl, authType, apiKey },
     }) => {
-      await assertIntegrationsTierAccess({ userId, logger });
-
       const urlError = getCustomMcpServerUrlError(serverUrl);
       if (urlError) throw new SafeError(urlError);
 

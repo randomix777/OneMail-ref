@@ -29,12 +29,9 @@ import {
 
 export default function IntegrationsPage() {
   const integrationsEnabled = useIntegrationsEnabled();
-  const { tier, isLoading: isPremiumLoading } = usePremium();
+  const { isLoading: isPremiumLoading } = usePremium();
 
-  const hasAccess = hasTierAccess({
-    tier: tier || null,
-    minimumTier: "PLUS_MONTHLY",
-  });
+  const hasAccess = hasTierAccess();
 
   // The feature flag is undefined while PostHog bootstraps
   if (integrationsEnabled === undefined) return null;

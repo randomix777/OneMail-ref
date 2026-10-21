@@ -5,14 +5,6 @@ import { PremiumTier } from "@/generated/prisma/enums";
 import { ONE_MONTH_MS, ONE_YEAR_MS, TEN_YEARS_MS } from "@/utils/date";
 import { createScopedLogger } from "@/utils/logger";
 import { ensureEmailAccountsWatched } from "@/utils/email/watch-manager";
-import {
-  getUserTier,
-  hasTierAccess,
-  isPremiumRecord,
-  premiumEntitlementSelect,
-} from "@/utils/premium";
-import { SafeError } from "@/utils/error";
-import { env } from "@/env";
 import { isAddingDigestAction } from "@/utils/premium/digest";
 
 const logger = createScopedLogger("premium");
@@ -224,15 +216,9 @@ export async function cancelPremiumLemon({
   });
 }
 
-export async function assertCanUseDigests(userId: string) {
-  const hasDigestAccess = await checkHasAccess({
-    userId,
-    minimumTier: "PLUS_MONTHLY",
-  });
-
-  if (!hasDigestAccess) {
-    throw new SafeError("Digests are available on the Plus plan.", 403);
-  }
+export async function assertCanUseDigests(_userId?: string) {
+  // Digests are assistant work, metered by the token through the gateway, so
+  // there is nothing to check here.
 }
 
 export async function assertCanUseDigestsIfNeeded(
@@ -247,32 +233,13 @@ export async function assertCanUseDigestsIfNeeded(
   await assertCanUseDigests(userId);
 }
 
-export async function checkHasAccess({
-  userId,
-  minimumTier,
-}: {
-  userId: string;
-  minimumTier: PremiumTier;
-}): Promise<boolean> {
-  if (env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) return true;
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      premium: {
-        select: premiumEntitlementSelect,
-      },
-    },
-  });
-
-  if (!user) throw new SafeError("User not found");
-
-  if (!isPremiumRecord(user?.premium)) {
-    return false;
-  }
-
-  return hasTierAccess({
-    tier: getUserTier(user.premium),
-    minimumTier,
-  });
+/**
+ * Whether an account may use a feature that used to sit behind a plan.
+ *
+ * There is no plan any more: the client is free, the assistant is metered by
+ * the token through the gateway, and the only thing that is billed is Google
+ * mail. So nothing is held back here.
+ */
+export async function checkHasAccess(): Promise<boolean> {
+  return true;
 }

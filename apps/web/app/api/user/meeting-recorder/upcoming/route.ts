@@ -6,7 +6,6 @@ import type { Logger } from "@/utils/logger";
 import {
   MAX_EVENTS_PER_PROVIDER,
   MEETING_LOOKAHEAD_HOURS,
-  MEETING_RECORDER_MIN_TIER,
 } from "@/utils/meeting-recorder/config";
 import { shouldAutoJoin } from "@/utils/meeting-recorder/join-rule";
 import {
@@ -36,7 +35,6 @@ export const GET = withEmailAccount(
 
 async function getData({
   emailAccountId,
-  userId,
   logger,
 }: {
   emailAccountId: string;
@@ -47,7 +45,7 @@ async function getData({
   const timeMax = addHours(timeMin, MEETING_LOOKAHEAD_HOURS);
 
   const [hasAccess, emailAccount, { events }] = await Promise.all([
-    checkHasAccess({ userId, minimumTier: MEETING_RECORDER_MIN_TIER }),
+    checkHasAccess(),
     prisma.emailAccount.findUnique({
       where: { id: emailAccountId },
       select: { email: true, meetingRecorderJoinRule: true },

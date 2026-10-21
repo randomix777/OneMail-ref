@@ -534,10 +534,7 @@ const digest: ActionFunction<{ id?: string }> = async ({
   logger,
 }) => {
   if (!args.id) return;
-  const hasDigestAccess = await checkHasAccess({
-    userId: emailAccount.userId,
-    minimumTier: "PLUS_MONTHLY",
-  });
+  const hasDigestAccess = await checkHasAccess();
   if (!hasDigestAccess) {
     logger.info("Skipping digest action because plan does not include it");
     return;

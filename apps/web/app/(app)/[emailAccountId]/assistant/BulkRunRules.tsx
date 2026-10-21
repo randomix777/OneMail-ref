@@ -31,7 +31,6 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { hasTierAccess } from "@/utils/premium";
-import { RERUN_MINIMUM_TIER } from "@/utils/premium/rerun";
 import { usePremiumModal } from "@/app/(app)/premium/PremiumModal";
 import { BulkProcessActivityLog } from "@/app/(app)/[emailAccountId]/assistant/BulkProcessActivityLog";
 import {
@@ -54,22 +53,11 @@ export function BulkRunRules() {
 
   const queue = useAiQueueState();
 
-  const {
-    hasAiAccess,
-    isLoading: isLoadingPremium,
-    premium,
-    tier,
-  } = usePremium();
+  const { hasAiAccess, isLoading: isLoadingPremium, premium } = usePremium();
   const { data: aiAutomationStatus } = useAiAutomationStatus();
 
-  const isBusinessPlusTier = hasTierAccess({
-    tier: tier || null,
-    minimumTier: "PROFESSIONAL_MONTHLY",
-  });
-  const hasRerunAccess = hasTierAccess({
-    tier: tier || null,
-    minimumTier: RERUN_MINIMUM_TIER,
-  });
+  const isBusinessPlusTier = hasTierAccess();
+  const hasRerunAccess = hasTierAccess();
   const isTrial = premium?.stripeSubscriptionStatus === "trialing";
   const trialAiLimitMessage =
     aiAutomationStatus?.status === "trial_ai_limit_reached"

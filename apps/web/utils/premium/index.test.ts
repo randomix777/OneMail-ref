@@ -73,16 +73,9 @@ describe("unsubscribe credits", () => {
     ).toBe(2);
   });
 
-  it("denies access once the allowance is spent", () => {
-    expect(hasUnsubscribeAccess(null, 0)).toBe(false);
-  });
-
-  it("allows access while credits remain", () => {
-    expect(hasUnsubscribeAccess(null, 2)).toBe(true);
-  });
-
-  it("always allows a paid tier regardless of credits", () => {
-    expect(hasUnsubscribeAccess("BUSINESS_MONTHLY", 0)).toBe(true);
+  it("allows every account to unsubscribe", () => {
+    // The credits are still counted, but they no longer stop anyone.
+    expect(hasUnsubscribeAccess()).toBe(true);
   });
 });
 

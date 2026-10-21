@@ -127,11 +127,8 @@ export function RuleForm({
 }) {
   const { emailAccountId, provider } = useAccount();
   const integrationActionsEnabled = useIntegrationActionsEnabled();
-  const { tier, isLoading: isLoadingPremium } = usePremium();
-  const hasDigestAccess = hasTierAccess({
-    tier,
-    minimumTier: "PLUS_MONTHLY",
-  });
+  const { isLoading: isLoadingPremium } = usePremium();
+  const hasDigestAccess = hasTierAccess();
   const ruleFormActionState = getRuleFormActionState({
     actions: rule.actions,
     webhookActionsEnabled: env.NEXT_PUBLIC_WEBHOOK_ACTION_ENABLED !== false,
