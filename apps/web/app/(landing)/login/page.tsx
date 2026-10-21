@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { JyiOAuthRedirect } from "@/app/(landing)/login/JyiOAuthRedirect";
+import { EmailOtpForm } from "@/app/(landing)/login/email/EmailOtpForm";
+import { LoginForm } from "@/app/(landing)/login/LoginForm";
 import {
   getEmailAlreadyLinkedDescription,
   getRequiresReconsentDescription,
@@ -10,6 +12,8 @@ import {
 import { env } from "@/env";
 import { auth } from "@/utils/auth";
 import { isJyiOauthEnabled } from "@/utils/oauth/jyi-oauth";
+import { isGoogleOauthEmulationEnabled } from "@/utils/gmail/oauth";
+import { getEnabledLoginProviders } from "@/utils/oauth/login-providers";
 import { AlertBasic } from "@/components/Alert";
 import { Button } from "@/components/ui/button";
 import { WELCOME_PATH } from "@/utils/config";
@@ -42,6 +46,44 @@ export default async function AuthenticationPage(props: {
   }
 
   const callbackURL = nextPath ?? WELCOME_PATH;
+
+  // An instance that bills nobody is running its own account, so it signs in
+  // where it runs: a code to the user's own inbox, no website involved. The
+  // hosted instance sends the user to JYI's OAuth provider instead.
+  if (isSelfHosted) {
+    return (
+      <div className="flex min-h-screen flex-col justify-center py-10 text-foreground">
+        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+          <div className="flex flex-col text-center">
+            <h1 className="font-title text-2xl text-foreground">
+              Sign in to {BRAND_NAME}
+            </h1>
+            <p className="mt-4 text-muted-foreground">
+              One client for every mailbox you have.
+            </p>
+          </div>
+          <div className="mt-6">
+            <Suspense>
+              <EmailOtpForm embedded callbackURL={callbackURL} />
+            </Suspense>
+          </div>
+          <div className="flex items-center gap-3 px-4 text-xs uppercase tracking-wide text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <div className="mt-2">
+            <Suspense>
+              <LoginForm
+                enabledProviders={Array.from(getEnabledLoginProviders())}
+                useGoogleOauthEmulator={isGoogleOauthEmulationEnabled()}
+              />
+            </Suspense>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col justify-center py-10 text-foreground">
