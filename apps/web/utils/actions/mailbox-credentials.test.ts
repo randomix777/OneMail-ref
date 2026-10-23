@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveConnection } from "@/utils/actions/mailbox-credentials";
+import { resolveConnection } from "@/utils/actions/mailbox-credentials.helpers";
 
 const base = {
   provider: "zoho",

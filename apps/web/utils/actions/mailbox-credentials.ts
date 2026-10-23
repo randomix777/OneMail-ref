@@ -1,14 +1,16 @@
+"use server";
+
 import { actionClientUser } from "@/utils/actions/safe-action";
-import {
-  connectImapMailboxBody,
-  type ConnectImapMailboxBody,
-} from "@/utils/actions/mailbox-credentials.validation";
+import { connectImapMailboxBody } from "@/utils/actions/mailbox-credentials.validation";
 import { SafeError } from "@/utils/error";
 import type { Logger } from "@/utils/logger";
 import type { ProviderFamily } from "@/utils/email/provider-registry";
 import { isProviderFamily } from "@/utils/email/provider-registry";
 import { listImapMailboxes, withImapConnection } from "@/utils/imap/client";
-import { getImapPreset } from "@/utils/imap/presets";
+import {
+  resolveConnection,
+  type ResolvedConnection,
+} from "@/utils/actions/mailbox-credentials.helpers";
 import prisma from "@/utils/prisma";
 
 /**
@@ -106,56 +108,6 @@ export const connectImapMailboxAction = actionClientUser
 
     return { emailAccountId, created: true };
   });
-
-type ResolvedConnection = {
-  secret: string;
-  imapHost: string;
-  imapPort: number;
-  imapSecure: boolean;
-  smtpHost: string;
-  smtpPort: number;
-  smtpSecure: boolean;
-  username: string;
-};
-
-export function resolveConnection({
-  input,
-  family,
-}: {
-  input: ConnectImapMailboxBody;
-  family: ProviderFamily;
-}): ResolvedConnection {
-  const preset = getImapPreset(family);
-
-  const imapHost = input.imapHost ?? preset?.imapHost;
-  const imapPort = input.imapPort ?? preset?.imapPort;
-  const smtpHost = input.smtpHost ?? preset?.smtpHost;
-  const smtpPort = input.smtpPort ?? preset?.smtpPort;
-
-  if (!imapHost || !imapPort || !smtpHost || !smtpPort) {
-    throw new SafeError(
-      "The mail server's IMAP and SMTP details are required for this provider.",
-    );
-  }
-
-  return {
-    // The password goes with the rest of the connection so the reachability
-    // check and the stored row cannot disagree about it.
-    secret: input.secret,
-    imapHost,
-    imapPort,
-    // A preset owns the TLS mode, because the port and the mode have to agree:
-    // iCloud documents STARTTLS on 587 for SMTP, and a form default of "secure"
-    // would silently wrap that port in implicit TLS and fail every send.
-    imapSecure: preset ? preset.imapSecure : (input.imapSecure ?? true),
-    smtpHost,
-    smtpPort,
-    smtpSecure: preset ? preset.smtpSecure : (input.smtpSecure ?? true),
-    // Most hosts accept the full address; a few want a bare username, which the
-    // form lets the user override.
-    username: input.username ?? input.email,
-  };
-}
 
 function credentialData(
   family: ProviderFamily,
