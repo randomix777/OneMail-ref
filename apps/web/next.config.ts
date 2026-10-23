@@ -1,9 +1,10 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import { withAxiom } from "next-axiom";
 import nextMdx from "@next/mdx";
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { env } from "./env";
+import { markdownRewrites } from "./utils/agent-markdown/rewrites";
 import { isIndexingAllowed } from "./utils/indexing";
 import type { NextConfig } from "next";
 
@@ -15,6 +16,9 @@ const withMDX = nextMdx({
 
 const isDevelopment = process.env.NODE_ENV === "development";
 const isProductionBuild = process.env.NODE_ENV === "production";
+// The Cloudflare adapter consumes the standalone output, which is otherwise
+// only built for Docker images.
+const isCloudflareBuild = process.env.CLOUDFLARE_BUILD === "true";
 const playwrightRunId = process.env.PLAYWRIGHT_RUN_ID;
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const nextPackageRoot = path.dirname(
@@ -33,6 +37,11 @@ const microsoftEmulatorOrigin = env.MICROSOFT_BASE_URL
   : null;
 
 const nextConfig: NextConfig = {
+  // The config page shows the release version. It is read here, at build time,
+  // because the runtime has no filesystem on Workers.
+  env: {
+    APP_VERSION: readAppVersion(),
+  },
   allowedDevOrigins: [
     "127.0.0.1",
     ...(URL.canParse(env.NEXT_PUBLIC_BASE_URL)
@@ -239,7 +248,13 @@ const nextConfig: NextConfig = {
         pagesBufferLength: 2,
       }
     : undefined,
-  output: process.env.DOCKER_BUILD === "true" ? "standalone" : undefined,
+  output:
+    process.env.DOCKER_BUILD === "true" || isCloudflareBuild
+      ? "standalone"
+      : undefined,
+  // Pinning the tracing root to the repository keeps the standalone layout at
+  // apps/web/... instead of mirroring the drive that holds the pnpm store.
+  ...(isCloudflareBuild ? { outputFileTracingRoot: repoRoot } : {}),
   outputFileTracingIncludes: {
     "/mcp": ["./generated/mcp-app/*"],
   },
@@ -404,20 +419,31 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    return [
-      {
-        destination: "https://app.posthog.com/:path*",
-        source: "/ingest/:path*",
-      },
-      {
-        destination: "https://api.dub.co/track/:path",
-        source: "/_proxy/dub/track/:path",
-      },
-      {
-        destination: "https://www.dubcdn.com/analytics/script.js",
-        source: "/_proxy/dub/script.js",
-      },
-    ];
+    return {
+      /**
+       * Content negotiation for agent clients. It used to be a proxy (Node
+       * middleware), which Cloudflare Workers cannot run, so the rewrite table
+       * carries the negotiation instead. It has to be `beforeFiles`: `/` and
+       * `/pricing` are pages, and the later phases only run after the filesystem
+       * check has already matched them.
+       */
+      beforeFiles: markdownRewrites(),
+      afterFiles: [
+        {
+          destination: "https://app.posthog.com/:path*",
+          source: "/ingest/:path*",
+        },
+        {
+          destination: "https://api.dub.co/track/:path",
+          source: "/_proxy/dub/track/:path",
+        },
+        {
+          destination: "https://www.dubcdn.com/analytics/script.js",
+          source: "/_proxy/dub/script.js",
+        },
+      ],
+      fallback: [],
+    };
   },
   serverExternalPackages: [
     "@chat-adapter/teams",
@@ -449,6 +475,18 @@ const nextConfig: NextConfig = {
       ...config.resolve.alias,
       "zod/v4/core": zodV4CorePath,
     };
+    // `pg-cloudflare` only exports its socket under the `workerd` export
+    // condition; without it `pg` gets an empty module and every query throws
+    // `TypeError: … is not a constructor`. Letting webpack inline that module
+    // would also make it parse `cloudflare:sockets`, which it cannot resolve.
+    // Leaving the request external hands it to the esbuild pass, whose shim
+    // aliases it to the real entry. See docs/hosting/cloudflare-workers.mdx.
+    if (isCloudflareBuild) {
+      config.externals = [
+        ...(config.externals ?? []),
+        { "pg-cloudflare": "commonjs pg-cloudflare" },
+      ];
+    }
     return config;
   },
 };
@@ -510,6 +548,14 @@ if (env.MICROSOFT_CLIENT_ID && !env.MICROSOFT_WEBHOOK_CLIENT_STATE) {
 // because the @serwist/next webpack plugin doesn't support Turbopack.
 
 export default withAxiom(exportConfig);
+
+function readAppVersion() {
+  try {
+    return readFileSync(path.join(repoRoot, "version.txt"), "utf-8").trim();
+  } catch {
+    return "unknown";
+  }
+}
 
 function commonAncestorPath(firstPath: string, secondPath: string) {
   const [firstParts, secondParts] = [firstPath, secondPath].map((value) =>

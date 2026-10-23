@@ -130,23 +130,6 @@ export function markdownResponse(
   });
 }
 
-export function getMarkdownForPath(
-  pathname: string,
-  origin: string,
-  branding: AgentContentBranding,
-): string | null {
-  const path =
-    pathname.endsWith("/") && pathname !== "/"
-      ? pathname.slice(0, -1)
-      : pathname;
-
-  if (path === "/" || path === "") {
-    return getHomepageMarkdown(origin, branding);
-  }
-  if (path === "/pricing") return getPricingMarkdown(origin, branding);
-  return null;
-}
-
 function normalizeOrigin(origin: string): string {
   return origin.replace(/\/$/, "");
 }
