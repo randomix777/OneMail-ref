@@ -105,6 +105,7 @@ async fn local_account_save(
         .vault
         .store(&account.id, &input.password)
         .map_err(|error| error.to_string())?;
+    state.forget_idle_state(&account.id);
 
     let summary = {
         let mut settings = state
@@ -144,6 +145,7 @@ fn local_account_remove(state: State<'_, AppState>, id: String) -> Result<Value,
     // Forget the secret first: if the keychain refuses, the account stays usable
     // instead of silently losing its credential.
     state.vault.forget(&id).map_err(|error| error.to_string())?;
+    state.forget_idle_state(&id);
 
     let mut settings = state
         .settings
@@ -855,6 +857,7 @@ pub fn run() {
             // Resume syncing accounts whose password is already in the keychain.
             sync::spawn(app.handle().clone(), Vec::new());
             sync::start_periodic(app.handle().clone());
+            sync::start_idle(app.handle().clone());
             // Replay any metadata change a previous run left queued.
             operations::resume(app.handle().clone());
             Ok(())

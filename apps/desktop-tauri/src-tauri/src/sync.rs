@@ -31,8 +31,12 @@ const SYNCED_ROLES: [Role; 6] = [
 ];
 
 /// How often accounts are refreshed in the background. The Electron engine uses
-/// IDLE; this build polls until IDLE is ported.
+/// IDLE; this build polls as a fallback and idles when the server supports it.
 const SYNC_INTERVAL: Duration = Duration::from_secs(60);
+/// How quickly the IDLE supervisor notices new or removed accounts.
+const IDLE_SUPERVISOR: Duration = Duration::from_secs(30);
+/// Delay before retrying a failed IDLE connection.
+const IDLE_RETRY: Duration = Duration::from_secs(30);
 
 pub(crate) fn credentials_for(account: &LocalAccount, password: &str) -> Credentials {
     Credentials {
@@ -130,6 +134,59 @@ pub fn start_periodic(app: AppHandle) {
             notify_new_mail(&app, &outcome.new_unread);
         }
     });
+}
+
+/// Keeps one INBOX IDLE watcher per configured account. Servers without IDLE
+/// are left to the periodic poll.
+pub fn start_idle(app: AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        loop {
+            let accounts: Vec<LocalAccount> = {
+                let state = app.state::<AppState>();
+                let Ok(settings) = state.settings.lock() else {
+                    tokio::time::sleep(IDLE_SUPERVISOR).await;
+                    continue;
+                };
+                settings.accounts.clone()
+            };
+            for account in accounts {
+                let app = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    let state = app.state::<AppState>();
+                    let Some(_claim) = state.claim_idle(&account.id) else {
+                        return;
+                    };
+                    watch_inbox(&app, &state, &account).await;
+                });
+            }
+            tokio::time::sleep(IDLE_SUPERVISOR).await;
+        }
+    });
+}
+
+async fn watch_inbox(app: &AppHandle, state: &AppState, account: &LocalAccount) {
+    loop {
+        if !is_configured(state, &account.id) {
+            return;
+        }
+        let password = match state.vault.load(&account.id) {
+            Ok(Some(password)) => password,
+            _ => {
+                tokio::time::sleep(IDLE_RETRY).await;
+                continue;
+            }
+        };
+        let credentials = credentials_for(account, &password);
+        match mail_imap::wait_for_inbox_change(&credentials).await {
+            Ok(true) => spawn_notify(app.clone(), vec![account.id.clone()]),
+            Ok(false) => {}
+            Err(mail_imap::ImapError::Config(_)) => {
+                state.mark_idle_unsupported(&account.id);
+                return;
+            }
+            Err(_) => tokio::time::sleep(IDLE_RETRY).await,
+        }
+    }
 }
 
 #[derive(Default)]

@@ -54,8 +54,10 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
   Spam, headers only, keyed on `UIDVALIDITY` per folder. Login supports implicit
   TLS and STARTTLS; STARTTLS credentials are only sent after the socket is
   upgraded. `requestSync` runs it in the background and pushes a fresh snapshot
-  to every live subscription; the shell also syncs on launch and polls every 60
-  seconds. Concurrent syncs of one account are collapsed into the running one.
+  to every live subscription; the shell syncs on launch, keeps an INBOX IDLE
+  watcher per account when the server advertises IDLE, and falls back to a
+  60-second poll. Concurrent syncs of one account are collapsed into the running
+  one.
   Gmail's All Mail is classified separately from Archive, so it is never
   mirrored and never used as an archive destination.
 - `observeMailbox`, `observeMailboxWindow`, `observeMailboxCounts`, `requestSync`,
@@ -199,10 +201,10 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
   it does not build the full References chain. A deferred send is a persisted
   operation that resumes on the next launch; there is no OS-level scheduled-send
   job.
-- IMAP coverage: custom folders are not mirrored, and there is no IDLE;
-  accounts are polled every 60 seconds instead. Archived, trashed and restored
-  messages are updated locally, and Archive/Trash/Spam/Drafts are refreshed on
-  the next poll.
+- IMAP coverage: custom folders are not mirrored. IDLE is used when the server
+  advertises it; otherwise accounts fall back to the 60-second poll. Archived,
+  trashed and restored messages are updated locally, and
+  Archive/Trash/Spam/Drafts are refreshed on the next change or poll.
 - Archive means "move to an `Archive`-role folder". Gmail's
   archive-as-label-removal is not implemented, so an account without an Archive
   folder fails the command with `no_archive` instead of guessing.

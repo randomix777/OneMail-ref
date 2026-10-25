@@ -7,6 +7,7 @@
 use std::fmt;
 use std::time::Duration;
 
+use async_imap::extensions::idle::IdleResponse;
 use async_imap::imap_proto::NameAttribute;
 use async_imap::types::Flag;
 use futures_util::TryStreamExt;
@@ -422,6 +423,38 @@ async fn move_messages_inner(
     }
     let _ = session.logout().await;
     Ok(moved)
+}
+
+/// Blocks on INBOX IDLE until the server reports a change. Returns `true` for a
+/// real change and `false` for the 29-minute keepalive expiry, so the caller can
+/// re-issue IDLE. Servers without IDLE return `Config` and the caller falls back
+/// to polling.
+pub async fn wait_for_inbox_change(credentials: &Credentials) -> Result<bool, ImapError> {
+    let endpoint = format!("{}:{}", credentials.host, credentials.port);
+    let mut session = tokio::time::timeout(CONNECT_TIMEOUT, connect(credentials))
+        .await
+        .map_err(|_| ImapError::Timeout(endpoint.clone()))??;
+
+    let capabilities = session.capabilities().await.map_err(protocol)?;
+    if !capabilities.has_str("IDLE") {
+        let _ = session.logout().await;
+        return Err(ImapError::Config(
+            "The server does not advertise IDLE; falling back to polling.".to_string(),
+        ));
+    }
+    session.select("INBOX").await.map_err(protocol)?;
+
+    let mut handle = session.idle();
+    tokio::time::timeout(CONNECT_TIMEOUT, handle.init())
+        .await
+        .map_err(|_| ImapError::Timeout(endpoint))?
+        .map_err(protocol)?;
+    let (wait, stop) = handle.wait();
+    let response = wait.await.map_err(protocol)?;
+    drop(stop);
+    let mut session = handle.done().await.map_err(protocol)?;
+    let _ = session.logout().await;
+    Ok(matches!(response, IdleResponse::NewData(_)))
 }
 
 /// Appends a submitted message to the folder with `role` (normally Sent).

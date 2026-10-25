@@ -76,6 +76,10 @@ pub struct AppState {
     /// Accounts with a sync already running, so launch, manual and periodic
     /// syncs do not stack up on the same mailbox.
     pub syncing: Mutex<HashSet<String>>,
+    /// Accounts with an IDLE watcher, so the supervisor does not duplicate one.
+    pub idling: Mutex<HashSet<String>>,
+    /// Accounts whose server does not advertise IDLE; these rely on polling.
+    pub idle_unsupported: Mutex<HashSet<String>>,
     /// Bounds concurrent full-message downloads.
     pub fetch_permits: tokio::sync::Semaphore,
     /// One JYI sign-in can be open at a time; this is cleared when it ends.
@@ -98,6 +102,8 @@ impl AppState {
             subscriptions: Mutex::new(HashMap::new()),
             fetching: Mutex::new(HashSet::new()),
             syncing: Mutex::new(HashSet::new()),
+            idling: Mutex::new(HashSet::new()),
+            idle_unsupported: Mutex::new(HashSet::new()),
             fetch_permits: tokio::sync::Semaphore::new(MAX_CONCURRENT_FETCHES),
             ai_login: AtomicBool::new(false),
             vault: KeyringVault::new(),
@@ -129,6 +135,39 @@ impl AppState {
             account_id: account_id.to_string(),
         })
     }
+
+    /// Registers an IDLE watcher for `account_id`.
+    pub fn claim_idle(&self, account_id: &str) -> Option<IdleClaim<'_>> {
+        if self
+            .idle_unsupported
+            .lock()
+            .map(|unsupported| unsupported.contains(account_id))
+            .unwrap_or(true)
+        {
+            return None;
+        }
+        let mut idling = self.idling.lock().ok()?;
+        if !idling.insert(account_id.to_string()) {
+            return None;
+        }
+        drop(idling);
+        Some(IdleClaim {
+            state: self,
+            account_id: account_id.to_string(),
+        })
+    }
+
+    pub fn mark_idle_unsupported(&self, account_id: &str) {
+        if let Ok(mut unsupported) = self.idle_unsupported.lock() {
+            unsupported.insert(account_id.to_string());
+        }
+    }
+
+    pub fn forget_idle_state(&self, account_id: &str) {
+        if let Ok(mut unsupported) = self.idle_unsupported.lock() {
+            unsupported.remove(account_id);
+        }
+    }
 }
 
 /// Releases the sync marker even when the sync task unwinds.
@@ -141,6 +180,20 @@ impl Drop for SyncClaim<'_> {
     fn drop(&mut self) {
         if let Ok(mut syncing) = self.state.syncing.lock() {
             syncing.remove(&self.account_id);
+        }
+    }
+}
+
+/// Releases the IDLE marker when the watcher exits.
+pub struct IdleClaim<'a> {
+    state: &'a AppState,
+    account_id: String,
+}
+
+impl Drop for IdleClaim<'_> {
+    fn drop(&mut self) {
+        if let Ok(mut idling) = self.state.idling.lock() {
+            idling.remove(&self.account_id);
         }
     }
 }
