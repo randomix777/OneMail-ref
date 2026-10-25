@@ -179,10 +179,11 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
     implementation, and maps 401/402/403 to the renderer's reconnect, balance
     and model messages.
 
-- Desktop shell: one running instance (a second launch focuses the first), and an
-  OS notification when a manual or periodic sync finds more unread Inbox messages
-  than the mirror had before. The launch sync does not notify about mail that was
-  already there. Closing the window ends the process; there is no tray mode.
+- Desktop shell: one running instance (a second launch focuses the first), an app
+  menu with Settings/Quit, and an OS notification when a manual or periodic sync
+  finds more unread Inbox messages than the mirror had before. The launch sync
+  does not notify about mail that was already there. Closing the window ends the
+  process; there is no tray mode.
 
 ## Not ported yet
 
@@ -208,8 +209,8 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
 - The metadata operation authority is simplified: there is no `uncertain`
   reconciliation after an ambiguous move failure, so a `MOVE` that the server
   applied before the connection dropped can be retried as a copy.
-- Menus, tray and auto-update. Auto-update needs a signed release feed and
-  signing keys, which this repository does not provide yet.
+- Tray and auto-update. Auto-update needs a signed release feed and signing
+  keys, which this repository does not provide yet.
 - Opaque pagination cursors: `observeMailboxWindow` grows the first page
   (`pageSize * pageCount`) instead of resuming from a cursor, and
   `nextPage` stays `null`.

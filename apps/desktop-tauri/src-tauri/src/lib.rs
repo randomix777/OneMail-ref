@@ -21,6 +21,7 @@ use mail_store::{Admission, MailStore, MailboxFilter};
 use mail_vault::CredentialVault;
 use serde_json::{json, Value};
 use state::{write_settings, AppState, LocalAccount, LocalSettings};
+use tauri::menu::{Menu, MenuItem};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 fn lock_store(state: &AppState) -> Result<MutexGuard<'_, MailStore>, String> {
@@ -841,6 +842,16 @@ pub fn run() {
             .min_inner_size(900.0, 600.0)
             .initialization_script(include_str!("../../ui/init.js"))
             .build()?;
+            let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            app.set_menu(Menu::with_items(app, &[&settings_item, &quit_item])?)?;
+            app.on_menu_event(|app, event| match event.id().as_ref() {
+                "settings" => {
+                    let _ = app.emit("open-settings", ());
+                }
+                "quit" => app.exit(0),
+                _ => {}
+            });
             // Resume syncing accounts whose password is already in the keychain.
             sync::spawn(app.handle().clone(), Vec::new());
             sync::start_periodic(app.handle().clone());

@@ -84,7 +84,17 @@
     setUnreadCount: () => undefined,
     signalReady: () => undefined,
     openWindow: () => Promise.resolve(null),
-    onOpenSettings: () => () => undefined,
+    onOpenSettings(listener) {
+      const listen = window.__TAURI__?.event?.listen;
+      if (typeof listen !== "function") return () => undefined;
+      let unlisten;
+      listen("open-settings", () => listener())
+        .then((stop) => {
+          unlisten = stop;
+        })
+        .catch(() => undefined);
+      return () => unlisten?.();
+    },
 
     mailEngine: (payload) => call("mail_engine", { payload }),
     mailEngineSubscribe: (input) => call("mail_engine_subscribe", { input }),
