@@ -27,6 +27,8 @@ keeps its optional-JYI behavior.
 
 ## Layout
 
+- `ui-src` — the React renderer source served by Tauri, built directly by
+  `scripts/build-ui.mjs` without the Electron build.
 - `src-tauri/src/lib.rs` — commands, mail-engine dispatch, snapshot push.
 - `src-tauri/src/sync.rs` — IMAP page → mirror → snapshot, in the background.
 - `src-tauri/src/content.rs` — background body fetch for `ensureMessageContent`.
@@ -44,7 +46,7 @@ keeps its optional-JYI behavior.
 
 Profile files live in `%APPDATA%/OneMail` (macOS: `~/Library/Application Support/OneMail`):
 
-- `settings.json` — accounts, servers, and, later, the AI connection summary.
+- `settings.json` — accounts, servers, and the non-secret AI connection summary.
 - `local-mailbox.rust.sqlite` — the Rust mirror. Named separately from the
   Electron `local-mailbox.sqlite` on purpose: the schema port is incomplete, and
   two writers on one file would corrupt the profile mid-migration.
