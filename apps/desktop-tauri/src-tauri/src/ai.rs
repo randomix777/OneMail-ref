@@ -110,15 +110,30 @@ pub async fn connect(state: &AppState) -> Result<(), String> {
     let verifier = random_token();
     let challenge = BASE64_URL.encode(Sha256::digest(verifier.as_bytes()));
 
-    let listener = TcpListener::bind(("127.0.0.1", 0))
+    let configured = configured_callback()?;
+    let bind_port = configured
+        .as_ref()
+        .map(|callback| callback.port)
+        .unwrap_or(0);
+    let listener = TcpListener::bind(("127.0.0.1", bind_port))
         .await
         .map_err(|error| format!("Could not open the local authorization callback: {error}"))?;
-    let port = listener
+    let bound_port = listener
         .local_addr()
         .map_err(|error| format!("Could not read the callback address: {error}"))?
         .port();
-    let callback_host = format!("127.0.0.1:{port}");
-    let redirect_uri = format!("http://{callback_host}/callback");
+    let (callback_host, callback_path, redirect_uri) = match configured {
+        Some(callback) => (
+            format!("{}:{}", callback.host, callback.port),
+            callback.path,
+            callback.redirect_uri,
+        ),
+        None => {
+            let host = format!("127.0.0.1:{bound_port}");
+            let redirect_uri = format!("http://{host}/callback");
+            (host, "/callback".to_string(), redirect_uri)
+        }
+    };
 
     let mut authorize = auth_origin
         .join("/connect/authorize")
@@ -133,7 +148,7 @@ pub async fn connect(state: &AppState) -> Result<(), String> {
         .append_pair("scope", "config:read");
     open_external(authorize.as_str())?;
 
-    let code = accept_callback(listener, callback_host, state_token).await?;
+    let code = accept_callback(listener, callback_host, callback_path, state_token).await?;
     let raw = device_request(
         state,
         "/oauth/token",
@@ -368,6 +383,58 @@ impl Drop for LoginGuard<'_> {
     }
 }
 
+struct CallbackTarget {
+    host: String,
+    port: u16,
+    path: String,
+    redirect_uri: String,
+}
+
+/// A fixed loopback callback can be supplied when the identity service requires
+/// an exact registered URI. Without it, an ephemeral port is used.
+fn configured_callback() -> Result<Option<CallbackTarget>, String> {
+    let raw = match std::env::var("ONEMAIL_JYI_REDIRECT_URI") {
+        Ok(value) if !value.trim().is_empty() => value,
+        _ => return Ok(None),
+    };
+    parse_callback_uri(raw.trim()).map(Some)
+}
+
+fn parse_callback_uri(raw: &str) -> Result<CallbackTarget, String> {
+    let url =
+        Url::parse(raw).map_err(|error| format!("Invalid ONEMAIL_JYI_REDIRECT_URI: {error}"))?;
+    if url.scheme() != "http" {
+        return Err(
+            "ONEMAIL_JYI_REDIRECT_URI must be a loopback HTTP URI; HTTPS and custom schemes are not served locally."
+                .to_string(),
+        );
+    }
+    let host = url
+        .host_str()
+        .ok_or_else(|| "ONEMAIL_JYI_REDIRECT_URI has no host".to_string())?
+        .to_string();
+    if host != "127.0.0.1" && host != "localhost" {
+        return Err("ONEMAIL_JYI_REDIRECT_URI must point at 127.0.0.1 or localhost".to_string());
+    }
+    let port = url
+        .port()
+        .ok_or_else(|| "ONEMAIL_JYI_REDIRECT_URI must include an explicit port".to_string())?;
+    if url.query().is_some() || url.fragment().is_some() {
+        return Err("ONEMAIL_JYI_REDIRECT_URI cannot include a query or fragment".to_string());
+    }
+    let path = if url.path().is_empty() {
+        "/callback".to_string()
+    } else {
+        url.path().to_string()
+    };
+    Ok(CallbackTarget {
+        host,
+        port,
+        path,
+        redirect_uri: url.to_string(),
+    })
+}
+
 fn auth_origin() -> Result<Url, String> {
     origin(
         "ONEMAIL_JYI_AUTH_ORIGIN",
@@ -493,6 +560,7 @@ async fn read_json(response: reqwest::Response) -> Result<Value, String> {
 async fn accept_callback(
     listener: TcpListener,
     expected_host: String,
+    expected_path: String,
     expected_state: String,
 ) -> Result<String, String> {
     let (mut socket, _) = tokio::time::timeout(LOGIN_TIMEOUT, listener.accept())
@@ -541,7 +609,7 @@ async fn accept_callback(
     }
     let url = Url::parse(&format!("http://{host}{target}"))
         .map_err(|error| format!("Invalid JYI callback: {error}"))?;
-    if url.path() != "/callback" {
+    if url.path() != expected_path {
         let _ = respond(&mut socket, "404 Not Found", "").await;
         return Err("The JYI callback used an unexpected path".to_string());
     }
@@ -719,6 +787,24 @@ mod tests {
         assert!(constant_time_eq("abc", "abc"));
         assert!(!constant_time_eq("abc", "abd"));
         assert!(!constant_time_eq("abc", "ab"));
+    }
+
+    #[test]
+    fn a_registered_loopback_callback_can_be_used_verbatim() {
+        let callback = parse_callback_uri("http://127.0.0.1:53682/callback").expect("callback");
+        assert_eq!(callback.host, "127.0.0.1");
+        assert_eq!(callback.port, 53682);
+        assert_eq!(callback.path, "/callback");
+        assert_eq!(callback.redirect_uri, "http://127.0.0.1:53682/callback");
+
+        let localhost = parse_callback_uri("http://localhost:53682/callback").expect("callback");
+        assert_eq!(localhost.host, "localhost");
+        assert_eq!(localhost.redirect_uri, "http://localhost:53682/callback");
+
+        assert!(parse_callback_uri("https://127.0.0.1:53682/callback").is_err());
+        assert!(parse_callback_uri("http://example.com:53682/callback").is_err());
+        assert!(parse_callback_uri("http://127.0.0.1/callback").is_err());
+        assert!(parse_callback_uri("http://127.0.0.1:53682/callback?x=1").is_err());
     }
 
     #[test]

@@ -178,7 +178,10 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
 - JYI AI: `local:ai-connect`, `refresh`, `disconnect`, `models` and `analyze`.
   - Sign-in uses authorization code + PKCE through the browser and a loopback
     callback on `127.0.0.1`; the callback host and state are checked before the
-    code is accepted.
+    code is accepted. When the identity service requires an exact registered
+    callback, set `ONEMAIL_JYI_REDIRECT_URI` (for example
+    `http://127.0.0.1:53682/callback`) before launching the app; otherwise an
+    ephemeral port is used.
   - The full connection (including the API key) lives in the OS keystore under
     `account:ai`; `settings.json` only ever receives the non-secret summary.
   - The identity and gateway origins are HTTPS-only and can be overridden with
