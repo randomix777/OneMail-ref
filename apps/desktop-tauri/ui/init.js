@@ -80,6 +80,9 @@
   }
 
   window.inboxZeroDesktop = {
+    // The Tauri product gates the local mail UI behind a JYI sign-in. The
+    // Electron local shell does not set this flag.
+    requiresJyiLogin: true,
     // Window chrome belongs to the shell; the renderer's calls are no-ops.
     setUnreadCount: () => undefined,
     signalReady: () => undefined,

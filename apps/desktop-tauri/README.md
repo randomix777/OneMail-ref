@@ -16,6 +16,15 @@ header from `tauri.conf.json`). The Electron preload is replaced by
 renderer bundle; it rebuilds `window.inboxZeroDesktop` on Tauri IPC and shims the
 Node `process` global the bundled dependencies expect.
 
+## First run
+
+The Tauri shell advertises `requiresJyiLogin`. Until a JYI connection is stored,
+the window shows the JYI sign-in screen and the local mail UI is not mounted.
+After the browser flow completes, the mail UI opens; disconnecting JYI in
+Settings returns to the sign-in screen. Mailbox credentials and the local mirror
+stay on disk throughout. The Electron local shell does not set this flag and
+keeps its optional-JYI behavior.
+
 ## Layout
 
 - `src-tauri/src/lib.rs` — commands, mail-engine dispatch, snapshot push.
