@@ -30,8 +30,8 @@ const SYNCED_ROLES: [Role; 6] = [
     Role::Spam,
 ];
 
-/// How often accounts are refreshed in the background. The Electron engine uses
-/// IDLE; this build polls as a fallback and idles when the server supports it.
+/// How often accounts are refreshed in the background. IDLE is used when the
+/// server advertises it; polling is the fallback.
 const SYNC_INTERVAL: Duration = Duration::from_secs(60);
 /// How quickly the IDLE supervisor notices new or removed accounts.
 const IDLE_SUPERVISOR: Duration = Duration::from_secs(30);

@@ -1,7 +1,7 @@
 // Builds the renderer bundle the Tauri shell serves.
 //
 // The source lives in `apps/desktop-tauri/ui-src`; this script does not read or
-// build anything from the legacy Electron package.
+// build anything from the old Electron package.
 //
 // Two Tauri differences: the bundle holds no Electron preload, so the shell
 // injects `ui/init.js` as a webview initialization script instead, and the

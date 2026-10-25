@@ -1,9 +1,8 @@
 //! Tauri shell for OneMail.
 //!
-//! Responsibilities mirror `apps/desktop/src/main.ts` + `mail-engine/*`: own the
-//! window, own the local profile, and answer the renderer's mail-engine IPC
-//! contract. Everything the renderer needs travels through the same envelopes the
-//! Electron utility process answered, so `@inboxzero/mail-core` is unchanged.
+//! Owns the window and the local profile, and answers the renderer's mail-engine
+//! IPC contract. Everything the renderer needs travels through the protocol v1
+//! envelopes, so `@inboxzero/mail-core` is unchanged.
 
 mod ai;
 mod content;

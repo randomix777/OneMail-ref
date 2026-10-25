@@ -1,6 +1,5 @@
 // The subset of the local settings contract this renderer consumes. The Rust
-// shell serializes these shapes over `local_settings`; the Electron package used
-// to own the definitions, and the Tauri renderer no longer imports from it.
+// shell serializes these shapes over `local_settings`.
 
 export type Server = {
   host: string;

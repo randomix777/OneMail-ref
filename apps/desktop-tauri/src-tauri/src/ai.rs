@@ -1,6 +1,6 @@
 //! JYI account linking and analysis.
 //!
-//! Mirrors `apps/desktop/src/local/ai.ts`: browser authorization with PKCE, a
+//! Mirrors the previous TypeScript AI client: browser authorization with PKCE, a
 //! loopback callback, a device credential in the OS keystore, and OpenAI-style
 //! gateway calls. The renderer only ever sees the non-secret summary fields.
 

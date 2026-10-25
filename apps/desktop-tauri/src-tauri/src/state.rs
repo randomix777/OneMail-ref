@@ -15,7 +15,7 @@ pub struct Server {
     pub secure: bool,
 }
 
-/// The account shape `apps/desktop/src/local/settings.ts` hands the renderer.
+/// The account shape the renderer receives from `local_settings`.
 ///
 /// Credentials are deliberately absent: the password lives in the OS keychain
 /// (`mail-vault`), never in this file. The renderer still sends it on save, and
@@ -46,9 +46,9 @@ pub struct Paths {
 }
 
 impl Paths {
-    /// Shares `%APPDATA%/OneMail` with the Electron build so a migration can read
-    /// the same profile. The SQLite mirror keeps its own file until the schema
-    /// port covers every migration.
+    /// Keeps the profile under `%APPDATA%/OneMail`. The SQLite mirror uses its
+    /// own filename so an older Electron-era profile is never opened by two
+    /// engines.
     pub fn resolve() -> Self {
         let data_dir = dirs::data_dir()
             .unwrap_or_else(|| PathBuf::from("."))
