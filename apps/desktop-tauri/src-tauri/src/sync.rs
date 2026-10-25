@@ -3,19 +3,36 @@
 //! The network work happens without holding any lock; the mirror is only touched
 //! once a page is in hand, and `push_snapshots` tells the renderer afterwards.
 
+use std::time::Duration;
+
 use mail_imap::{Credentials, Folder, Role, SyncPage};
-use mail_store::{FolderRole, FolderSync, MailStore, SyncedMessage};
+use mail_store::{FolderRole, FolderSync, MailStore, MailboxFilter, SyncedMessage};
 use mail_vault::CredentialVault;
+use serde_json::json;
 use tauri::{AppHandle, Manager};
+use tauri_plugin_notification::NotificationExt;
 
 use crate::state::{AppState, LocalAccount};
 
-/// How many messages of each folder the first slice mirrors. Bodies and paging are
-/// later slices; this is enough for a usable conversation list.
+/// How many messages of each folder the mirror pages. Bodies and paging are later
+/// slices; this is enough for a usable conversation list.
 const PAGE_LIMIT: u32 = 50;
 
 /// Folders the shell mirrors today. `fetch_folders` skips ones the server lacks.
-const SYNCED_ROLES: [Role; 2] = [Role::Inbox, Role::Sent];
+/// Gmail's All Mail is classified as `AllMail`, not Archive, so it is never
+/// mirrored and never used as an archive destination.
+const SYNCED_ROLES: [Role; 6] = [
+    Role::Inbox,
+    Role::Sent,
+    Role::Drafts,
+    Role::Archive,
+    Role::Trash,
+    Role::Spam,
+];
+
+/// How often accounts are refreshed in the background. The Electron engine uses
+/// IDLE; this build polls until IDLE is ported.
+const SYNC_INTERVAL: Duration = Duration::from_secs(60);
 
 pub(crate) fn credentials_for(account: &LocalAccount, password: &str) -> Credentials {
     Credentials {
@@ -76,22 +93,58 @@ pub fn apply_pages(
 }
 
 /// Syncs in the background and pushes fresh snapshots when the mirror changed.
+/// Used for the launch sync, which must not notify about existing mail.
 pub fn spawn(app: AppHandle, account_ids: Vec<String>) {
+    spawn_inner(app, account_ids, false);
+}
+
+/// Syncs in response to an explicit refresh, notifying about new unread mail.
+pub fn spawn_notify(app: AppHandle, account_ids: Vec<String>) {
+    spawn_inner(app, account_ids, true);
+}
+
+fn spawn_inner(app: AppHandle, account_ids: Vec<String>, notify: bool) {
     tauri::async_runtime::spawn(async move {
         let state = app.state::<AppState>();
-        if sync_accounts(&state, &account_ids).await {
+        let outcome = sync_accounts(&state, &account_ids, notify).await;
+        if outcome.changed {
             crate::push_snapshots(&app, &state);
+        }
+        notify_new_mail(&app, &outcome.new_unread);
+    });
+}
+
+/// Refreshes every configured account on a timer. The first tick is consumed so
+/// the launch sync is not immediately repeated.
+pub fn start_periodic(app: AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        let mut ticker = tokio::time::interval(SYNC_INTERVAL);
+        ticker.tick().await;
+        loop {
+            ticker.tick().await;
+            let state = app.state::<AppState>();
+            let outcome = sync_accounts(&state, &[], true).await;
+            if outcome.changed {
+                crate::push_snapshots(&app, &state);
+            }
+            notify_new_mail(&app, &outcome.new_unread);
         }
     });
 }
 
+#[derive(Default)]
+struct SyncOutcome {
+    changed: bool,
+    new_unread: Vec<(String, i64)>,
+}
+
 /// `account_ids` empty means every configured account. One failing account is
 /// logged and left alone; the rest still sync.
-async fn sync_accounts(state: &AppState, account_ids: &[String]) -> bool {
+async fn sync_accounts(state: &AppState, account_ids: &[String], notify: bool) -> SyncOutcome {
     let accounts: Vec<LocalAccount> = {
         let Ok(settings) = state.settings.lock() else {
             eprintln!("OneMail sync skipped: settings lock poisoned");
-            return false;
+            return SyncOutcome::default();
         };
         settings
             .accounts
@@ -101,26 +154,38 @@ async fn sync_accounts(state: &AppState, account_ids: &[String]) -> bool {
             .collect()
     };
 
-    let mut applied = false;
+    let mut outcome = SyncOutcome::default();
     for account in accounts {
-        match sync_one(state, &account).await {
-            Ok(true) => applied = true,
-            Ok(false) => {}
+        let Some(_claim) = state.claim_sync(&account.id) else {
+            continue;
+        };
+        match sync_one(state, &account, notify).await {
+            Ok((changed, new_unread)) => {
+                outcome.changed |= changed;
+                if new_unread > 0 {
+                    outcome.new_unread.push((account.email.clone(), new_unread));
+                }
+            }
             Err(message) => eprintln!("OneMail could not sync {}: {message}", account.email),
         }
     }
-    applied
+    outcome
 }
 
-/// Returns whether the mirror changed. Accounts without a stored credential are
-/// skipped, not treated as failures.
-async fn sync_one(state: &AppState, account: &LocalAccount) -> Result<bool, String> {
+/// Returns whether the mirror changed and how many additional unread Inbox
+/// messages appeared. Accounts without a stored credential are skipped, not
+/// treated as failures.
+async fn sync_one(
+    state: &AppState,
+    account: &LocalAccount,
+    notify: bool,
+) -> Result<(bool, i64), String> {
     let password = state
         .vault
         .load(&account.id)
         .map_err(|error| error.to_string())?;
     let Some(password) = password else {
-        return Ok(false);
+        return Ok((false, 0));
     };
 
     let pages = fetch_account(account, &password).await?;
@@ -128,15 +193,54 @@ async fn sync_one(state: &AppState, account: &LocalAccount) -> Result<bool, Stri
     // The account may have been removed while this sync was on the wire; a late
     // page must not resurrect its rows.
     if !is_configured(state, &account.id) {
-        return Ok(false);
+        return Ok((false, 0));
     }
 
+    let inbox = MailboxFilter::from_predicate(&json!({
+        "kind": "mailbox",
+        "mailbox": "inbox",
+    }));
     let mut store = state
         .store
         .lock()
         .map_err(|_| "mail store lock poisoned".to_string())?;
+    let before = if notify {
+        store
+            .counts(std::slice::from_ref(&account.id), &inbox)
+            .map_err(|error| error.to_string())?
+            .1
+    } else {
+        0
+    };
     apply_pages(&mut store, &account.id, &pages)?;
-    Ok(true)
+    let after = if notify {
+        store
+            .counts(std::slice::from_ref(&account.id), &inbox)
+            .map_err(|error| error.to_string())?
+            .1
+    } else {
+        0
+    };
+    Ok((true, (after - before).max(0)))
+}
+
+fn notify_new_mail(app: &AppHandle, new_unread: &[(String, i64)]) {
+    for (email, count) in new_unread {
+        let body = if *count == 1 {
+            format!("1 new message in {email}")
+        } else {
+            format!("{count} new messages in {email}")
+        };
+        if let Err(error) = app
+            .notification()
+            .builder()
+            .title("New mail")
+            .body(body)
+            .show()
+        {
+            eprintln!("OneMail could not show a notification: {error}");
+        }
+    }
 }
 
 pub(crate) fn is_configured(state: &AppState, account_id: &str) -> bool {
@@ -196,7 +300,7 @@ fn folder_role(role: Option<Role>) -> FolderRole {
         Some(Role::Drafts) => FolderRole::Drafts,
         Some(Role::Trash) => FolderRole::Trash,
         Some(Role::Spam) => FolderRole::Spam,
-        Some(Role::Archive) | None => FolderRole::Archive,
+        Some(Role::Archive) | Some(Role::AllMail) | None => FolderRole::Archive,
     }
 }
 

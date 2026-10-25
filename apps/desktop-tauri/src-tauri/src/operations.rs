@@ -54,9 +54,65 @@ pub fn resume(app: AppHandle) {
                     eprintln!("OneMail could not requeue interrupted operations: {message}")
                 }
             }
+            reconcile_uncertain(&app, &state, &account_id).await;
             run(&app, &state, &account_id).await;
         }
     });
+}
+
+/// A send may have reached the server before the client recorded the result.
+/// If its deterministic Message-ID is already in Sent, treat it as delivered.
+async fn reconcile_uncertain(app: &AppHandle, state: &AppState, account_id: &str) {
+    let command_ids = match lock_store(state).and_then(|store| {
+        store
+            .uncertain_send_ids(account_id)
+            .map_err(|error| error.to_string())
+    }) {
+        Ok(command_ids) => command_ids,
+        Err(message) => {
+            eprintln!("OneMail could not read uncertain sends: {message}");
+            return;
+        }
+    };
+    if command_ids.is_empty() {
+        return;
+    }
+    let Some(account) = crate::sync::account(state, account_id) else {
+        return;
+    };
+    let password = match state.vault.load(account_id) {
+        Ok(Some(password)) => password,
+        _ => return,
+    };
+    let credentials = crate::sync::credentials_for(&account, &password);
+
+    let mut resolved = Vec::new();
+    for command_id in command_ids {
+        let message_id = mail_smtp::message_id(account_id, &command_id);
+        match mail_imap::find_in_role(&credentials, Role::Sent, &message_id).await {
+            Ok(true) => resolved.push(command_id),
+            Ok(false) => {}
+            Err(error) => {
+                eprintln!("OneMail could not inspect an uncertain send: {error}");
+                break;
+            }
+        }
+    }
+    if resolved.is_empty() {
+        return;
+    }
+    let result = lock_store(state).and_then(|mut store| {
+        for command_id in &resolved {
+            store
+                .succeed_operation(account_id, command_id)
+                .map_err(|error| error.to_string())?;
+        }
+        Ok(())
+    });
+    match result {
+        Ok(()) => crate::push_snapshots(app, state),
+        Err(message) => eprintln!("OneMail could not settle an uncertain send: {message}"),
+    }
 }
 
 async fn run(app: &AppHandle, state: &AppState, account_id: &str) {
@@ -151,7 +207,7 @@ async fn execute(
     }
 
     let result = match &operation.intent {
-        OperationIntent::Metadata(change) => perform(credentials, *change, &targets)
+        OperationIntent::Metadata(change) => perform(credentials, change, &targets)
             .await
             .map(|moved| (moved, false)),
         OperationIntent::Send(intent) => perform_send(
@@ -296,6 +352,7 @@ enum PerformError {
     Imap(ImapError),
     Smtp(SmtpError),
     NoDestination(Role),
+    NoFolder(String),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -310,6 +367,10 @@ fn classify(error: PerformError) -> Failure {
         PerformError::NoDestination(Role::Archive) => ("no_archive", false, false),
         PerformError::NoDestination(Role::Trash) => ("no_trash", false, false),
         PerformError::NoDestination(_) => ("no_destination", false, false),
+        PerformError::NoFolder(folder) => {
+            eprintln!("OneMail could not find the move destination {folder}");
+            ("no_destination", false, false)
+        }
         PerformError::Imap(ImapError::Login(_)) => ("auth", false, false),
         PerformError::Imap(ImapError::Tls(_)) => ("tls", false, false),
         PerformError::Imap(ImapError::Config(_)) => ("config", false, false),
@@ -365,7 +426,7 @@ async fn perform_send(
 
 async fn perform(
     credentials: &Credentials,
-    change: MetadataChange,
+    change: &MetadataChange,
     targets: &[(String, Option<RemoteMessage>)],
 ) -> Result<Vec<(String, Option<RemoteMessage>)>, PerformError> {
     let remote_targets: Vec<WriteTarget> = targets
@@ -385,7 +446,7 @@ async fn perform(
 
     match change {
         MetadataChange::SetRead(read) => {
-            let (add, remove): (&[&str], &[&str]) = if read {
+            let (add, remove): (&[&str], &[&str]) = if *read {
                 (&["\\Seen"], &[])
             } else {
                 (&[], &["\\Seen"])
@@ -394,7 +455,7 @@ async fn perform(
             Ok(Vec::new())
         }
         MetadataChange::SetStarred(starred) => {
-            let (add, remove): (&[&str], &[&str]) = if starred {
+            let (add, remove): (&[&str], &[&str]) = if *starred {
                 (&["\\Flagged"], &[])
             } else {
                 (&[], &["\\Flagged"])
@@ -411,31 +472,60 @@ async fn perform(
                 MetadataChange::Trash => Role::Trash,
                 _ => Role::Inbox,
             };
+            move_to_role(credentials, &remote_targets, role).await
+        }
+        MetadataChange::SetSpam(spam) => {
+            let role = if *spam { Role::Spam } else { Role::Inbox };
+            move_to_role(credentials, &remote_targets, role).await
+        }
+        MetadataChange::Move(folder_id) => {
             let login = mail_imap::verify(credentials)
                 .await
                 .map_err(PerformError::Imap)?;
-            let destination = login
-                .folders
-                .iter()
-                .find(|folder| folder.role == Some(role))
-                .map(|folder| folder.path.clone())
-                .ok_or(PerformError::NoDestination(role))?;
-            let moved = mail_imap::move_messages(credentials, &remote_targets, &destination)
-                .await
-                .map_err(PerformError::Imap)?;
-            Ok(moved
-                .into_iter()
-                .map(|moved| {
-                    let remote = (moved.uid > 0).then_some(RemoteMessage {
-                        folder: moved.folder,
-                        uid_validity: moved.uid_validity,
-                        uid: moved.uid,
-                    });
-                    (moved.message_id, remote)
-                })
-                .collect())
+            if !login.folders.iter().any(|folder| &folder.path == folder_id) {
+                return Err(PerformError::NoFolder(folder_id.clone()));
+            }
+            move_to(credentials, &remote_targets, folder_id).await
         }
     }
+}
+
+async fn move_to_role(
+    credentials: &Credentials,
+    targets: &[WriteTarget],
+    role: Role,
+) -> Result<Vec<(String, Option<RemoteMessage>)>, PerformError> {
+    let login = mail_imap::verify(credentials)
+        .await
+        .map_err(PerformError::Imap)?;
+    let destination = login
+        .folders
+        .iter()
+        .find(|folder| folder.role == Some(role))
+        .map(|folder| folder.path.clone())
+        .ok_or(PerformError::NoDestination(role))?;
+    move_to(credentials, targets, &destination).await
+}
+
+async fn move_to(
+    credentials: &Credentials,
+    targets: &[WriteTarget],
+    destination: &str,
+) -> Result<Vec<(String, Option<RemoteMessage>)>, PerformError> {
+    let moved = mail_imap::move_messages(credentials, targets, destination)
+        .await
+        .map_err(PerformError::Imap)?;
+    Ok(moved
+        .into_iter()
+        .map(|moved| {
+            let remote = (moved.uid > 0).then_some(RemoteMessage {
+                folder: moved.folder,
+                uid_validity: moved.uid_validity,
+                uid: moved.uid,
+            });
+            (moved.message_id, remote)
+        })
+        .collect())
 }
 
 async fn flags(

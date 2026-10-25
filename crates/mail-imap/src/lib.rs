@@ -11,6 +11,7 @@ use async_imap::imap_proto::NameAttribute;
 use async_imap::types::Flag;
 use futures_util::TryStreamExt;
 use mail_parser::{Address, HeaderValue, MessageParser, MessagePart, MimeHeaders};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpStream;
 
 /// How long a connect/handshake/login may take before the socket is abandoned.
@@ -80,6 +81,9 @@ pub enum Role {
     Archive,
     Trash,
     Spam,
+    /// A virtual "all messages" mailbox. It is never used as a move target and
+    /// is never mirrored, because its rows overlap every real folder.
+    AllMail,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -456,6 +460,42 @@ async fn append_to_role_inner(
     Ok(true)
 }
 
+/// Looks for a message by RFC Message-ID in the folder with `role`. Used to
+/// reconcile a send that left the client but whose SMTP verdict never arrived.
+pub async fn find_in_role(
+    credentials: &Credentials,
+    role: Role,
+    message_id: &str,
+) -> Result<bool, ImapError> {
+    let endpoint = format!("{}:{}", credentials.host, credentials.port);
+    tokio::time::timeout(
+        FETCH_TIMEOUT,
+        find_in_role_inner(credentials, role, message_id),
+    )
+    .await
+    .map_err(|_| ImapError::Timeout(endpoint))?
+}
+
+async fn find_in_role_inner(
+    credentials: &Credentials,
+    role: Role,
+    message_id: &str,
+) -> Result<bool, ImapError> {
+    let mut session = connect(credentials).await?;
+    let folders = list_folders(&mut session).await?;
+    let Some(folder) = folders.iter().find(|folder| folder.role == Some(role)) else {
+        let _ = session.logout().await;
+        return Ok(false);
+    };
+    session.select(&folder.path).await.map_err(protocol)?;
+    let uids = session
+        .uid_search(message_id_query(message_id))
+        .await
+        .map_err(protocol)?;
+    let _ = session.logout().await;
+    Ok(!uids.is_empty())
+}
+
 /// Parses the display parts of a raw message. Pure, so the mapping is testable
 /// without a server.
 pub fn parse_body(bytes: &[u8]) -> Body {
@@ -639,52 +679,155 @@ async fn read_page(session: &mut Session, folder: &str, limit: u32) -> Result<Sy
 type Connection = tokio_native_tls::TlsStream<TcpStream>;
 type Session = async_imap::Session<Connection>;
 
-async fn connect(credentials: &Credentials) -> Result<Session, ImapError> {
-    if !credentials.secure {
-        // `async-imap` has no STARTTLS, and sending a password over a plain socket
-        // is worse than refusing the account.
-        return Err(ImapError::Config(
-            "This build only speaks IMAP over implicit TLS (port 993). STARTTLS is not ported yet."
-                .to_string(),
-        ));
-    }
-    let endpoint = format!("{}:{}", credentials.host, credentials.port);
-    let timeout = || ImapError::Timeout(endpoint.clone());
+const STARTTLS_TAG: &str = "a1";
+const MAX_LINE: usize = 8 * 1024;
 
-    let connector = native_tls::TlsConnector::builder()
-        .build()
-        .map_err(|error| ImapError::Tls(error.to_string()))?;
-    let connector = tokio_native_tls::TlsConnector::from(connector);
+async fn connect(credentials: &Credentials) -> Result<Session, ImapError> {
+    let endpoint = format!("{}:{}", credentials.host, credentials.port);
+    let connector = tls_connector()?;
 
     let socket = tokio::time::timeout(
         CONNECT_TIMEOUT,
         TcpStream::connect((credentials.host.as_str(), credentials.port)),
     )
     .await
-    .map_err(|_| timeout())?
+    .map_err(|_| ImapError::Timeout(endpoint.clone()))?
     .map_err(|source| ImapError::Connect {
         host: credentials.host.clone(),
         port: credentials.port,
         source,
     })?;
 
-    let stream = tokio::time::timeout(
+    let stream = if credentials.secure {
+        tls_connect(&connector, credentials, socket, &endpoint).await?
+    } else {
+        starttls_connect(&connector, credentials, socket, &endpoint).await?
+    };
+    login(stream, credentials, &endpoint).await
+}
+
+fn tls_connector() -> Result<tokio_native_tls::TlsConnector, ImapError> {
+    native_tls::TlsConnector::builder()
+        .build()
+        .map(tokio_native_tls::TlsConnector::from)
+        .map_err(|error| ImapError::Tls(error.to_string()))
+}
+
+async fn tls_connect(
+    connector: &tokio_native_tls::TlsConnector,
+    credentials: &Credentials,
+    socket: TcpStream,
+    endpoint: &str,
+) -> Result<Connection, ImapError> {
+    tokio::time::timeout(
         CONNECT_TIMEOUT,
         connector.connect(&credentials.host, socket),
     )
     .await
-    .map_err(|_| timeout())?
-    .map_err(|error| ImapError::Tls(error.to_string()))?;
+    .map_err(|_| ImapError::Timeout(endpoint.to_string()))?
+    .map_err(|error| ImapError::Tls(error.to_string()))
+}
 
+async fn starttls_connect(
+    connector: &tokio_native_tls::TlsConnector,
+    credentials: &Credentials,
+    mut socket: TcpStream,
+    endpoint: &str,
+) -> Result<Connection, ImapError> {
+    tokio::time::timeout(CONNECT_TIMEOUT, negotiate_starttls(&mut socket))
+        .await
+        .map_err(|_| ImapError::Timeout(endpoint.to_string()))??;
+    tls_connect(connector, credentials, socket, endpoint).await
+}
+
+/// Reads the greeting and upgrades the plaintext socket with STARTTLS. The
+/// password is only sent later, over the upgraded stream.
+async fn negotiate_starttls<S: AsyncRead + AsyncWrite + Unpin>(
+    stream: &mut S,
+) -> Result<(), ImapError> {
+    let greeting = read_line(stream).await?;
+    let upper = greeting.to_ascii_uppercase();
+    if upper.starts_with("* BYE") {
+        return Err(ImapError::Protocol(format!(
+            "the server closed the connection: {greeting}"
+        )));
+    }
+    if upper.starts_with("* PREAUTH") {
+        return Err(ImapError::Config(
+            "The server pre-authenticated the connection before TLS; refusing to use it."
+                .to_string(),
+        ));
+    }
+    if !upper.starts_with("* OK") {
+        return Err(ImapError::Protocol(format!(
+            "unexpected IMAP greeting: {greeting}"
+        )));
+    }
+
+    stream
+        .write_all(format!("{STARTTLS_TAG} STARTTLS\r\n").as_bytes())
+        .await
+        .map_err(|error| ImapError::Protocol(error.to_string()))?;
+    stream
+        .flush()
+        .await
+        .map_err(|error| ImapError::Protocol(error.to_string()))?;
+
+    let ok = format!("{} OK", STARTTLS_TAG.to_ascii_uppercase());
+    let no = format!("{} NO", STARTTLS_TAG.to_ascii_uppercase());
+    let bad = format!("{} BAD", STARTTLS_TAG.to_ascii_uppercase());
+    for _ in 0..20 {
+        let line = read_line(stream).await?;
+        let upper = line.to_ascii_uppercase();
+        if upper.starts_with(&ok) {
+            return Ok(());
+        }
+        if upper.starts_with(&no) || upper.starts_with(&bad) {
+            return Err(ImapError::Config(format!(
+                "The server refused STARTTLS. Choose TLS when the server uses an implicit-TLS port. ({line})"
+            )));
+        }
+    }
+    Err(ImapError::Protocol(
+        "the server did not answer STARTTLS".to_string(),
+    ))
+}
+
+async fn read_line<S: AsyncRead + Unpin>(stream: &mut S) -> Result<String, ImapError> {
+    let mut bytes = Vec::new();
+    loop {
+        let byte = stream
+            .read_u8()
+            .await
+            .map_err(|error| ImapError::Protocol(error.to_string()))?;
+        bytes.push(byte);
+        if byte == b'\n' {
+            break;
+        }
+        if bytes.len() > MAX_LINE {
+            return Err(ImapError::Protocol(
+                "the server sent an oversized line".to_string(),
+            ));
+        }
+    }
+    Ok(String::from_utf8_lossy(&bytes)
+        .trim_end_matches(['\r', '\n'])
+        .to_string())
+}
+
+async fn login(
+    stream: Connection,
+    credentials: &Credentials,
+    endpoint: &str,
+) -> Result<Session, ImapError> {
     let client = async_imap::Client::new(stream);
-    let session = tokio::time::timeout(
+    tokio::time::timeout(
         CONNECT_TIMEOUT,
         client.login(&credentials.username, &credentials.password),
     )
     .await
-    .map_err(|_| timeout())?
-    .map_err(|(error, _)| ImapError::Login(error.to_string()))?;
-    Ok(session)
+    .map_err(|_| ImapError::Timeout(endpoint.to_string()))?
+    .map_err(|(error, _)| ImapError::Login(error.to_string()))
 }
 
 fn protocol(error: async_imap::error::Error) -> ImapError {
@@ -731,6 +874,7 @@ fn role_from(path: &str, attributes: &[NameAttribute<'_>]) -> Option<Role> {
         NameAttribute::Sent => Some(Role::Sent),
         NameAttribute::Drafts => Some(Role::Drafts),
         NameAttribute::Archive => Some(Role::Archive),
+        NameAttribute::All => Some(Role::AllMail),
         NameAttribute::Trash => Some(Role::Trash),
         NameAttribute::Junk => Some(Role::Spam),
         _ => None,
@@ -746,7 +890,8 @@ fn role_from_path(path: &str) -> Option<Role> {
     match leaf_name(&lower).as_str() {
         "sent" | "sent mail" | "sent items" | "sent messages" => Some(Role::Sent),
         "draft" | "drafts" => Some(Role::Drafts),
-        "archive" | "archives" | "all mail" => Some(Role::Archive),
+        "archive" | "archives" => Some(Role::Archive),
+        "all mail" | "all" => Some(Role::AllMail),
         "trash" | "deleted" | "deleted items" | "deleted messages" => Some(Role::Trash),
         "junk" | "junk e-mail" | "spam" | "bulk mail" => Some(Role::Spam),
         _ => None,
@@ -971,26 +1116,77 @@ Message-ID: <reply@example.com>\r\n\
         assert_eq!(role_from("INBOX", &[]), Some(Role::Inbox));
         assert_eq!(role_from("Sent Items", &[]), Some(Role::Sent));
         assert_eq!(role_from("[Gmail]/Sent Mail", &[]), Some(Role::Sent));
-        assert_eq!(role_from("[Gmail]/All Mail", &[]), Some(Role::Archive));
+        assert_eq!(role_from("[Gmail]/All Mail", &[]), Some(Role::AllMail));
         assert_eq!(role_from("Deleted Messages", &[]), Some(Role::Trash));
         assert_eq!(role_from("INBOX/Receipts", &[]), None);
         assert_eq!(leaf_name("[Gmail]/Sent Mail"), "Sent Mail");
     }
 
     #[tokio::test]
-    async fn plaintext_imap_is_refused_before_a_socket_is_opened() {
-        let credentials = Credentials {
-            host: "imap.example.com".to_string(),
-            port: 143,
-            secure: false,
-            username: "person@example.com".to_string(),
-            password: "secret".to_string(),
-        };
+    async fn starttls_is_negotiated_before_credentials_are_sent() {
+        let (mut client, mut server) = tokio::io::duplex(4096);
+        let server = tokio::spawn(async move {
+            server.write_all(b"* OK Ready\r\n").await.expect("greets");
+            let command = read_line(&mut server).await.expect("reads command");
+            server
+                .write_all(b"a1 OK Begin TLS\r\n")
+                .await
+                .expect("accepts STARTTLS");
+            command
+        });
 
-        match verify(&credentials).await {
-            Err(ImapError::Config(message)) => assert!(message.contains("implicit TLS")),
+        negotiate_starttls(&mut client).await.expect("negotiates");
+        assert_eq!(server.await.expect("server finished"), "a1 STARTTLS");
+    }
+
+    #[tokio::test]
+    async fn a_server_that_refuses_starttls_is_a_config_error() {
+        let (mut client, mut server) = tokio::io::duplex(4096);
+        tokio::spawn(async move {
+            server.write_all(b"* OK Ready\r\n").await.expect("greets");
+            let _ = read_line(&mut server).await.expect("reads command");
+            server
+                .write_all(b"a1 NO STARTTLS not supported\r\n")
+                .await
+                .expect("refuses STARTTLS");
+        });
+
+        match negotiate_starttls(&mut client).await {
+            Err(ImapError::Config(message)) => assert!(message.contains("refused STARTTLS")),
             other => panic!("expected a config error, got {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn a_bye_greeting_is_a_protocol_error() {
+        let (mut client, mut server) = tokio::io::duplex(4096);
+        tokio::spawn(async move {
+            server
+                .write_all(b"* BYE server shutting down\r\n")
+                .await
+                .expect("greets");
+        });
+
+        assert!(matches!(
+            negotiate_starttls(&mut client).await,
+            Err(ImapError::Protocol(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn a_preauthenticated_plaintext_session_is_refused() {
+        let (mut client, mut server) = tokio::io::duplex(4096);
+        tokio::spawn(async move {
+            server
+                .write_all(b"* PREAUTH already authenticated\r\n")
+                .await
+                .expect("greets");
+        });
+
+        assert!(matches!(
+            negotiate_starttls(&mut client).await,
+            Err(ImapError::Config(_))
+        ));
     }
 
     const MIME_MESSAGE: &[u8] = b"From: Ana <ana@example.com>\r\n\

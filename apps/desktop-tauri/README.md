@@ -50,10 +50,14 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
 - `local:settings`, `local:account-save`, `local:account-remove`. A save verifies
   the IMAP login and the SMTP login before it changes the profile, then stores
   the password in the keystore and mirrors the first page.
-- IMAP read sync: newest 50 messages of INBOX and Sent, headers only, keyed on
-  `UIDVALIDITY` per folder. `requestSync` runs it in the background and pushes a
-  fresh snapshot to every live subscription; the shell also syncs on launch using
-  the stored credential.
+- IMAP read sync: newest 50 messages of INBOX, Sent, Drafts, Archive, Trash and
+  Spam, headers only, keyed on `UIDVALIDITY` per folder. Login supports implicit
+  TLS and STARTTLS; STARTTLS credentials are only sent after the socket is
+  upgraded. `requestSync` runs it in the background and pushes a fresh snapshot
+  to every live subscription; the shell also syncs on launch and polls every 60
+  seconds. Concurrent syncs of one account are collapsed into the running one.
+  Gmail's All Mail is classified separately from Archive, so it is never
+  mirrored and never used as an archive destination.
 - `observeMailbox`, `observeMailboxWindow`, `observeMailboxCounts`, `requestSync`,
   `purgeAccount`, `retainAccounts` — answered from the local mirror.
 - Predicates: the full protocol set compiles to SQL over the mirror — boolean
@@ -88,8 +92,8 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
   changes `UIDVALIDITY` takes its bodies and coordinates with it.
 - Metadata commands: `getDiagnostics`, `submitMetadata`, `submitConversations`,
   `observeOperation`, `cancelOperation`.
-  - `archive`, `unarchive`, `set_read`, `set_starred`, `trash` and
-    `restore_from_trash` are supported. `move`, `set_spam`, label/category
+  - `archive`, `unarchive`, `set_read`, `set_starred`, `trash`,
+    `restore_from_trash`, `set_spam` and `move` are supported. Label/category
     membership and `snooze` are rejected with `unsupported`, so they are never
     shown as applied.
   - Admission writes the change into the mirror immediately, records
@@ -98,14 +102,20 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
     `already_recorded`; the same id with different intent is `invalid`. A queue
     holds up to 500 pending commands per account, and conversation submissions
     reject only an epoch mismatch (`stale_selection`).
-  - The executor sets `\Seen` / `\Flagged` with `UID STORE`, and archives, trashes
-    or restores by moving to the folder whose role is `Archive`, `Trash` or
-    `Inbox`. Moves use `UID MOVE`, falling back to
+  - The executor sets `\Seen` / `\Flagged` with `UID STORE`, and archives, trashes,
+    spams, unspams or restores by moving to the folder whose role is `Archive`,
+    `Trash`, `Spam` or `Inbox`. `move` verifies that the requested folder path
+    exists before moving; a missing folder fails with `no_destination` and
+    reverts. Moves use `UID MOVE`, falling back to
     `COPY` + `\Deleted` + `UID EXPUNGE`. The destination UID is recovered with
     `UID SEARCH HEADER Message-ID`, then the message's folder and server
     coordinate are updated. If that search finds nothing, the coordinate is
     dropped; a body already stored stays readable, but the message can no longer
     be fetched or moved until the next sync re-learns it.
+  - A queued `move` removes the Inbox role and records the destination folder
+    immediately, matching the TypeScript effective-state rule. The destination
+    role appears after the next sync of that folder, which the Rust mirror does
+    not sync yet.
   - Connection, timeout and protocol failures retry after 2 s and 10 s, three
     attempts total. Auth, TLS, config and a missing destination folder fail
     permanently. A permanently failed or cancelled command reverts the message
@@ -146,33 +156,59 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
     rejections fail permanently. Once the `DATA` block has been written a
     failure is reported as `uncertain` and is never retried automatically;
     `executing` sends left behind by a crash are also marked `uncertain` at
-    launch. Permanent failure, cancellation and uncertainty unfreeze the draft.
+    launch. On launch each uncertain send is looked up by its deterministic
+    Message-ID in Sent: a hit becomes `succeeded`, otherwise it stays
+    `uncertain`. Permanent failure, cancellation and uncertainty unfreeze the
+    draft.
   - The compose dialog only exposes one body field and one HTML part, so the
     stored draft's `editableHtml` and `quotedHtml` are concatenated exactly as
     the TypeScript executor did.
 
+- JYI AI: `local:ai-connect`, `refresh`, `disconnect`, `models` and `analyze`.
+  - Sign-in uses authorization code + PKCE through the browser and a loopback
+    callback on `127.0.0.1`; the callback host and state are checked before the
+    code is accepted.
+  - The full connection (including the API key) lives in the OS keystore under
+    `account:ai`; `settings.json` only ever receives the non-secret summary.
+  - The identity and gateway origins are HTTPS-only and can be overridden with
+    `ONEMAIL_JYI_AUTH_ORIGIN`, `ONEMAIL_JYI_GATEWAY_ORIGIN` and
+    `ONEMAIL_JYI_CLIENT_ID`. A gateway or billing URL whose origin does not
+    match the configured service is refused.
+  - `models` reads `/v1/models`; `analyze` posts the selected messages to
+    `/v1/chat/completions` with the same prompt and size limits as the Electron
+    implementation, and maps 401/402/403 to the renderer's reconnect, balance
+    and model messages.
+
+- Desktop shell: one running instance (a second launch focuses the first), and an
+  OS notification when a manual or periodic sync finds more unread Inbox messages
+  than the mirror had before. The launch sync does not notify about mail that was
+  already there. Closing the window ends the process; there is no tray mode.
+
 ## Not ported yet
 
+- The `inspect` and request-`cancel` protocol methods are not dispatched. The
+  vendored renderer never calls them; mailbox diagnostics go through
+  `getDiagnostics` instead.
 - Server-side drafts: drafts live only in this profile and no IMAP `Drafts` copy
   is written or read. Provider draft ids are preserved in draft content but
   ignored.
 - Send features beyond the compose form: attachments, signatures, rich-text
   editing, send-as authorization checks, and `In-Reply-To`/`References` headers.
   `replyTo` resolves and stores the conversation id but does not add threading
-  headers. There is no scheduled-send persistence beyond an operation waiting in
-  the queue while the app stays open, and no Sent-folder reconciliation after an
-  `uncertain` result.
-- IMAP beyond implicit TLS: `STARTTLS` IMAP accounts are refused with a clear
-  error. Only INBOX and Sent are mirrored, there is no paging or IDLE. Archived,
-  trashed and restored messages are updated locally but their destination folders
-  are not synced, so later server-side changes there are invisible.
+  headers. A deferred send is a persisted operation that resumes on the next
+  launch; there is no OS-level scheduled-send job.
+- IMAP coverage: custom folders are not mirrored, and there is no IDLE;
+  accounts are polled every 60 seconds instead. Archived, trashed and restored
+  messages are updated locally, and Archive/Trash/Spam/Drafts are refreshed on
+  the next poll.
 - Archive means "move to an `Archive`-role folder". Gmail's
   archive-as-label-removal is not implemented, so an account without an Archive
   folder fails the command with `no_archive` instead of guessing.
 - The metadata operation authority is simplified: there is no `uncertain`
   reconciliation after an ambiguous move failure, so a `MOVE` that the server
   applied before the connection dropped can be retried as a copy.
-- JYI AI commands, notifications, menus, tray, auto-update, single-instance.
+- Menus, tray and auto-update. Auto-update needs a signed release feed and
+  signing keys, which this repository does not provide yet.
 - Opaque pagination cursors: `observeMailboxWindow` grows the first page
   (`pageSize * pageCount`) instead of resuming from a cursor, and
   `nextPage` stays `null`.

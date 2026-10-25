@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 
 use mail_store::MailStore;
@@ -72,8 +73,13 @@ pub struct AppState {
     /// Message keys with a body fetch already running, so repeated renderer
     /// requests collapse into one network round trip.
     pub fetching: Mutex<HashSet<String>>,
+    /// Accounts with a sync already running, so launch, manual and periodic
+    /// syncs do not stack up on the same mailbox.
+    pub syncing: Mutex<HashSet<String>>,
     /// Bounds concurrent full-message downloads.
     pub fetch_permits: tokio::sync::Semaphore,
+    /// One JYI sign-in can be open at a time; this is cleared when it ends.
+    pub ai_login: AtomicBool,
     pub vault: KeyringVault,
 }
 
@@ -91,7 +97,9 @@ impl AppState {
             settings: Mutex::new(settings),
             subscriptions: Mutex::new(HashMap::new()),
             fetching: Mutex::new(HashSet::new()),
+            syncing: Mutex::new(HashSet::new()),
             fetch_permits: tokio::sync::Semaphore::new(MAX_CONCURRENT_FETCHES),
+            ai_login: AtomicBool::new(false),
             vault: KeyringVault::new(),
         })
     }
@@ -107,6 +115,33 @@ impl AppState {
             state: self,
             key: key.to_string(),
         })
+    }
+
+    /// Registers a sync for `account_id`. `None` means one is already running.
+    pub fn claim_sync(&self, account_id: &str) -> Option<SyncClaim<'_>> {
+        let mut syncing = self.syncing.lock().ok()?;
+        if !syncing.insert(account_id.to_string()) {
+            return None;
+        }
+        drop(syncing);
+        Some(SyncClaim {
+            state: self,
+            account_id: account_id.to_string(),
+        })
+    }
+}
+
+/// Releases the sync marker even when the sync task unwinds.
+pub struct SyncClaim<'a> {
+    state: &'a AppState,
+    account_id: String,
+}
+
+impl Drop for SyncClaim<'_> {
+    fn drop(&mut self) {
+        if let Ok(mut syncing) = self.state.syncing.lock() {
+            syncing.remove(&self.account_id);
+        }
     }
 }
 

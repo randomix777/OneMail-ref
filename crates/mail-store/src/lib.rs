@@ -599,9 +599,9 @@ pub struct FolderSync {
 }
 
 /// A metadata change this mirror can apply locally and the executor can replay
-/// against IMAP. Changes without a server operation (`move`, labels, snooze) are
+/// against IMAP. Changes without a server operation (labels, snooze) are
 /// rejected at admission instead of being shown as applied.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MetadataChange {
     Archive,
     Unarchive,
@@ -609,6 +609,8 @@ pub enum MetadataChange {
     SetStarred(bool),
     Trash,
     RestoreFromTrash,
+    SetSpam(bool),
+    Move(String),
 }
 
 impl MetadataChange {
@@ -620,11 +622,19 @@ impl MetadataChange {
             "set_starred" => Some(Self::SetStarred(value.get("starred")?.as_bool()?)),
             "trash" => Some(Self::Trash),
             "restore_from_trash" => Some(Self::RestoreFromTrash),
+            "set_spam" => Some(Self::SetSpam(value.get("spam")?.as_bool()?)),
+            "move" => {
+                let folder_id = value.get("folderId")?.as_str()?;
+                if folder_id.is_empty() {
+                    return None;
+                }
+                Some(Self::Move(folder_id.to_string()))
+            }
             _ => None,
         }
     }
 
-    pub fn kind(self) -> &'static str {
+    pub fn kind(&self) -> &'static str {
         match self {
             Self::Archive => "archive",
             Self::Unarchive => "unarchive",
@@ -632,10 +642,12 @@ impl MetadataChange {
             Self::SetStarred(_) => "set_starred",
             Self::Trash => "trash",
             Self::RestoreFromTrash => "restore_from_trash",
+            Self::SetSpam(_) => "set_spam",
+            Self::Move(_) => "move",
         }
     }
 
-    fn apply(self, state: &mut MessageState) {
+    fn apply(&self, state: &mut MessageState) {
         match self {
             Self::Archive => {
                 state.roles.retain(|role| role != "inbox");
@@ -646,12 +658,21 @@ impl MetadataChange {
                 push_unique(&mut state.roles, "inbox");
                 state.snoozed_until_ms = None;
             }
-            Self::SetRead(read) => state.read = read,
-            Self::SetStarred(starred) => state.starred = starred,
+            Self::SetRead(read) => state.read = *read,
+            Self::SetStarred(starred) => state.starred = *starred,
             Self::Trash => state.roles = vec!["trash".to_string()],
             Self::RestoreFromTrash => {
                 state.roles.retain(|role| role != "trash");
                 push_unique(&mut state.roles, "inbox");
+            }
+            Self::SetSpam(true) => state.roles = vec!["spam".to_string()],
+            Self::SetSpam(false) => {
+                state.roles.retain(|role| role != "spam");
+                push_unique(&mut state.roles, "inbox");
+            }
+            Self::Move(folder_id) => {
+                state.roles.retain(|role| role != "inbox");
+                state.folder_id = Some(folder_id.clone());
             }
         }
         state.in_inbox = state.roles.iter().any(|role| role == "inbox");
@@ -1746,6 +1767,18 @@ impl MailStore {
                 conversation_id: row.get(1)?,
             })
         })?;
+        rows.collect()
+    }
+
+    /// Sends whose delivery was never confirmed. Startup checks Sent for their
+    /// deterministic Message-ID before leaving them unresolved.
+    pub fn uncertain_send_ids(&self, account_id: &str) -> rusqlite::Result<Vec<String>> {
+        let mut statement = self.conn.prepare(
+            "SELECT command_id FROM operations
+             WHERE account_id = ?1 AND kind = 'send' AND status = 'uncertain'
+             ORDER BY created_at_ms ASC, rowid ASC",
+        )?;
+        let rows = statement.query_map([account_id], |row| row.get::<_, String>(0))?;
         rows.collect()
     }
 
@@ -3327,9 +3360,14 @@ mod tests {
         let rejected = store
             .admit_metadata(
                 "acc-1",
-                "cmd-move",
+                "cmd-labels",
                 &message_ids(),
-                &json!({ "kind": "move", "folderId": "Archive" }),
+                &json!({
+                    "kind": "set_membership",
+                    "membership": "label",
+                    "id": "invoices",
+                    "present": true,
+                }),
             )
             .expect("reads");
         assert_eq!(rejected, Admission::Rejected("unsupported"));
@@ -3340,6 +3378,40 @@ mod tests {
                 .pending_operations,
             0
         );
+    }
+
+    #[test]
+    fn spam_and_move_change_the_local_placement() {
+        let mut store = admitted_store();
+        let ids = message_ids();
+        store
+            .admit_metadata(
+                "acc-1",
+                "cmd-spam",
+                &ids,
+                &json!({ "kind": "set_spam", "spam": true }),
+            )
+            .expect("admits");
+        assert!(subjects(&store, &mailbox("inbox")).is_empty());
+        assert_eq!(subjects(&store, &mailbox("spam")), vec!["Hello"]);
+        store
+            .fail_operation("acc-1", "cmd-spam", "no_destination", false)
+            .expect("fails");
+        assert_eq!(subjects(&store, &mailbox("inbox")), vec!["Hello"]);
+
+        store
+            .admit_metadata(
+                "acc-1",
+                "cmd-move",
+                &ids,
+                &json!({ "kind": "move", "folderId": "Archive" }),
+            )
+            .expect("admits");
+        let view = message(&store);
+        assert_eq!(view.metadata.folder_id.as_deref(), Some("Archive"));
+        assert!(view.metadata.roles.is_empty());
+        assert!(subjects(&store, &mailbox("inbox")).is_empty());
+        assert_eq!(subjects(&store, &mailbox("archive")), vec!["Hello"]);
     }
 
     #[test]
@@ -3535,6 +3607,10 @@ mod tests {
             .expect("records");
 
         assert!(store.pending_operations("acc-1").expect("reads").is_empty());
+        assert_eq!(
+            store.uncertain_send_ids("acc-1").expect("reads"),
+            vec!["cmd-send".to_string()]
+        );
         let diagnostics = store.diagnostics("acc-1").expect("reads");
         assert_eq!(diagnostics.uncertain_operations, 1);
         assert_eq!(diagnostics.commands[0].status, "uncertain");

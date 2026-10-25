@@ -5,6 +5,7 @@
 //! contract. Everything the renderer needs travels through the same envelopes the
 //! Electron utility process answered, so `@inboxzero/mail-core` is unchanged.
 
+mod ai;
 mod content;
 mod operations;
 mod state;
@@ -20,7 +21,7 @@ use mail_store::{Admission, MailStore, MailboxFilter};
 use mail_vault::CredentialVault;
 use serde_json::{json, Value};
 use state::{write_settings, AppState, LocalAccount, LocalSettings};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 fn lock_store(state: &AppState) -> Result<MutexGuard<'_, MailStore>, String> {
     state
@@ -36,12 +37,20 @@ fn desktop_health() -> Value {
 
 #[tauri::command]
 fn local_settings(state: State<'_, AppState>) -> Value {
-    let settings = state
+    settings_snapshot(&state)
+}
+
+fn settings_snapshot(state: &AppState) -> Value {
+    let accounts = state
         .settings
         .lock()
-        .map(|settings| settings.clone())
+        .map(|settings| settings.accounts.clone())
         .unwrap_or_default();
-    serde_json::to_value(settings).unwrap_or_else(|_| json!({ "accounts": [], "ai": null }))
+    serde_json::to_value(LocalSettings {
+        accounts,
+        ai: ai::summary(state),
+    })
+    .unwrap_or_else(|_| json!({ "accounts": [], "ai": null }))
 }
 
 /// What the settings form sends: no `id` on create, and the password that is
@@ -109,6 +118,7 @@ async fn local_account_save(
             Some(existing) => *existing = account.clone(),
             None => settings.accounts.push(account.clone()),
         }
+        settings.ai = ai::summary(&state);
         write_settings(&state.paths.settings, &settings)?;
         LocalSettings {
             accounts: settings.accounts.clone(),
@@ -139,6 +149,7 @@ fn local_account_remove(state: State<'_, AppState>, id: String) -> Result<Value,
         .lock()
         .map_err(|_| "settings lock poisoned".to_string())?;
     settings.accounts.retain(|account| account.id != id);
+    settings.ai = ai::summary(&state);
     write_settings(&state.paths.settings, &settings)?;
     lock_store(&state)?
         .forget_account(&id)
@@ -225,28 +236,31 @@ fn wipe_mailbox() -> Result<Value, String> {
 }
 
 #[tauri::command]
-fn local_ai_connect() -> Result<Value, String> {
-    Err("JYI AI is not ported to the Rust engine yet".to_string())
+async fn local_ai_connect(state: State<'_, AppState>) -> Result<Value, String> {
+    ai::connect(&state).await?;
+    Ok(settings_snapshot(&state))
 }
 
 #[tauri::command]
-fn local_ai_refresh() -> Result<Value, String> {
-    Err("JYI AI is not ported to the Rust engine yet".to_string())
+async fn local_ai_refresh(state: State<'_, AppState>) -> Result<Value, String> {
+    ai::refresh(&state).await?;
+    Ok(settings_snapshot(&state))
 }
 
 #[tauri::command]
-fn local_ai_disconnect() -> Result<Value, String> {
-    Err("JYI AI is not ported to the Rust engine yet".to_string())
+async fn local_ai_disconnect(state: State<'_, AppState>) -> Result<Value, String> {
+    ai::disconnect(&state).await?;
+    Ok(settings_snapshot(&state))
 }
 
 #[tauri::command]
-fn local_ai_models() -> Result<Vec<String>, String> {
-    Err("JYI AI is not ported to the Rust engine yet".to_string())
+async fn local_ai_models(state: State<'_, AppState>) -> Result<Vec<String>, String> {
+    ai::models(&state).await
 }
 
 #[tauri::command]
-fn local_ai_analyze(_input: Value) -> Result<String, String> {
-    Err("JYI AI is not ported to the Rust engine yet".to_string())
+async fn local_ai_analyze(state: State<'_, AppState>, input: Value) -> Result<String, String> {
+    ai::analyze(&state, input).await
 }
 
 fn dispatch(app: &AppHandle, state: &AppState, request: &Request) -> Value {
@@ -290,7 +304,7 @@ fn dispatch(app: &AppHandle, state: &AppState, request: &Request) -> Value {
         "requestSync" => {
             // A sync is a network round trip; answer immediately and push the
             // resulting snapshots on the subscription channel when it lands.
-            sync::spawn(app.clone(), string_array(request.payload.get("accountIds")));
+            sync::spawn_notify(app.clone(), string_array(request.payload.get("accountIds")));
             ok(Value::Null)
         }
         "retainAccounts" => ok(Value::Null),
@@ -790,6 +804,13 @@ pub fn run() {
     };
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
+        .plugin(tauri_plugin_notification::init())
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             desktop_health,
@@ -822,6 +843,7 @@ pub fn run() {
             .build()?;
             // Resume syncing accounts whose password is already in the keychain.
             sync::spawn(app.handle().clone(), Vec::new());
+            sync::start_periodic(app.handle().clone());
             // Replay any metadata change a previous run left queued.
             operations::resume(app.handle().clone());
             Ok(())
