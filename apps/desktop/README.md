@@ -54,7 +54,7 @@ Mail content in SQLite is **not encrypted by the application**. Disconnecting a 
 
 Mailbox operation needs no JYI login. Use Connect JYI AI in Settings for optional analysis, account credit refresh, and the billing link.
 
-The desktop client uses the system browser, PKCE S256, and the registered loopback callback at `http://127.0.0.1:5000/oauth/callback`. JYI permits another loopback port with the same host and path (RFC 8252 section 7.3), but the path must stay `/oauth/callback`. No OAuth client secret or shared gateway key belongs in an installer.
+The desktop client uses the system browser, PKCE S256, and an ephemeral loopback callback at `http://127.0.0.1:<port>/callback`. Register the public client ID and loopback redirect policy with your identity service before releasing the app. No OAuth client secret or shared gateway key belongs in an installer.
 
 Public configuration is in `.env.example`:
 

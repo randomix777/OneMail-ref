@@ -148,7 +148,7 @@ export function createLocalAi(
       const challenge = createHash("sha256")
         .update(verifier)
         .digest("base64url");
-      const redirectUri = "http://127.0.0.1:5000/oauth/callback";
+      let redirectUri = "";
       let finish: (code: string) => void = () => undefined;
       let fail: (error: Error) => void = () => undefined;
       const callback = new Promise<string>((resolve, reject) => {
@@ -165,7 +165,7 @@ export function createLocalAi(
           outgoing.writeHead(400).end();
           return;
         }
-        if (incoming.method !== "GET" || url.pathname !== "/oauth/callback") {
+        if (incoming.method !== "GET" || url.pathname !== "/callback") {
           outgoing.writeHead(404).end();
           return;
         }
@@ -200,8 +200,12 @@ export function createLocalAi(
       try {
         await new Promise<void>((resolve, reject) => {
           server.once("error", reject);
-          server.listen(5000, "127.0.0.1", resolve);
+          server.listen(0, "127.0.0.1", resolve);
         });
+        const address = server.address();
+        if (!address || typeof address === "string")
+          throw new Error("Could not open the local authorization callback");
+        redirectUri = `http://127.0.0.1:${address.port}/callback`;
         const url = new URL(
           "/connect/authorize",
           desktopEnvironment.authOrigin,

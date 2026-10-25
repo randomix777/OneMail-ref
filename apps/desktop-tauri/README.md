@@ -9,12 +9,12 @@ IPC contract (`@inboxzero/mail-core/protocol/mail-ipc`), no Electron.
 pnpm --filter @inboxzero/desktop-tauri dev
 ```
 
-`dev` first rebuilds the renderer with `apps/desktop/esbuild.config.mjs`, copies
-it to `dist/ui`, and drops the document-level CSP (the same policy is sent as a
-header from `tauri.conf.json`). The Electron preload is replaced by
-`ui/init.js`, injected as a webview initialization script so it runs before the
-renderer bundle; it rebuilds `window.inboxZeroDesktop` on Tauri IPC and shims the
-Node `process` global the bundled dependencies expect.
+`dev` builds the shared React renderer directly with esbuild into `dist/ui`; it
+does not build the Electron main or preload bundles. The document-level CSP is
+dropped because `tauri.conf.json` sends the same policy as a header. The Electron
+preload is replaced by `ui/init.js`, injected as a webview initialization script
+so it runs before the renderer bundle; it rebuilds `window.inboxZeroDesktop` on
+Tauri IPC and shims the Node `process` global the bundled dependencies expect.
 
 ## First run
 
