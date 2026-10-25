@@ -109,6 +109,66 @@ a:focus-visible {
   font-size: 13px;
   color: #6b7f78 !important;
 }
+.local-mailbox-setup {
+  box-sizing: border-box;
+  display: grid;
+  min-height: calc(100vh - 44px);
+  padding: 32px 20px 48px;
+  place-items: start center;
+  background: radial-gradient(circle at 50% 10%, #e7f1ea, #f5f7f5 55%);
+}
+.local-mailbox-card {
+  box-sizing: border-box;
+  width: min(820px, 100%);
+  padding: 32px;
+  line-height: 1.6;
+  background: #fff;
+  border: 1px solid #b7c8c2;
+  border-radius: 18px;
+  box-shadow: 0 20px 70px #132d2326;
+}
+.local-mailbox-card h1 {
+  margin: 0 0 10px;
+  font-size: 30px;
+  color: #225842;
+}
+.local-mailbox-card > p {
+  color: #486059;
+}
+.local-mailbox-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+.local-mailbox-card input,
+.local-mailbox-card select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px;
+  color: #182a29;
+  background: #fff;
+  border: 1px solid #b7c8c2;
+  border-radius: 6px;
+}
+.local-mailbox-card form {
+  padding-top: 8px;
+  margin-top: 8px;
+}
+.local-advanced {
+  margin: 12px 0;
+  border-top: 1px solid #e0e8e3;
+}
+.local-advanced summary {
+  padding: 12px 0;
+  color: #486059;
+  cursor: pointer;
+}
+.local-mailbox-card .local-advanced input,
+.local-mailbox-card .local-advanced select {
+  margin-top: 2px;
+}
 .local-dialog {
   box-sizing: border-box;
   width: min(720px, 94vw);

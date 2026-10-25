@@ -24,6 +24,8 @@ import { AnalysisDialog } from "./AnalysisDialog";
 
 import { JyiLogin } from "./JyiLogin";
 
+import { MailboxSetup } from "./MailboxSetup";
+
 import "./local.css";
 
 declare global {
@@ -116,9 +118,7 @@ function LocalAssistant({
     onSettingsChange(next);
   };
 
-  const [settingsOpen, setSettingsOpen] = useState(
-    initial.accounts.length === 0,
-  );
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [composeOpen, setComposeOpen] = useState(false);
 
@@ -156,21 +156,11 @@ function LocalAssistant({
           }}
         />
       ) : (
-        <main className="local-welcome">
-          <h1>OneMail</h1>
-          <h2>Your local email assistant</h2>
-          <p>
-            Connect your mailbox to read, search, and send mail from this
-            computer. Connect JYI when you want AI analysis.
-          </p>
-          <button type="button" onClick={() => setSettingsOpen(true)}>
-            Connect a mailbox
-          </button>
-          <p>
-            Closing all windows stops syncing and processing. Mail already
-            downloaded stays available on this computer.
-          </p>
-        </main>
+        <MailboxSetup
+          settings={settings}
+          api={api}
+          onSaved={updateSettings}
+        />
       )}
       {settingsOpen ? (
         <SettingsDialog

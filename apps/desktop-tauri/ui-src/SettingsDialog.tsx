@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import type { LocalSettingsSummary } from "./settings-types";
 import type { InboxZeroDesktopApi } from "./desktop-api";
 import { Dialog } from "./Dialog";
+import { MailboxForm } from "./MailboxForm";
 
 export function SettingsDialog({
   settings,
@@ -32,31 +33,6 @@ export function SettingsDialog({
     } finally {
       setBusy(false);
     }
-  }
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const field = (name: string) => String(data.get(name) ?? "");
-    const saved = await run(() =>
-      api.localAssistant.saveAccount({
-        email: field("email").trim(),
-        name: field("name"),
-        username: field("username").trim(),
-        password: field("password"),
-        imap: {
-          host: field("imapHost").trim(),
-          port: Number(field("imapPort")),
-          secure: field("imapSecure") === "tls",
-        },
-        smtp: {
-          host: field("smtpHost").trim(),
-          port: Number(field("smtpPort")),
-          secure: field("smtpSecure") === "tls",
-        },
-      }),
-    );
-    if (saved) form.reset();
   }
   return (
     <Dialog title="Local assistant settings" onClose={onClose}>
@@ -95,92 +71,20 @@ export function SettingsDialog({
           ))
         )}
       </section>
-      <form
-        onSubmit={(event) => {
-          save(event);
-        }}
-      >
+      <section>
         <h3>Connect or reconnect a mailbox</h3>
         <p>
           Use your mail provider's app password where required. No OneMail
           mailbox subscription is needed.
         </p>
-        <div className="local-form-grid">
-          <label>
-            Email
-            <input name="email" type="email" required autoComplete="email" />
-          </label>
-          <label>
-            Display name
-            <input name="name" autoComplete="name" />
-          </label>
-          <label>
-            Mail server username
-            <input name="username" required autoComplete="username" />
-          </label>
-          <label>
-            Mail password or app password
-            <input
-              name="password"
-              type="password"
-              required
-              autoComplete="off"
-            />
-          </label>
-          <label>
-            IMAP server
-            <input name="imapHost" placeholder="imap.example.com" required />
-          </label>
-          <label>
-            IMAP port
-            <input
-              name="imapPort"
-              type="number"
-              min="1"
-              max="65535"
-              defaultValue="993"
-              required
-            />
-          </label>
-          <label>
-            IMAP encryption
-            <select name="imapSecure" defaultValue="tls">
-              <option value="tls">TLS</option>
-              <option value="starttls">STARTTLS</option>
-            </select>
-          </label>
-          <label>
-            SMTP server
-            <input name="smtpHost" placeholder="smtp.example.com" required />
-          </label>
-          <label>
-            SMTP port
-            <input
-              name="smtpPort"
-              type="number"
-              min="1"
-              max="65535"
-              defaultValue="465"
-              required
-            />
-          </label>
-          <label>
-            SMTP encryption
-            <select name="smtpSecure" defaultValue="tls">
-              <option value="tls">TLS</option>
-              <option value="starttls">STARTTLS</option>
-            </select>
-          </label>
-        </div>
-        <button type="submit" disabled={busy}>
-          {busy ? "Working…" : "Verify and save mailbox"}
-        </button>
-      </form>
+        <MailboxForm api={api} onSaved={onChange} />
+      </section>
       <section>
         <h3>JYI AI</h3>
         <p>
           AI analysis sends the selected mail to JYI and uses your JYI token
-          balance. Mail reading and sending work without signing in to JYI.
+          balance. JYI sign-in is required before the mailbox UI opens;
+          disconnecting returns to the sign-in screen.
         </p>
         {settings.ai ? (
           <>

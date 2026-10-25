@@ -20,9 +20,10 @@ and shims the Node `process` global the bundled dependencies expect.
 
 The Tauri shell advertises `requiresJyiLogin`. Until a JYI connection is stored,
 the window shows the JYI sign-in screen and the local mail UI is not mounted.
-After the browser flow completes, the mail UI opens; disconnecting JYI in
-Settings returns to the sign-in screen. Mailbox credentials and the local mirror
-stay on disk throughout.
+After the browser flow completes, the app shows a full-page mailbox setup form
+when no mailbox is connected; saving a verified mailbox opens the mail UI.
+Disconnecting JYI in Settings returns to the sign-in screen. Mailbox credentials
+and the local mirror stay on disk throughout.
 
 ## Layout
 
