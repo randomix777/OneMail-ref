@@ -1,7 +1,8 @@
 # OneMail desktop (Tauri + Rust)
 
-The Rust replacement for `apps/desktop`. Same renderer bundle, same mail-engine
-IPC contract (`@inboxzero/mail-core/protocol/mail-ipc`), no Electron.
+OneMail's desktop app: a Tauri 2 shell, the React renderer in `ui-src`, and a
+Rust mail engine. It speaks the same mail-engine IPC contract
+(`@inboxzero/mail-core/protocol/mail-ipc`) as the previous TypeScript engine.
 
 ## Run
 
@@ -9,12 +10,11 @@ IPC contract (`@inboxzero/mail-core/protocol/mail-ipc`), no Electron.
 pnpm --filter @inboxzero/desktop-tauri dev
 ```
 
-`dev` builds the shared React renderer directly with esbuild into `dist/ui`; it
-does not build the Electron main or preload bundles. The document-level CSP is
-dropped because `tauri.conf.json` sends the same policy as a header. The Electron
-preload is replaced by `ui/init.js`, injected as a webview initialization script
-so it runs before the renderer bundle; it rebuilds `window.inboxZeroDesktop` on
-Tauri IPC and shims the Node `process` global the bundled dependencies expect.
+`dev` builds the React renderer directly with esbuild into `dist/ui`. The
+document-level CSP is dropped because `tauri.conf.json` sends the same policy as
+a header. `ui/init.js` is injected as a webview initialization script so it runs
+before the renderer bundle; it rebuilds `window.inboxZeroDesktop` on Tauri IPC
+and shims the Node `process` global the bundled dependencies expect.
 
 ## First run
 
@@ -22,13 +22,12 @@ The Tauri shell advertises `requiresJyiLogin`. Until a JYI connection is stored,
 the window shows the JYI sign-in screen and the local mail UI is not mounted.
 After the browser flow completes, the mail UI opens; disconnecting JYI in
 Settings returns to the sign-in screen. Mailbox credentials and the local mirror
-stay on disk throughout. The Electron local shell does not set this flag and
-keeps its optional-JYI behavior.
+stay on disk throughout.
 
 ## Layout
 
 - `ui-src` — the React renderer source served by Tauri, built directly by
-  `scripts/build-ui.mjs` without the Electron build.
+  `scripts/build-ui.mjs`.
 - `src-tauri/src/lib.rs` — commands, mail-engine dispatch, snapshot push.
 - `src-tauri/src/sync.rs` — IMAP page → mirror → snapshot, in the background.
 - `src-tauri/src/content.rs` — background body fetch for `ensureMessageContent`.
@@ -47,9 +46,8 @@ keeps its optional-JYI behavior.
 Profile files live in `%APPDATA%/OneMail` (macOS: `~/Library/Application Support/OneMail`):
 
 - `settings.json` — accounts, servers, and the non-secret AI connection summary.
-- `local-mailbox.rust.sqlite` — the Rust mirror. Named separately from the
-  Electron `local-mailbox.sqlite` on purpose: the schema port is incomplete, and
-  two writers on one file would corrupt the profile mid-migration.
+- `local-mailbox.rust.sqlite` — the Rust mirror. The filename is distinct from
+  older Electron-era profiles so a stale file is never opened by two engines.
 
 Passwords are not in either file: they are stored per account in the platform
 keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
@@ -80,10 +78,10 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
   view instead of an error.
   - Text search is a substring scan over subject, preview, sender, and the
     visible text of a stored body (`match: "term"` ANDs whitespace-separated
-    words; `"phrase"` requires the whole string). The Electron store prefers an
-    FTS5 index; the Rust mirror stores plain text, so bodies become searchable
-    as soon as they are hydrated. This is linear in the mirrored rows and should
-    be revisited if the mirror grows well beyond one page per folder.
+    words; `"phrase"` requires the whole string). The previous TypeScript store
+    prefers an FTS5 index; the Rust mirror stores plain text, so bodies become
+    searchable as soon as they are hydrated. This is linear in the mirrored rows
+    and should be revisited if the mirror grows well beyond one page per folder.
   - Sync stores folder membership only, so `inbox_section`, label and category
     predicates compile but match nothing until those columns are populated.
 - Message bodies and attachments:
@@ -98,7 +96,7 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
     requested part (the inline image path does this per `cid:`).
   - Full messages over 25 MB, bodies over `MAX_BODY_LENGTH`, and attachment
     lists over `MAX_BODY_ATTACHMENTS` are cut or refused the same way the
-    Electron engine does. A body fetched under a different `UIDVALIDITY` is
+    previous TypeScript engine did. A body fetched under a different `UIDVALIDITY` is
     dropped instead of attached to the wrong message.
 - Linkage: a new Rust-only `message_remote` table records each message's folder,
   `UIDVALIDITY` and UID, because message ids are RFC Message-IDs. A folder that
@@ -190,9 +188,9 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
     `ONEMAIL_JYI_CLIENT_ID`. A gateway or billing URL whose origin does not
     match the configured service is refused.
   - `models` reads `/v1/models`; `analyze` posts the selected messages to
-    `/v1/chat/completions` with the same prompt and size limits as the Electron
-    implementation, and maps 401/402/403 to the renderer's reconnect, balance
-    and model messages.
+    `/v1/chat/completions` with the same prompt and size limits as the previous
+    TypeScript implementation, and maps 401/402/403 to the renderer's reconnect,
+    balance and model messages.
 
 - Desktop shell: one running instance (a second launch focuses the first), an app
   menu with Settings/Quit, and an OS notification when a manual or periodic sync
@@ -231,7 +229,7 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
   `nextPage` stays `null`.
 - Full migration parity: `crates/mail-store` creates the subset of DDL it reads.
 - Body storage is plain text, not the TS body codec, and attachment bytes are
-  never cached locally (parity with the Electron engine's on-demand download).
+  never cached locally (parity with the previous TypeScript engine's on-demand download).
 - The desktop renderer shows inline images but has no attachment download list;
   `readAttachment` is only reachable through the `cid:` path today.
 

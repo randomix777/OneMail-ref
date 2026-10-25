@@ -38,10 +38,8 @@ const featureGroups = [
     ],
   },
   {
-    name: "mail-desktop",
+    name: "mail-engine",
     specs: [
-      "mail/hosted-electron-archive.spec.ts",
-      "mail/hosted-electron-send.spec.ts",
       "mail/mail-engine-inspect.spec.ts",
       "mail/mail-queue.spec.ts",
     ],

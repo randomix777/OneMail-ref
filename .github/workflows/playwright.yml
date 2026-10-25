@@ -6,7 +6,6 @@ on:
     paths:
       - "packages/mail-*/**"
       - "packages/email-editor/**"
-      - "apps/desktop/**"
       - "apps/web/app/**"
       - "apps/web/components/**"
       - "apps/web/hooks/**"
@@ -39,7 +38,6 @@ on:
     paths:
       - "packages/mail-*/**"
       - "packages/email-editor/**"
-      - "apps/desktop/**"
       - "apps/web/app/**"
       - "apps/web/components/**"
       - "apps/web/hooks/**"
@@ -242,7 +240,6 @@ jobs:
     env:
       PLAYWRIGHT_CHANGED_TEST_FILES: ${{ needs.select.outputs.changed_tests }}
       PLAYWRIGHT_MAIL_PROVIDER: ${{ matrix.batch.provider }}
-      MAIL_REQUIRE_ELECTRON: ${{ contains(join(matrix.batch.paths, ' '), 'hosted-electron-') && '1' || '0' }}
 
     steps:
       - name: Checkout repository
@@ -260,12 +257,7 @@ jobs:
         run: pnpm install --frozen-lockfile
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
-      - name: Install required Electron runtime
-        if: env.MAIL_REQUIRE_ELECTRON == '1'
-        working-directory: apps/desktop
-        run: node node_modules/electron/install.js
 
       - name: Setup Playwright cache
         uses: actions/cache@v4

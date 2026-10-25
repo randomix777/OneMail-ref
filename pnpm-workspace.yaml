@@ -63,9 +63,7 @@ allowBuilds:
   "@sentry/cli": true
   braintrust: true
   core-js: true
-  # Local/desktop only. Docker, Vercel, and CI skip @inboxzero/desktop.
-  electron: true
-  electron-winstaller: true
+  # Desktop build tooling only.
   esbuild: true
   msgpackr-extract: true
   prisma: true

@@ -174,7 +174,7 @@ export function selectChangedPlaywrightTargets(changedFilesInput, appRoot) {
       );
     }
     if (
-      /^(?:packages\/(?:mail-(?:core|sqlite|react|ui)|email-editor)\/|apps\/desktop\/)/.test(
+      /^(?:packages\/(?:mail-(?:core|sqlite|react|ui)|email-editor)\/)/.test(
         file.repoPath,
       ) &&
       !isNonRuntimeFile(file.repoPath)
