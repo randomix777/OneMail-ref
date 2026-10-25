@@ -1,66 +1,83 @@
-# Desktop app
+# OneMail desktop
 
-Electron shell for the hosted OneMail web app.
+The default desktop product is a local email assistant built with Electron. Its renderer is bundled with the app. A utility process owns the SQLite mail engine and connects directly to mail servers using IMAP and SMTP.
 
-## Run
+## Run and package
 
-Against production:
+From the repository root, use Node.js 24 and the pinned pnpm version:
 
 ```sh
-pnpm --filter @inboxzero/desktop dev
+pnpm install
+pnpm dev
+pnpm build
+pnpm desktop:dist
 ```
 
-Against a local web app:
+Packaging never publishes automatically. Platform-specific commands are available:
 
 ```sh
-INBOX_ZERO_APP_URL=http://localhost:3000 pnpm --filter @inboxzero/desktop dev
-```
-
-Sign-in uses the system browser and returns through `inboxzero://`. The web app's `DESKTOP_AUTH_ORIGIN` defaults to this scheme.
-
-## Multiple windows
-
-File → New Window (⌘N / Ctrl+N) opens another mailbox window. ⌘-click or Ctrl-click an account in the switcher to open that inbox in its own window. Each window keeps its own account and size; they are restored on the next launch.
-
-Clicking a new-mail notification focuses a window already showing that account, or opens one if needed.
-
-## Mail badge and notifications
-
-The macOS Dock badge shows the combined unread inbox count across connected accounts, refreshed about once a minute and on focus. Linux uses the supported launcher badge; Windows does not currently display a numeric badge.
-
-New unread inbox mail produces a native notification while the app is in the background. Clicking it opens that account's inbox. Alerts contain no sender or subject preview. Mail from before app startup or more than five minutes ago is suppressed, and repeated sync results do not replay alerts. Notifications follow the existing mailbox sync schedule (normally about a minute), rather than a server push channel.
-
-The app must remain running; hiding the Mac window is supported, fully quitting stops updates. macOS notifications require a signed app and notification permission in System Settings. Use the OS notification settings to disable alerts or sounds. Both the desktop release and hosted web changes are needed; older desktop versions safely ignore the new integration.
-
-## Record diagnostics
-
-Help → Record Diagnostics… captures 30 seconds of performance data while the user reproduces a slowdown (clicking the progress notification stops early). It writes an `Inbox-Zero-Diagnostics-<timestamp>` folder to Downloads and reveals it:
-
-- `trace.json.gz`: a Chromium trace of the main and renderer processes (timeline, task, IPC, and sampled JS stack categories). Open it in the DevTools Performance panel or [Perfetto](https://ui.perfetto.dev). Paint, layer, and screenshot categories are excluded, and URL query strings are stripped.
-- `diagnostics.json`: app, Electron, and OS versions, per-process CPU and memory, system memory, mail database file sizes, and local mail engine sync and queue counts. It contains no messages, subjects, or addresses.
-
-When Sentry is configured, the app offers to send both files as attachments on a `User diagnostics` event (tag `area: diagnostics`) and shows the event ID for the user to quote to support.
-
-## Package
-
-```sh
-pnpm --filter @inboxzero/desktop dist:mac
 pnpm --filter @inboxzero/desktop dist:win
+pnpm --filter @inboxzero/desktop dist:mac
+pnpm --filter @inboxzero/desktop dist:linux
 ```
 
-Installers land in `apps/desktop/release/`. macOS packaging requires a Developer ID certificate and notarization credentials.
+Installers are written to `apps/desktop/release/`. The current migration has been type-checked but has not undergone desktop build, installer, or runtime validation.
 
-## Release
+## Mailbox setup and limits
 
-Push a `desktop-v*` tag to build and publish a release, or run the [Desktop Release workflow](../../.github/workflows/desktop-release.yml) manually with optional publishing. It packages macOS (DMG/ZIP) and Windows (NSIS) for arm64 and x64.
+In Settings, enter your mailbox address, username, password or app password, and IMAP/SMTP server names and ports. Saving verifies both server connections. Both direct TLS and required STARTTLS are supported; certificate validation stays enabled.
 
-The macOS release requires these GitHub secrets:
+Native Google/Microsoft OAuth is not implemented in this local flow. Only accounts that permit password or app-password IMAP/SMTP access can connect. Both protocols currently use the same username and password.
 
-- `MAC_CSC_LINK` / `MAC_CSC_KEY_PASSWORD` — Developer ID Application `.p12` (base64) for signed Mac builds
-- `APPLE_API_KEY_ID` / `APPLE_API_ISSUER` / `APPLE_API_KEY_P8` / `APPLE_TEAM_ID` — Apple credentials used to notarize the signed build
+The app enumerates all selectable IMAP folders, caches metadata, and downloads message bodies on opening conversations. Initial sync and subsequent inventory scans can be slow for large mailboxes. Search covers indexed local content. Message downloads are limited to 25 MiB; larger messages and their attachments are unavailable in this version.
 
-Windows signing uses `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD` for the Authenticode `.p12`.
+The desktop UI supports inbox reading, search, archive, read status, attachment downloads, and basic new-message composition. Reply/forward composition, outgoing attachments, cloud integrations, and automatic AI rules have not been ported.
 
-Error reporting from the main process (including renderer, GPU, and native crashes) uses the optional `DESKTOP_SENTRY_DSN` secret, injected at build time as `INBOX_ZERO_SENTRY_DSN`. Builds without it, including local development, don't report to Sentry.
+## Lifetime and delivery
 
-Auto-update metadata (`latest-mac.yml` / `latest.yml`) is published to the `desktop-updates` release; installers stay on `desktop-v*` releases.
+Closing the last window quits the app on every platform, including macOS. No tray service or login daemon is installed. The mail utility process, IMAP/SMTP connections, and pending AI requests are closed. Keeping a window open allows sync and queue processing to continue.
+
+Local operations survive restarts and can resume on the next launch. Closing the app does not recall a message already accepted by SMTP. An interrupted or partially accepted send remains unconfirmed and is not automatically resent; inspect the server's Sent folder and delivery notices before manually sending another copy. The compose dialog displays the current operation state.
+
+## Storage
+
+Files live under Electron's per-user `userData` directory:
+
+- `local-mailbox.sqlite` and its SQLite sidecar files contain mail, downloaded bodies, drafts, and pending operations.
+- `local-credentials.bin` contains encrypted mailbox credentials and JYI device credentials.
+
+Credentials use Electron safeStorage with the OS credential store. A missing secure backend, including Linux `basic_text`, prevents saving credentials. Keys are held by the main process and the mail utility process; the renderer receives account summaries without saved passwords or AI keys.
+
+Mail content in SQLite is **not encrypted by the application**. Disconnecting a mailbox removes its active local cache and queued operations, but is not a secure erase of disk pages, OS backups, or previously downloaded attachment files. Server mail is retained.
+
+## JYI AI
+
+Mailbox operation needs no JYI login. Use Connect JYI AI in Settings for optional analysis, account credit refresh, and the billing link.
+
+The desktop client uses the system browser, PKCE S256, and the registered loopback callback at `http://127.0.0.1:5000/oauth/callback`. JYI permits another loopback port with the same host and path (RFC 8252 section 7.3), but the path must stay `/oauth/callback`. No OAuth client secret or shared gateway key belongs in an installer.
+
+Public configuration is in `.env.example`:
+
+| Variable | Purpose |
+| --- | --- |
+| `ONEMAIL_JYI_CLIENT_ID` | Public desktop client ID; default `onemail-desktop` |
+| `ONEMAIL_JYI_AUTH_ORIGIN` | HTTPS identity origin |
+| `ONEMAIL_JYI_GATEWAY_ORIGIN` | HTTPS AI gateway origin |
+
+Supply these variables in the process environment when building to embed custom defaults, or when launching for development. The desktop build does not load `.env` files automatically. New variables also belong in `src/env.ts` and the root `turbo.json` build environment list.
+
+Authorization uses `/connect/authorize` and `/oauth/token`; `/oauth/credential` refreshes credit information and `/oauth/revoke` disconnects the device. Model listing and analysis use the authenticated OpenAI-compatible gateway. The issued device key supplies billing identity. Requests do not invent user identity headers or embed a server credential.
+
+Only a selected conversation's downloaded messages and the typed question are submitted when Analyze is clicked: at most 20 messages, first 20,000 characters each, excluding attachments. Answers are displayed as text and cannot execute mailbox actions. Paid analysis is not automatically retried. Insufficient credit, expired authorization, and unavailable models are reported to the user.
+
+The JYI public client registration and live authorization/billing flow have not been validated by this migration.
+
+## Releases
+
+The existing Desktop Release workflow packages Windows and macOS builds from `desktop-v*` tags or manual dispatch. Publishing remains an explicit workflow option. macOS requires Developer ID signing and notarization credentials; Windows release signing uses Authenticode credentials. Review the workflow and `electron-builder.yml` before a release.
+
+Optional crash reporting uses the build-time `INBOX_ZERO_SENTRY_DSN`. Without a DSN, local builds do not report to Sentry. Diagnostic exports can contain traces of local app activity; inspect them before sharing.
+
+## Hosted implementation
+
+The earlier hosted shell remains available explicitly with `INBOX_ZERO_LOCAL_MAIL=0` and its own hosted service configuration. It is not the default desktop product and has a different data and lifecycle model. See the root README for explicit web and Workers commands.

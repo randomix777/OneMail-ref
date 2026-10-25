@@ -25,6 +25,9 @@ use crate::state::AppState;
 const AUTH_ORIGIN: &str = "https://ai.jyisolutions.com";
 const GATEWAY_ORIGIN: &str = "https://gateway.jyisolutions.com";
 const CLIENT_ID: &str = "onemail-desktop";
+/// The redirect registered for `onemail-desktop` in the JYI production client
+/// registry. Loopback also allows another port, but the host and path must match.
+const DEFAULT_REDIRECT_URI: &str = "http://127.0.0.1:5000/oauth/callback";
 const VAULT_KEY: &str = "ai";
 const LOGIN_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(120);
@@ -117,7 +120,12 @@ pub async fn connect(state: &AppState) -> Result<(), String> {
         .unwrap_or(0);
     let listener = TcpListener::bind(("127.0.0.1", bind_port))
         .await
-        .map_err(|error| format!("Could not open the local authorization callback: {error}"))?;
+        .map_err(|error| {
+            format!(
+                "Could not open the local authorization callback on 127.0.0.1:{bind_port}: {error}. \
+                 If that port is busy, set ONEMAIL_JYI_REDIRECT_URI to another loopback port with the same path."
+            )
+        })?;
     let bound_port = listener
         .local_addr()
         .map_err(|error| format!("Could not read the callback address: {error}"))?
@@ -395,7 +403,7 @@ struct CallbackTarget {
 fn configured_callback() -> Result<Option<CallbackTarget>, String> {
     let raw = match std::env::var("ONEMAIL_JYI_REDIRECT_URI") {
         Ok(value) if !value.trim().is_empty() => value,
-        _ => return Ok(None),
+        _ => DEFAULT_REDIRECT_URI.to_string(),
     };
     parse_callback_uri(raw.trim()).map(Some)
 }
@@ -791,6 +799,11 @@ mod tests {
 
     #[test]
     fn a_registered_loopback_callback_can_be_used_verbatim() {
+        let registered = parse_callback_uri(DEFAULT_REDIRECT_URI).expect("default callback");
+        assert_eq!(registered.host, "127.0.0.1");
+        assert_eq!(registered.port, 5000);
+        assert_eq!(registered.path, "/oauth/callback");
+
         let callback = parse_callback_uri("http://127.0.0.1:53682/callback").expect("callback");
         assert_eq!(callback.host, "127.0.0.1");
         assert_eq!(callback.port, 53682);
