@@ -1,0 +1,12 @@
+[package]
+name = "mail-store"
+version.workspace = true
+edition.workspace = true
+description = "Local SQLite mail mirror: schema bootstrap, revisions, and mailbox reads"
+
+[dependencies]
+mail-ipc = { version = "0.1.0", path = "../mail-ipc" }
+rusqlite = { version = "0.41.0", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+uuid = { version = "1.29.0", features = ["v4"] }

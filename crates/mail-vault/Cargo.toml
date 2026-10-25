@@ -1,0 +1,9 @@
+[package]
+name = "mail-vault"
+version.workspace = true
+edition.workspace = true
+description = "OS credential vault for local mail accounts"
+
+[dependencies]
+keyring = "4.2.0"
+thiserror = "2.0.21"

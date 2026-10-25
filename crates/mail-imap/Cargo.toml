@@ -1,0 +1,14 @@
+[package]
+name = "mail-imap"
+version.workspace = true
+edition.workspace = true
+description = "IMAP reads for the Rust mail engine"
+
+[dependencies]
+async-imap = { version = "0.12.0", default-features = false, features = ["runtime-tokio"] }
+futures-util = "0.3.34"
+mail-parser = "0.11.9"
+native-tls = "0.2.18"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "net", "time", "macros"] }
+tokio-native-tls = "0.3.1"

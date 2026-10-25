@@ -1,0 +1,18 @@
+{
+  "name": "@inboxzero/desktop-tauri",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "OneMail desktop shell built with Tauri and a Rust mail engine",
+  "scripts": {
+    "build:ui": "node scripts/build-ui.mjs",
+    "dev": "pnpm build:ui && tauri dev",
+    "build": "pnpm build:ui && tauri build --no-bundle",
+    "check": "cargo check --manifest-path src-tauri/Cargo.toml",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

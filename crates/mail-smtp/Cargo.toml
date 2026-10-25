@@ -1,0 +1,13 @@
+[package]
+name = "mail-smtp"
+version.workspace = true
+edition.workspace = true
+description = "SMTP submission over implicit TLS for the Rust mail engine"
+
+[dependencies]
+base64 = "0.23.1"
+native-tls = "0.2.18"
+sha2 = "0.10.9"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "net", "time", "macros", "io-util"] }
+tokio-native-tls = "0.3.1"

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Main OneMail window: mail-engine IPC and local settings only.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

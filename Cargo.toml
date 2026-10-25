@@ -1,0 +1,23 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/mail-imap",
+  "crates/mail-ipc",
+  "crates/mail-smtp",
+  "crates/mail-store",
+  "crates/mail-vault",
+  "apps/desktop-tauri/src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[profile.dev]
+# Keep the dev binary small enough to iterate on: the mail engine grows here.
+incremental = true
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+strip = "symbols"
