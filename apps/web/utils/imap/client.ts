@@ -1,5 +1,6 @@
-import { ImapFlow } from "imapflow";
+import { ImapFlow, createSocketsTransport } from "imapflow";
 import type { Logger } from "@/utils/logger";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
 
 /**
  * The RFC 9051 / RFC 6154 attributes a mailbox can carry.
@@ -141,11 +142,13 @@ export async function withImapConnection<T>(
   options: ImapConnectionOptions,
   work: (client: ImapFlow) => Promise<T>,
 ): Promise<T> {
+  const connect = cloudflareRequestScope.getStore()?.connect;
   const client = new ImapFlow({
     host: options.host,
     port: options.port,
     secure: options.secure,
     auth: { user: options.username, pass: options.secret },
+    ...(connect ? { transport: createSocketsTransport(connect) } : {}),
     // imapflow logs credentials at debug level; keep it silent by default and
     // let our own logger carry the events that matter.
     logger: false,

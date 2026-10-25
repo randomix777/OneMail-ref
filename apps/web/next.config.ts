@@ -1,7 +1,7 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import { withAxiom } from "next-axiom";
 import nextMdx from "@next/mdx";
-import { readFileSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { env } from "./env";
 import { markdownRewrites } from "./utils/agent-markdown/rewrites";
@@ -41,6 +41,7 @@ const nextConfig: NextConfig = {
   // because the runtime has no filesystem on Workers.
   env: {
     APP_VERSION: readAppVersion(),
+    MCP_MAIL_CLIENT_RESOURCE_URI: readMcpResourceUri(),
   },
   allowedDevOrigins: [
     "127.0.0.1",
@@ -207,6 +208,7 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    unoptimized: isCloudflareBuild,
     deviceSizes: [640, 750, 828, 1080, 1200, 1280, 1440, 1920],
     remotePatterns: [
       {
@@ -446,6 +448,7 @@ const nextConfig: NextConfig = {
     };
   },
   serverExternalPackages: [
+    ...(isCloudflareBuild ? ["better-auth", "ai", "zod"] : []),
     "@chat-adapter/teams",
     "@sentry/nextjs",
     "@sentry/node",
@@ -469,7 +472,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: process.env.SKIP_TYPE_CHECK === "true",
   },
-  webpack: (config) => {
+  webpack: (config, { webpack }) => {
     config.resolve ??= {};
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -482,6 +485,16 @@ const nextConfig: NextConfig = {
     // Leaving the request external hands it to the esbuild pass, whose shim
     // aliases it to the real entry. See docs/hosting/cloudflare-workers.mdx.
     if (isCloudflareBuild) {
+      config.plugins ??= [];
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(
+          /document-extraction-engine(?:\.ts)?$/,
+          path.join(
+            import.meta.dirname,
+            "utils/drive/document-extraction-remote.ts",
+          ),
+        ),
+      );
       config.externals = [
         ...(config.externals ?? []),
         { "pg-cloudflare": "commonjs pg-cloudflare" },
@@ -578,4 +591,21 @@ function commonAncestorPath(firstPath: string, secondPath: string) {
   }
 
   return commonParts.join(path.sep);
+}
+
+function readMcpResourceUri(): string {
+  const manifest = path.join(
+    import.meta.dirname,
+    "generated/mcp-app/manifest.json",
+  );
+  if (!existsSync(manifest)) return "";
+  const value: unknown = JSON.parse(readFileSync(manifest, "utf8"));
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "resourceUri" in value &&
+    typeof value.resourceUri === "string"
+  )
+    return value.resourceUri;
+  throw new Error("Invalid MCP mail client manifest");
 }

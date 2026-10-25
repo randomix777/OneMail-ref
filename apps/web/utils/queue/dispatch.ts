@@ -8,6 +8,7 @@ import {
 import { isVercelQueueDispatchEnabled } from "@/utils/queue/vercel";
 import { enqueueBullmqHttpJob } from "@/utils/queue/bullmq";
 import { getQueueBackend } from "@/utils/queue/backend";
+import { enqueueCloudflareJob } from "@/utils/queue/cloudflare";
 
 export async function enqueueBackgroundJob<T>({
   topic,
@@ -31,6 +32,16 @@ export async function enqueueBackgroundJob<T>({
   };
   logger: Logger;
 }) {
+  if (getQueueBackend() === "cloudflare") {
+    await enqueueCloudflareJob({
+      path: qstash.path,
+      body,
+      headers: qstash.headers,
+      topic,
+      delaySeconds: vercel?.delaySeconds,
+    });
+    return "cloudflare";
+  }
   if (isVercelQueueDispatchEnabled()) {
     try {
       await send(topic, body, { delaySeconds: vercel?.delaySeconds });

@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "onemail-documents",
+  "main": "cloudflare/documents.worker.ts",
+  "compatibility_date": "2026-10-13",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "minify": true,
+  "limits": { "cpu_ms": 300000 },
+  "observability": { "enabled": true }
+}

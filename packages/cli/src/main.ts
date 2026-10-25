@@ -807,7 +807,7 @@ async function runSetupAdvanced(options: { name?: string }) {
       {
         value: "development",
         label: "Development",
-        hint: "local dev with pnpm dev",
+        hint: "local web development with pnpm web:dev",
       },
     ],
   });
@@ -1280,14 +1280,16 @@ docker logs inbox-zero-services-web-1 -f
 # Then open:
 https://yourdomain.com`;
   } else {
-    // Web app runs on host (pnpm dev or pnpm start)
+    // The root pnpm dev command starts the desktop product.
     const dockerStep = useDockerInfra
       ? `# Start Docker services (database & Redis):\n${composeCmd} --profile local-db --profile local-redis up -d\n\n`
       : "";
     const migrateCmd = isDevMode
       ? "pnpm prisma:migrate:dev"
       : "pnpm prisma:migrate:deploy";
-    const startCmd = isDevMode ? "pnpm dev" : "pnpm build && pnpm start";
+    const startCmd = isDevMode
+      ? "pnpm web:dev"
+      : "pnpm --filter inbox-zero-ai build && pnpm --filter inbox-zero-ai start";
 
     nextSteps = `${dockerStep}# Run database migrations:
 ${migrateCmd}

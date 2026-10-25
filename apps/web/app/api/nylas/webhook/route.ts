@@ -1,5 +1,7 @@
 import { after, NextResponse } from "next/server";
 import { env } from "@/env";
+import { enqueueCloudflareWebhook } from "@/utils/queue/cloudflare";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
 import { withError } from "@/utils/middleware";
 import { notifyMailboxChanged } from "@/utils/mailbox-push";
 import {
@@ -75,6 +77,14 @@ export const POST = withError("nylas/webhook", async (request) => {
       { error: "Invalid webhook payload" },
       { status: 400 },
     );
+  }
+
+  if (await enqueueCloudflareWebhook(request, rawBody)) {
+    return NextResponse.json({ ok: true });
+  }
+  if (cloudflareRequestScope.getStore()?.queueDelivery) {
+    await processNylasNotification({ notification, logger });
+    return NextResponse.json({ ok: true });
   }
 
   // Nylas retries on 5xx, so acknowledge immediately and do the work in the

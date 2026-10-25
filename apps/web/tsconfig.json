@@ -29,6 +29,10 @@
   ],
   "exclude": [
     "node_modules",
-    "public/sw.js"
+    "public/sw.js",
+    // Prisma's workerd build. Only the Cloudflare build resolves it, and the
+    // app is typed against the default client, so typechecking a second copy of
+    // the generated surface costs memory without checking anything new.
+    "generated/prisma-workers"
   ]
 }

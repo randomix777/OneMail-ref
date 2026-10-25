@@ -3,6 +3,7 @@ import { EventEmitter } from "node:events";
 import Redis from "ioredis";
 import { env } from "@/env";
 import type { Logger } from "@/utils/logger";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
 
 declare global {
   var teamConversationEvents: EventEmitter | undefined;
@@ -10,6 +11,7 @@ declare global {
 }
 
 const localEvents = global.teamConversationEvents ?? new EventEmitter();
+const requestPublishers = new WeakMap<object, Redis>();
 global.teamConversationEvents = localEvents;
 
 export function conversationChangeChannel(conversationId: string) {
@@ -48,6 +50,20 @@ export function subscribeLocalConversationChange(
 // Publish on the same Redis that streams subscribe to, over one reused
 // connection with bounded retries so a slow Redis cannot stall mutations.
 function getPublisher(url: string) {
+  const scope = cloudflareRequestScope.getStore();
+  if (scope) {
+    const existing = requestPublishers.get(scope);
+    if (existing) return existing;
+    const publisher = new Redis(url, {
+      maxRetriesPerRequest: 1,
+      connectTimeout: 2000,
+      retryStrategy: () => null,
+    });
+    publisher.on("error", () => {});
+    scope.cleanup.add(() => publisher.disconnect());
+    requestPublishers.set(scope, publisher);
+    return publisher;
+  }
   if (!global.teamConversationPublisher) {
     global.teamConversationPublisher = new Redis(url, {
       maxRetriesPerRequest: 1,

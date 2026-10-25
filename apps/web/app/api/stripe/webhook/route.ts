@@ -3,6 +3,8 @@ import { after, NextResponse } from "next/server";
 import { getStripe } from "@/ee/billing/stripe";
 import { withError } from "@/utils/middleware";
 import { env } from "@/env";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
+import { enqueueCloudflareWebhook } from "@/utils/queue/cloudflare";
 import { captureException } from "@/utils/error";
 import { processEvent } from "./controller";
 
@@ -25,7 +27,18 @@ export const POST = withError("stripe/webhook", async (request) => {
     body,
     signature,
     env.STRIPE_WEBHOOK_SECRET,
+    cloudflareRequestScope.getStore()?.verifiedWebhook
+      ? Number.POSITIVE_INFINITY
+      : undefined,
   );
+
+  if (await enqueueCloudflareWebhook(request, body)) {
+    return NextResponse.json({ received: true });
+  }
+  if (cloudflareRequestScope.getStore()?.queueDelivery) {
+    await processEvent(event, logger);
+    return NextResponse.json({ received: true });
+  }
 
   if (event.type === "invoice.payment_succeeded") {
     await processEvent(event, logger);

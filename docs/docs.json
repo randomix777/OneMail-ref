@@ -129,6 +129,7 @@
               "hosting/production-operations",
               "hosting/security-hardening",
               "hosting/vercel",
+              "hosting/cloudflare-workers",
               "hosting/kubernetes",
               "hosting/troubleshooting",
               "hosting/image-proxy"

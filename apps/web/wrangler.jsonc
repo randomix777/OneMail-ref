@@ -1,0 +1,62 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "onemail",
+  // Wraps the entry OpenNext generates so the Worker can answer Cloudflare Cron
+  // Triggers; see cloudflare/worker.ts.
+  "main": "cloudflare/worker.ts",
+  "minify": true,
+  // Pinned to the newest date the bundled workerd understands, so `wrangler dev`
+  // runs the same runtime the deployment does. Bump it together with wrangler.
+  "compatibility_date": "2026-10-13",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "QUEUE_BACKEND": "cloudflare"
+  },
+  // OneMail is a separate Worker from the JYI site. The custom domain is
+  // created and certified by Cloudflare, so the zone must be in this account.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "onemail.jyisolutions.com", "custom_domain": true }
+  ],
+  "services": [
+    { "binding": "WORKER_SELF_REFERENCE", "service": "onemail" },
+    { "binding": "DOCUMENTS", "service": "onemail-documents" }
+  ],
+  "queues": {
+    "producers": [{ "binding": "JOBS", "queue": "onemail-jobs" }],
+    "consumers": [
+      {
+        "queue": "onemail-jobs",
+        "max_batch_size": 1,
+        "max_batch_timeout": 1,
+        "max_retries": 5,
+        "max_concurrency": 3,
+        "dead_letter_queue": "onemail-jobs-dead-letter"
+      }
+    ]
+  },
+  // One trigger for every job: the handler decides what is due and calls the
+  // matching route. The schedule table lives in utils/cron/schedule.ts.
+  "triggers": {
+    "crons": ["* * * * *"]
+  }
+
+  // Required before deployment. Hyperdrive pools origin connections; request
+  // clients read this binding directly. Disable query caching for mailbox and
+  // subscription state. Keep credentials out of this configuration file.
+  //
+  // "hyperdrive": [
+  //   {
+  //     "binding": "HYPERDRIVE",
+  //     "id": "<hyperdrive-id>"
+  //   }
+  // ]
+}

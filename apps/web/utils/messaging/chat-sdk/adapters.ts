@@ -7,6 +7,7 @@ import {
 import type { Adapter } from "chat";
 import { env } from "@/env";
 import { isTeamsBotConfigured } from "@/utils/messaging/chat-sdk/teams-config";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
 
 export type MessagingAdapters = {
   slack?: SlackAdapter;
@@ -23,7 +24,17 @@ declare global {
   var mailMessagingAdapterRegistry: MessagingAdapterRegistry | undefined;
 }
 
+const requestAdapters = new WeakMap<object, MessagingAdapterRegistry>();
+
 export function getMessagingAdapterRegistry(): MessagingAdapterRegistry {
+  const scope = cloudflareRequestScope.getStore();
+  if (scope) {
+    const existing = requestAdapters.get(scope);
+    if (existing) return existing;
+    const registry = createMessagingAdapterRegistry();
+    requestAdapters.set(scope, registry);
+    return registry;
+  }
   if (!global.mailMessagingAdapterRegistry) {
     global.mailMessagingAdapterRegistry = createMessagingAdapterRegistry();
   }

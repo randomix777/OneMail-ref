@@ -11,6 +11,12 @@
   "exclude": [
     "node_modules",
     "public/sw.js",
+    "generated/prisma-workers",
+    // The Worker entry imports OpenNext's generated `.open-next/worker.js`,
+    // which tsc would follow into the bundled server it re-exports (tens of
+    // megabytes) and run out of memory on. `tsconfig.cf-check.json` checks that
+    // file with JS parsing off, and `pnpm typecheck` runs both.
+    "cloudflare/**",
     "__tests__/**",
     "**/*.test.ts",
     "**/*.test.tsx",

@@ -1,0 +1,27 @@
+{
+  // Scoped check for the Cloudflare build wiring: the config, the Worker entry
+  // and the schedule table. `pnpm typecheck` covers the whole app when the
+  // machine has the memory for it.
+  //
+  // `allowJs` is off here on purpose: the Worker entry imports OpenNext's
+  // generated `.open-next/worker.js`, and with JS parsing enabled tsc follows
+  // that artefact into the 80 MB `handler.mjs` it re-exports, which exhausts
+  // the heap. The import is a build product with no declarations, so letting
+  // the suppressed "cannot find module" cover it is both cheaper and truer.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": false
+  },
+  "include": [
+    "next.config.ts",
+    "cloudflare/**/*.ts",
+    "utils/cron/**/*.ts",
+    "utils/agent-markdown/**/*.ts",
+    "app/index.md/route.ts",
+    "app/pricing.md/route.ts",
+    "app/llms.txt/route.ts",
+    "types/**/*.d.ts",
+    "next-env.d.ts"
+  ],
+  "exclude": ["node_modules", "generated/prisma-workers"]
+}

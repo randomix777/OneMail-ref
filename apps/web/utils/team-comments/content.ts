@@ -1,6 +1,6 @@
 import "server-only";
-import createDOMPurify from "dompurify";
-import { JSDOM } from "jsdom";
+import sanitizeHtml from "sanitize-html";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
 import { isEmailProviderRateLimitError } from "@/utils/email/is-provider-rate-limit-error";
 import { createEmailProvider } from "@/utils/email/provider";
 import { isThreadNotFoundError } from "@/utils/email/thread-not-found";
@@ -15,6 +15,7 @@ import {
 } from "@/utils/team-comments/access";
 
 const inFlight = new Map<string, Promise<EmailThread>>();
+const requestFlights = new WeakMap<object, Map<string, Promise<EmailThread>>>();
 
 export async function getSharedMessages(
   actor: ConversationActor,
@@ -149,53 +150,41 @@ function sanitizeSharedHtml(
   conversationId: string,
   memberId: string,
 ) {
-  const window = new JSDOM("").window;
-  try {
-    const purifier = createDOMPurify(
-      window as unknown as Parameters<typeof createDOMPurify>[0],
-    );
-    const sanitized = purifier.sanitize(html, {
-      USE_PROFILES: { html: true },
-      FORBID_ATTR: ["style", "srcset", "poster", "background"],
-      FORBID_TAGS: [
-        "form",
-        "input",
-        "button",
-        "select",
-        "textarea",
-        "iframe",
-        "object",
-        "embed",
-        "script",
-      ],
-    });
-    const document = new JSDOM(sanitized).window.document;
-    for (const image of document.querySelectorAll("img")) {
-      const source = image.getAttribute("src") ?? "";
-      if (!source.toLowerCase().startsWith("cid:")) {
-        image.removeAttribute("src");
-        continue;
-      }
-      const cid = source.slice(4).replace(/^<|>$/g, "").toLowerCase();
-      const inlineIndex = message.inline.findIndex(
-        (attachment) =>
-          attachment.headers["content-id"]
-            .replace(/^<|>$/g, "")
-            .toLowerCase() === cid,
-      );
-      if (inlineIndex < 0) {
-        image.removeAttribute("src");
-      } else {
-        image.setAttribute(
-          "src",
-          `/api/team-comments/conversations/${conversationId}/attachments/${index}:${(message.attachments?.length ?? 0) + inlineIndex}?memberId=${encodeURIComponent(memberId)}`,
+  return sanitizeHtml(html, {
+    allowedTags: [...sanitizeHtml.defaults.allowedTags, "img"],
+    nonTextTags: ["style", "script", "textarea", "option", "svg", "math"],
+    allowedAttributes: {
+      "*": ["title", "dir", "lang"],
+      a: ["href", "name", "target", "rel"],
+      img: ["src", "alt", "width", "height"],
+      td: ["colspan", "rowspan"],
+      th: ["colspan", "rowspan", "scope"],
+    },
+    allowedSchemes: ["http", "https", "mailto", "tel"],
+    allowProtocolRelative: false,
+    transformTags: {
+      img: (tagName, attributes) => {
+        const { src: source = "", ...safeAttributes } = attributes;
+        if (!source.toLowerCase().startsWith("cid:"))
+          return { tagName, attribs: safeAttributes };
+        const cid = source.slice(4).replace(/^<|>$/g, "").toLowerCase();
+        const inlineIndex = message.inline.findIndex(
+          (attachment) =>
+            attachment.headers["content-id"]
+              .replace(/^<|>$/g, "")
+              .toLowerCase() === cid,
         );
-      }
-    }
-    return document.body.innerHTML;
-  } finally {
-    window.close();
-  }
+        if (inlineIndex < 0) return { tagName, attribs: safeAttributes };
+        return {
+          tagName,
+          attribs: {
+            ...safeAttributes,
+            src: `/api/team-comments/conversations/${conversationId}/attachments/${index}:${(message.attachments?.length ?? 0) + inlineIndex}?memberId=${encodeURIComponent(memberId)}`,
+          },
+        };
+      },
+    },
+  });
 }
 
 function getVisibleMessages(
@@ -213,8 +202,14 @@ async function fetchCompleteThread(input: {
   threadId: string;
   logger: Logger;
 }) {
+  const scope = cloudflareRequestScope.getStore();
+  let pending = inFlight;
+  if (scope) {
+    pending = requestFlights.get(scope) ?? new Map();
+    requestFlights.set(scope, pending);
+  }
   const key = `${input.emailAccountId}:${input.threadId}`;
-  const existing = inFlight.get(key);
+  const existing = pending.get(key);
   if (existing) return existing;
   const promise = (async () => {
     const provider = await createEmailProvider({
@@ -224,11 +219,11 @@ async function fetchCompleteThread(input: {
     });
     return provider.getThread(input.threadId, { complete: true });
   })();
-  inFlight.set(key, promise);
+  pending.set(key, promise);
   try {
     return await promise;
   } finally {
-    if (inFlight.get(key) === promise) inFlight.delete(key);
+    if (pending.get(key) === promise) pending.delete(key);
   }
 }
 

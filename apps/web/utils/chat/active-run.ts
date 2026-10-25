@@ -9,6 +9,7 @@ import { env } from "@/env";
 import { createScopedLogger, type Logger } from "@/utils/logger";
 import prisma from "@/utils/prisma";
 import { sleep } from "@/utils/sleep";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
 
 const STOP_CHANNEL = "assistant-chat:stop";
 const SUBSCRIBE_TIMEOUT_MS = 2000;
@@ -16,6 +17,10 @@ const SUBSCRIBE_TIMEOUT_MS = 2000;
 // instance died before it could clear it.
 const MAX_RUN_MS = 800_000;
 const logger = createScopedLogger("assistant-chat-run");
+const requestRedis = new WeakMap<
+  object,
+  NonNullable<typeof global.assistantChatRedis>
+>();
 
 declare global {
   var assistantChatRuns: Map<string, AbortController> | undefined;
@@ -117,13 +122,18 @@ export async function clearActiveStream({
 
 function getRedis() {
   if (!env.REDIS_URL) return null;
-  if (global.assistantChatRedis) return global.assistantChatRedis;
+  const scope = cloudflareRequestScope.getStore();
+  const existing = scope ? requestRedis.get(scope) : global.assistantChatRedis;
+  if (existing) return existing;
 
   const publisher = new Redis(env.REDIS_URL, {
     maxRetriesPerRequest: 1,
     connectTimeout: 2000,
+    ...(scope ? { retryStrategy: () => null } : {}),
   });
-  const subscriber = new Redis(env.REDIS_URL);
+  const subscriber = new Redis(env.REDIS_URL, {
+    ...(scope ? { retryStrategy: () => null } : {}),
+  });
   // Publish failures surface on the calls that hit them, where they are handled.
   publisher.on("error", () => {});
   subscriber.on("error", (error) => {
@@ -139,7 +149,7 @@ function getRedis() {
       logger.error("Unable to listen for assistant chat stops", { error });
     });
 
-  global.assistantChatRedis = {
+  const context = {
     publisher,
     listening,
     streams: createResumableStreamContext({
@@ -149,5 +159,14 @@ function getRedis() {
       subscriber,
     }),
   };
-  return global.assistantChatRedis;
+  if (scope) {
+    requestRedis.set(scope, context);
+    scope.cleanup.add(() => {
+      publisher.disconnect();
+      subscriber.disconnect();
+    });
+  } else {
+    global.assistantChatRedis = context;
+  }
+  return context;
 }

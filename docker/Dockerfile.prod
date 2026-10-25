@@ -46,11 +46,13 @@ COPY scripts/pnpm-install-without-desktop.sh scripts/pnpm-install-without-deskto
 # from the workspace instead of following pnpm store symlinks outside package
 # peer dependency boundaries. Skip @inboxzero/desktop so the image does not
 # download Electron.
-RUN chmod +x scripts/pnpm-install-without-desktop.sh \
+RUN sed -i 's/\r$//' scripts/pnpm-install-without-desktop.sh clone-marketing.sh \
+ && chmod +x scripts/pnpm-install-without-desktop.sh \
  && ./scripts/pnpm-install-without-desktop.sh --frozen-lockfile --prefer-offline --config.node-linker=hoisted
 
  # Copy the full repo
 COPY . .
+RUN sed -i 's/\r$//' clone-marketing.sh
 
  # Build app (Next.js standalone)
 ENV NODE_ENV=production
@@ -146,7 +148,8 @@ RUN test -f apps/web/server.js \
 
 # Copy runtime scripts
 COPY docker/scripts /app/docker/scripts
-RUN chmod +x /app/docker/scripts/*.sh
+RUN sed -i 's/\r$//' /app/docker/scripts/*.sh \
+ && chmod +x /app/docker/scripts/*.sh
 
 # Install the Prisma CLI for migrations at the app's version so new schema
 # features are understood by `migrate deploy`

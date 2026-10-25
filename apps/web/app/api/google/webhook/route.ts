@@ -1,6 +1,8 @@
 import { after, NextResponse } from "next/server";
 import { withError } from "@/utils/middleware";
 import { env } from "@/env";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
+import { enqueueCloudflareWebhook } from "@/utils/queue/cloudflare";
 import { processHistoryForUser } from "@/utils/webhook/google/process-history";
 import type { Logger } from "@/utils/logger";
 import { handleWebhookError } from "@/utils/webhook/error-handler";
@@ -36,7 +38,11 @@ export const POST = withError("google/webhook", async (request) => {
 
   // Empty string intentionally disables query-param verification when
   // requests are authenticated upstream, such as via the OIDC gateway.
-  if (verificationToken !== "" && token !== verificationToken) {
+  if (
+    verificationToken !== "" &&
+    token !== verificationToken &&
+    !cloudflareRequestScope.getStore()?.verifiedWebhook
+  ) {
     logger.error("Invalid verification token");
     return NextResponse.json(
       { message: "Invalid verification token" },
@@ -46,6 +52,9 @@ export const POST = withError("google/webhook", async (request) => {
 
   const body = await request.json();
   const decodedData = decodeHistoryId(body);
+  if (await enqueueCloudflareWebhook(request, JSON.stringify(body))) {
+    return NextResponse.json({ ok: true });
+  }
 
   logger = logger.with({
     email: decodedData.emailAddress,
@@ -107,6 +116,11 @@ export const POST = withError("google/webhook", async (request) => {
     }
   }
 
+  if (cloudflareRequestScope.getStore()?.queueDelivery) {
+    await processWebhookAsync(decodedData, logger, emailAccount);
+    return NextResponse.json({ ok: true });
+  }
+
   // Process history asynchronously using after() to avoid Pub/Sub acknowledgment timeout
   // This ensures we acknowledge the message quickly while still processing it fully
   after(() =>
@@ -138,6 +152,7 @@ async function processWebhookAsync(
       url: "/api/google/webhook",
       logger,
     });
+    if (cloudflareRequestScope.getStore()?.queueDelivery) throw error;
   }
 }
 

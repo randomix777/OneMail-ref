@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { getCloudflareBindings } from "@/utils/cloudflare/context";
 
 // The mail client UI is built separately and is absent from most deployments.
 const bundleDirectory = path.join(process.cwd(), "generated/mcp-app");
@@ -10,6 +11,8 @@ let resourceUri: string | null | undefined;
 let html: Promise<string> | undefined;
 
 export function getMailClientResourceUri() {
+  if (getCloudflareBindings())
+    return process.env.MCP_MAIL_CLIENT_RESOURCE_URI || null;
   if (resourceUri === undefined) {
     resourceUri = existsSync(manifestPath)
       ? (
@@ -23,6 +26,16 @@ export function getMailClientResourceUri() {
 }
 
 export function readMailClientHtml() {
+  const assets = getCloudflareBindings()?.ASSETS;
+  if (assets) {
+    return assets
+      .fetch(new Request("https://assets.onemail.invalid/_mcp/mail.html"))
+      .then(async (response) => {
+        if (!response.ok)
+          throw new Error("MCP mail client HTML is missing from Worker assets");
+        return response.text();
+      });
+  }
   html ??= readFile(path.join(bundleDirectory, "mail.html"), "utf8").catch(
     (error) => {
       html = undefined;

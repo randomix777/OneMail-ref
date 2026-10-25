@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { createEmailProvider } from "@/utils/email/provider";
 import { createScopedLogger } from "@/utils/logger";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
 import { getAuthorizedConversation } from "@/utils/team-comments/access";
 import {
   getSharedAttachment,
@@ -52,7 +53,7 @@ describe("shared conversation content safety", () => {
           date: "2026-09-22T12:00:00Z",
           textPlain: "Visible message",
           textHtml:
-            '<script>alert("bad")</script><form><input value="bad"></form><p style="background-image:url(https://tracker.example/background)">Visible message</p><img src="https://tracker.example/pixel" srcset="https://tracker.example/large 2x"><img src="cid:allowed"><img src="cid:unknown">',
+            '<script>alert("bad")</script><form><input value="bad"></form><p style="background-image:url(https://tracker.example/background)">Visible message</p><img src="https://tracker.example/pixel" srcset="https://tracker.example/large 2x"><img src="cid:allowed"><img src="cid:unknown"><a href="javascript:alert(1)" onclick="alert(1)">Unsafe link</a><svg><a href="https://tracker.example">SVG</a></svg><a href="https://example.com">Safe link</a><table><tr><td colspan="2">Table content</td></tr></table>',
           attachments: [
             {
               attachmentId: "file",
@@ -106,6 +107,9 @@ describe("shared conversation content safety", () => {
     expect(JSON.stringify(result)).not.toContain("tracker.example");
     expect(message.html).not.toMatch(/<script|<form|<input/i);
     expect(message.html).not.toContain("cid:unknown");
+    expect(message.html).not.toMatch(/javascript:|onclick=|<svg|style=/i);
+    expect(message.html).toContain('href="https://example.com"');
+    expect(message.html).toContain('<td colspan="2">Table content</td>');
     expect(message.html).toContain(
       "/api/team-comments/conversations/share/attachments/0:1?memberId=member",
     );
@@ -131,6 +135,18 @@ describe("shared conversation content safety", () => {
       }),
     ).resolves.toBeNull();
     expect(getAttachmentStream).toHaveBeenCalledTimes(1);
+  });
+
+  test("does not share provider work across Worker requests", async () => {
+    getThread.mockResolvedValue({ messages: [] });
+    await Promise.all(
+      Array.from({ length: 2 }, () =>
+        cloudflareRequestScope.run({ bindings: {}, cleanup: new Set() }, () =>
+          getSharedMessages(actor, "share", logger),
+        ),
+      ),
+    );
+    expect(getThread).toHaveBeenCalledTimes(2);
   });
 
   test("attachments are unavailable once the publisher's mailbox is disconnected", async () => {

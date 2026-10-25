@@ -4,6 +4,8 @@ import { processHistoryForUser } from "@/utils/webhook/outlook/process-history";
 import { processOutlookLifecycleNotification } from "@/app/api/outlook/webhook/process-lifecycle";
 import type { Logger } from "@/utils/logger";
 import { env } from "@/env";
+import { enqueueCloudflareWebhook } from "@/utils/queue/cloudflare";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
 import {
   type OutlookWebhookNotification,
   webhookBodySchema,
@@ -79,6 +81,10 @@ export const POST = withError("outlook/webhook", async (request) => {
     }
   }
 
+  if (await enqueueCloudflareWebhook(request, JSON.stringify(body))) {
+    return NextResponse.json({ ok: true });
+  }
+
   logger.info("Received webhook notification - acknowledging immediately", {
     notificationCount: body.value.length,
     subscriptionIds: body.value.map((n) => n.subscriptionId),
@@ -86,6 +92,10 @@ export const POST = withError("outlook/webhook", async (request) => {
 
   const notifications = body.value;
   const notifiedAccounts = new Set<string>();
+  if (cloudflareRequestScope.getStore()?.queueDelivery) {
+    await processNotificationsAsync(notifications, logger, notifiedAccounts);
+    return NextResponse.json({ ok: true });
+  }
 
   // Process notifications asynchronously using after() to avoid Microsoft webhook timeout
   // Microsoft expects a response within 3 seconds
@@ -192,6 +202,7 @@ async function processNotificationsAsync(
           error,
         });
       }
+      if (cloudflareRequestScope.getStore()?.queueDelivery) throw error;
     }
   }
 }

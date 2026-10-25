@@ -87,6 +87,7 @@ import {
 } from "@/utils/url";
 import { getEmailAccountWithAi } from "@/utils/user/get";
 import { BRAND_NAME } from "@/utils/branding";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
 
 const MAX_CHAT_CONTEXT_MESSAGES = 12;
 const CHAT_SDK_STATE_KEY_PREFIX = "inbox-zero:chat-sdk";
@@ -245,8 +246,18 @@ declare global {
 }
 
 const messagingRequestLoggerStore = new AsyncLocalStorage<Logger>();
+const requestBots = new WeakMap<object, MessagingChatSdkContext>();
 
 export function getMessagingChatSdkBot(): MessagingChatSdkContext {
+  const scope = cloudflareRequestScope.getStore();
+  if (scope) {
+    const existing = requestBots.get(scope);
+    if (existing) return existing;
+    const context = createMessagingChatSdkBot();
+    requestBots.set(scope, context);
+    scope.cleanup.add(() => context.bot.shutdown());
+    return context;
+  }
   if (!global.mailMessagingChatSdk) {
     global.mailMessagingChatSdk = createMessagingChatSdkBot();
   }
@@ -2726,11 +2737,16 @@ function createChatStateAdapter() {
   // Redis handles this efficiently across replicas; a SQL store would add
   // latency and lock contention in the webhook path.
   if (env.REDIS_URL) {
-    return createIoRedisState({
+    const state = createIoRedisState({
       url: env.REDIS_URL,
       keyPrefix: CHAT_SDK_STATE_KEY_PREFIX,
       logger: new ConsoleLogger("warn").child("chat-sdk-state"),
     });
+    const scope = cloudflareRequestScope.getStore();
+    if (scope) {
+      scope.cleanup.add(() => state.getClient().disconnect());
+    }
+    return state;
   }
 
   return createMemoryState();

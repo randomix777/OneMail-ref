@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { env } from "@/env";
+import { getCloudflareBindings } from "@/utils/cloudflare/context";
 import type { Logger } from "@/utils/logger";
 import {
   MEETING_BOT_DISPLAY_NAME,
@@ -367,6 +368,19 @@ function getMeetingBotCameraImage(): Promise<string> {
 }
 
 async function readMeetingBotCameraImage(): Promise<string> {
+  const assets = getCloudflareBindings()?.ASSETS;
+  if (assets) {
+    const response = await assets.fetch(
+      new Request(
+        "https://assets.onemail.invalid/images/meetings/inbox-zero-notetaker.jpg",
+      ),
+    );
+    if (!response.ok)
+      throw new Error(
+        "Recall meeting bot camera image is missing from Worker assets",
+      );
+    return Buffer.from(await response.arrayBuffer()).toString("base64");
+  }
   try {
     return await readFile(
       join(

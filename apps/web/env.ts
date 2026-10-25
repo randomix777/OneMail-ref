@@ -54,6 +54,7 @@ const parsedEnv = createEnv({
   server: {
     NODE_ENV: z.enum(["development", "production", "test"]),
     INBOX_ZERO_ENV_FILE: z.string().optional(),
+    MCP_MAIL_CLIENT_RESOURCE_URI: z.string().optional(),
     DATABASE_URL: z.string().url(),
     DATABASE_URL_UNPOOLED: z.string().url().optional(),
     PREVIEW_DATABASE_URL: z.string().url().optional(),
@@ -246,7 +247,7 @@ const parsedEnv = createEnv({
     QSTASH_NEXT_SIGNING_KEY: z.string().optional(),
     QUEUE_BACKEND: z.preprocess(
       (value) => (value === "" ? undefined : value),
-      z.enum(["bullmq", "internal", "qstash"]).optional(),
+      z.enum(["bullmq", "internal", "qstash", "cloudflare"]).optional(),
     ),
 
     GOOGLE_PUBSUB_TOPIC_NAME: z.string().min(1),

@@ -4,6 +4,8 @@ import { getInternalApiHeaders, getInternalApiUrl } from "@/utils/internal-api";
 import { env } from "@/env";
 import { createScopedLogger } from "@/utils/logger";
 import { isSafeExternalHttpUrl } from "@inboxzero/network/safe-url";
+import { getCloudflareBindings } from "@/utils/cloudflare/context";
+import { enqueueCloudflareJob } from "@/utils/queue/cloudflare";
 
 const logger = createScopedLogger("upstash");
 
@@ -32,6 +34,23 @@ export async function publishToQstash<T>(
   headers?: HeadersInit,
   options?: PublishToQstashOptions,
 ) {
+  if (getCloudflareBindings()) {
+    if (
+      options?.destinationUrl &&
+      new URL(options.destinationUrl).origin !==
+        new URL(env.NEXT_PUBLIC_BASE_URL).origin
+    ) {
+      throw new Error(
+        "Cloudflare background jobs require a same-origin API route",
+      );
+    }
+    return enqueueCloudflareJob({
+      path,
+      body,
+      headers: createHeaders(headers),
+      topic: path,
+    });
+  }
   const requestHeaders = createHeaders(headers);
   requestHeaders.set("Retry-After", "10");
 
@@ -73,6 +92,16 @@ export async function publishToQstashAt<T>({
   notBefore: Date;
   deduplicationId: string;
 }) {
+  if (getCloudflareBindings()) {
+    const delaySeconds = Math.max(
+      0,
+      Math.ceil((notBefore.getTime() - Date.now()) / 1000),
+    );
+    // Far-future scheduled sends remain in Postgres and are picked up by cron.
+    if (delaySeconds > 43_200) return false;
+    await enqueueCloudflareJob({ path, body, topic: path, delaySeconds });
+    return true;
+  }
   const url = `${getQstashCallbackBaseUrl()}${path}`;
   const client = getQstashClient(url);
   if (!client) return false;
@@ -95,6 +124,12 @@ export async function bulkPublishToQstash<T>({
     flowControl?: FlowControl;
   }[];
 }) {
+  if (getCloudflareBindings()) {
+    for (const item of items) {
+      await enqueueCloudflareJob({ ...item, topic: item.path });
+    }
+    return;
+  }
   const client = getQstashClient();
   if (client) {
     const callbackBase = getQstashCallbackBaseUrl();
@@ -133,6 +168,14 @@ export async function publishToQstashQueue<T>({
   headers?: HeadersInit;
   deduplicationId?: string;
 }) {
+  if (getCloudflareBindings()) {
+    return enqueueCloudflareJob({
+      path,
+      body,
+      headers: createHeaders(headers),
+      topic: queueName,
+    });
+  }
   const client = getQstashClient();
   if (client) {
     const qstashUrl = `${getQstashCallbackBaseUrl()}${path}`;
@@ -172,6 +215,14 @@ export async function publishToInternalApiInBackground<T>({
   body: T;
   headers?: HeadersInit;
 }) {
+  if (getCloudflareBindings()) {
+    return enqueueCloudflareJob({
+      path,
+      body,
+      headers: createHeaders(headers),
+      topic: path,
+    });
+  }
   const fallbackUrl = `${getInternalApiUrl()}${path}`;
   return fallbackPublishToQstash<T>(fallbackUrl, body, headers);
 }

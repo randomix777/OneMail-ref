@@ -10,6 +10,8 @@ import type { Logger } from "@/utils/logger";
 import { runWithBoundedConcurrency } from "@/utils/async";
 import { isVercelQueueDispatchEnabled } from "@/utils/queue/vercel";
 import { getEligibleFollowUpReminderEmailAccountIds } from "@/utils/follow-up/process";
+import { getCloudflareBindings } from "@/utils/cloudflare/context";
+import { enqueueCloudflareJob } from "@/utils/queue/cloudflare";
 
 export const maxDuration = 800;
 const FOLLOW_UP_REMINDER_ACCOUNT_PATH = "/api/follow-up-reminders/account";
@@ -73,6 +75,16 @@ async function dispatchFollowUpReminderAccounts(
   emailAccountIds: string[],
   logger: Logger,
 ) {
+  if (getCloudflareBindings()) {
+    for (const emailAccountId of emailAccountIds) {
+      await enqueueCloudflareJob({
+        topic: FOLLOW_UP_REMINDER_ACCOUNT_TOPIC,
+        path: FOLLOW_UP_REMINDER_ACCOUNT_PATH,
+        body: { emailAccountId },
+      });
+    }
+    return;
+  }
   if (isVercelQueueDispatchEnabled()) {
     const queueResult = await dispatchFollowUpReminderAccountsToQueue({
       emailAccountIds,

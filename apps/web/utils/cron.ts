@@ -2,6 +2,7 @@ import { env } from "@/env";
 import { secureCompare } from "@/utils/crypto-compare";
 import { isValidInternalApiKey } from "@/utils/internal-api";
 import type { RequestWithLogger } from "@/utils/middleware";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
 
 export function hasCronSecret(request: RequestWithLogger) {
   if (!env.CRON_SECRET) {
@@ -31,6 +32,12 @@ export function isAuthorizedCronOrInternalRequest(request: RequestWithLogger) {
 }
 
 export async function hasPostCronSecret(request: RequestWithLogger) {
+  if (
+    cloudflareRequestScope.getStore()?.queueDelivery &&
+    isValidCronSecret(request)
+  ) {
+    return true;
+  }
   if (!env.CRON_SECRET) {
     request.logger.error("No cron secret set, unauthorized cron request");
     return false;

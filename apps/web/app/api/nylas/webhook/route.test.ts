@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
 
 const {
   envMock,
@@ -81,6 +82,49 @@ const SECRET = "webhook-secret";
 const GRANT_ID = "grant-1";
 
 describe("Nylas webhook route", () => {
+  it("queues only authenticated ingress and leaves processing to the consumer", async () => {
+    const send = vi.fn(async () => {});
+    const body = messageCreatedBody();
+    await cloudflareRequestScope.run(
+      { bindings: { JOBS: { send } }, cleanup: new Set() },
+      async () => {
+        const rejected = await POST(
+          createRequest({ body, signature: "invalid" }) as never,
+          {} as never,
+        );
+        expect(rejected.status).toBe(401);
+        expect(send).not.toHaveBeenCalled();
+        const accepted = await POST(
+          createRequest({ body }) as never,
+          {} as never,
+        );
+        expect(accepted.status).toBe(200);
+      },
+    );
+    expect(send).toHaveBeenCalledOnce();
+    expect(processHistoryItemMock).not.toHaveBeenCalled();
+  });
+
+  it("propagates an inline processing failure to queue delivery", async () => {
+    processHistoryItemMock.mockRejectedValueOnce(
+      new Error("provider unavailable"),
+    );
+    await expect(
+      cloudflareRequestScope.run(
+        {
+          bindings: {},
+          cleanup: new Set(),
+          queueDelivery: true,
+          verifiedWebhook: true,
+        },
+        () =>
+          POST(
+            createRequest({ body: messageCreatedBody() }) as never,
+            {} as never,
+          ),
+      ),
+    ).rejects.toThrow("provider unavailable");
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     deferredWork.length = 0;

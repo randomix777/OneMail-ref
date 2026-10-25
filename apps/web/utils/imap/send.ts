@@ -1,5 +1,6 @@
 import MailComposer from "nodemailer/lib/mail-composer";
 import { createTransport } from "nodemailer";
+import { getCloudflareBindings } from "@/utils/cloudflare/context";
 
 /**
  * Whether sending also files a copy in the provider's Sent folder.
@@ -99,6 +100,11 @@ export async function sendViaSmtp({
   options: SendViaSmtpOptions;
   message: OutgoingMessage;
 }) {
+  if (getCloudflareBindings() && options.port === 25) {
+    throw new Error(
+      "Workers cannot connect to SMTP port 25; use submission port 465 or 587",
+    );
+  }
   const raw = await composeRawMessage(message);
 
   const transport = createTransport({

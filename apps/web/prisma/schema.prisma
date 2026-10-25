@@ -10,6 +10,23 @@ generator client {
   previewFeatures        = ["partialIndexes"]
 }
 
+// The same client for the Cloudflare Worker. The default runtime decodes the
+// query compiler from base64 and compiles it with `new WebAssembly.Module()`,
+// which workerd refuses ("Wasm code generation disallowed by embedder"); the
+// `workerd` runtime imports the compiler as a module instead, so the platform
+// compiles it at deploy time. Only the compiler file is used: the Cloudflare
+// esbuild shim points the default client's compile call at it, so the app keeps
+// one client and one set of types everywhere. See
+// docs/hosting/cloudflare-workers.mdx.
+generator clientWorkers {
+  provider               = "prisma-client"
+  output                 = "../generated/prisma-workers"
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
+  previewFeatures        = ["partialIndexes"]
+  runtime                = "workerd"
+}
+
 // Account, User, Session, and VerificationToken based on: https://authjs.dev/reference/adapter/prisma
 model Account {
   password              String?

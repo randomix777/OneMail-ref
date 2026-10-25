@@ -1,0 +1,195 @@
+---
+title: "Cloudflare Workers"
+description: "Run OneMail on native Workers with PostgreSQL, Hyperdrive, Queues, and Cron Triggers"
+---
+
+OneMail runs as a native Cloudflare Worker through OpenNext. It does not require a Docker container or a resident
+Node queue worker for this deployment. PostgreSQL remains the business database. Managed Redis remains an external
+service for caches, rate limits, distributed messaging state, and optional stream resumption.
+
+## Runtime layout
+
+| Responsibility | Runtime |
+| --- | --- |
+| Pages, API routes, server actions, streaming responses | OpenNext Worker |
+| PostgreSQL connections | Hyperdrive with a request-scoped Prisma client |
+| Background jobs and verified mail/billing webhooks | Cloudflare Queues |
+| Scheduled scans and retention jobs | Cron Trigger, then Queues |
+| IMAP | ImapFlow's native `cloudflare:sockets` transport |
+| SMTP submission | Nodemailer with Workers Node compatibility; use 465 or 587 |
+| Cache and rate limits | Redis HTTP endpoint |
+| Realtime subscriptions and messaging locks | Managed Redis TCP, with request-scoped connections |
+| Runtime static resources | Workers ASSETS binding |
+| PDF and DOCX text extraction | Internal documents Worker through a Service Binding |
+
+No Durable Object class is required by the current deployment configuration. Queues and Hyperdrive are Cloudflare
+services, while PostgreSQL and Redis are configured independently.
+
+## JYI production layout
+
+OneMail deploys as its own Worker, separately from the JYI main site Worker:
+
+| Resource | Name |
+| --- | --- |
+| App Worker | `onemail` |
+| Documents Worker | `onemail-documents` |
+| Primary queue | `onemail-jobs` |
+| Dead-letter queue | `onemail-jobs-dead-letter` |
+| Public origin | `https://onemail.jyisolutions.com` |
+
+Keep the JYI main site and OneMail on separate Workers, domains, queues, and deployment pipelines. They can share a
+Cloudflare account and the `jyisolutions.com` zone, but OneMail should use its own database (or schema) and Redis
+namespace so mailbox data and JYI account data remain independently recoverable.
+
+The app Worker binds the documents Worker through the `DOCUMENTS` service binding and references its own queue
+consumer through `WORKER_SELF_REFERENCE`. Keep both names synchronized when renaming either Worker.
+
+Set `NEXT_PUBLIC_BASE_URL` to `https://onemail.jyisolutions.com` for both the build and runtime. Register these
+callbacks with the matching providers:
+
+```text
+https://onemail.jyisolutions.com/api/auth/callback/jyi
+https://onemail.jyisolutions.com/api/auth/callback/google
+https://onemail.jyisolutions.com/api/auth/callback/microsoft
+https://onemail.jyisolutions.com/api/nylas/webhook
+```
+
+## Provisioning
+
+Use Node 24 and the pnpm version pinned in the root package.json. From the repository root, install dependencies:
+
+```sh
+pnpm install
+```
+
+Create the queues from `apps/web`:
+
+```sh
+pnpm exec wrangler queues create onemail-jobs
+pnpm exec wrangler queues create onemail-jobs-dead-letter
+```
+
+Create a Hyperdrive configuration pointing to the PostgreSQL database. Disable query caching because mailbox state,
+subscription state, and task claims must reflect recent writes. Configure the database credential through a secure
+local environment or the Cloudflare dashboard; do not paste it into repository files or commit history.
+
+```sh
+pnpm exec wrangler hyperdrive create onemail \
+  --connection-string="$DATABASE_URL" \
+  --caching-disabled
+```
+
+Add the returned Hyperdrive ID to `apps/web/wrangler.jsonc` by uncommenting the `hyperdrive` block. The binding must
+be named `HYPERDRIVE`. `pnpm workers:deploy` checks that a real binding is configured before uploading the Worker.
+
+The deploying API token needs Workers Scripts:Edit, Queues:Edit, Hyperdrive:Edit, and Zone:DNS:Edit for the
+`jyisolutions.com` zone. Without DNS edit permission, Cloudflare cannot create the
+`onemail.jyisolutions.com` custom domain even though the Worker upload itself succeeds. Hyperdrive
+pools origin connections; the Prisma client is created within each request and is disconnected after the response
+stream and its registered background work finish. The connection string is read from the binding, not copied into a
+global environment variable.
+
+Keep `WORKER_SELF_REFERENCE.service` synchronized with the Worker name when renaming the deployment.
+The `DOCUMENTS` service points to `onemail-documents`, configured in `wrangler.documents.jsonc`. Keep both names
+synchronized if renaming it. That Worker has no public workers.dev or preview URL and needs no database credentials.
+
+## Environment and secrets
+
+Use `apps/web/.env.example` and `env.ts` as the complete application configuration reference. The application still
+requires its normal database, identity, encryption, mailbox provider, billing, AI gateway, and Redis settings.
+
+For Workers specifically:
+
+- Set `NEXT_PUBLIC_BASE_URL` to the same HTTPS origin at build time and at runtime.
+- Set `DATABASE_URL` for environment validation and build/CLI tooling. Runtime application queries use `HYPERDRIVE`.
+- Set separate random `INTERNAL_API_KEY` and `CRON_SECRET` secrets. Queue delivery injects the current values.
+- Set `REDIS_HTTP_URL` / `REDIS_HTTP_TOKEN` for cache and rate limiting.
+- Set `REDIS_URL` to a reachable managed Redis endpoint when using messaging locks, cross-instance realtime events,
+  assistant stop propagation, or resumable assistant streams. A local-process fallback is not shared across isolates.
+- `QUEUE_BACKEND=cloudflare` is configured in Wrangler. Workers requests select the native queue even when legacy
+  QStash settings remain in an environment. A missing JOBS binding fails rather than dropping work.
+
+Upload runtime secrets with `wrangler secret put NAME`. Keep local values in an ignored `.dev.vars` file. For local
+Hyperdrive development, set `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` in the shell to the local
+PostgreSQL connection string. Check the installed Wrangler documentation for supported local binding settings.
+
+Run Prisma migrations separately against the direct PostgreSQL connection before publishing a version that needs
+schema changes. The Workers build does not execute production migrations.
+
+## Build, preview, deploy
+
+From the repository root:
+
+```sh
+pnpm workers:build
+pnpm preview:workers
+pnpm workers:deploy
+```
+
+The default root `pnpm build` now targets the local desktop app. Use `pnpm workers:build` for this optional hosted deployment.
+`pnpm workers:deploy` publishes the internal documents Worker before the application Worker. The preview command runs both
+locally. Document parsing libraries are deliberately excluded from the application's Next bundle and bundled by
+Wrangler into the documents Worker; this keeps each deployment within the platform's package-size limit.
+The build dry-runs both upload bundles and checks their uncompressed sizes against the 64 MiB limit. Source maps
+and Wrangler's generated README are excluded from that check.
+OpenNext invokes `build:cf`, which generates the optional MCP UI, builds Next with webpack, and builds the service
+worker. It does not start a Node server or create a container image.
+
+The OpenNext entry is wrapped by `apps/web/cloudflare/worker.ts`, which exports `fetch`, `queue`, and `scheduled`.
+The existing esbuild compatibility hook handles the pinned Next/Prisma versions and the query compiler's deploy-time
+Wasm import. Review those patches when upgrading Next, Prisma, or OpenNext. Images use their original sources on
+Workers rather than loading the native sharp addon.
+
+## Background delivery and retry behavior
+
+A single every-minute Cron Trigger evaluates the UTC schedule in `utils/cron/schedule.ts` and durably queues each due
+route. The consumer invokes the application's Next handler in the same Worker, with internal authentication.
+
+Google, Nylas, Outlook, and Stripe webhook ingress validates the provider request before enqueueing it. Signed bodies
+are kept byte-for-byte where required. A browser header cannot mark an HTTP request as a trusted queue delivery;
+that flag is established only by the queue handler. Stripe's timestamp age check is relaxed only for previously
+verified queued deliveries; its cryptographic signature is still checked.
+
+The consumer drains streamed responses and waits for registered background work before acknowledging. Exceptions,
+non-2xx responses, and failed streams retry with backoff. The first retry waits at least five minutes to allow existing
+mail-processing locks to expire. Failed messages move to `onemail-jobs-dead-letter` after five retries. Monitor that
+queue and investigate before replaying messages.
+
+Queues provides at-least-once delivery. Preserve the existing database task claims and operation idempotency; queue
+IDs do not provide exactly-once execution. A replay may repeat model calls or partial work if a task does not have a
+persistent claim. Do not replay a dead-letter queue indiscriminately.
+
+Delayed messages are supported up to twelve hours. Later scheduled sends remain in PostgreSQL and are picked up by
+Cron. Bulk cleanup scans one page per job and queues continuation pages instead of holding one invocation for the
+whole mailbox. Follow-up reminders fan out into per-account jobs.
+
+A Queue consumer has a finite invocation lifetime. Split workloads that can exceed the platform limit into smaller
+jobs or explicit Workflow steps. Heavy work launched by a plain HTTP route's `next/after` is still subject to the
+platform's post-response execution window; new long jobs should use the queue dispatcher.
+
+## Mail transport and runtime constraints
+
+IMAP connections are opened for one unit of work and logged out afterward. Workers uses ImapFlow's sockets transport,
+including STARTTLS support, without depending on OS DNS lookup. SMTP port 25 is blocked by the platform; configure
+submission port 465 or 587. Provider-specific TLS and protocol behavior must be exercised under workerd before
+release. Provider HTTP APIs continue through the existing EmailProvider abstraction.
+
+Outbound URL validation resolves A/AAAA records on Workers because `dns.lookup` is not implemented there. It retains
+private-address validation rather than bypassing it. Optional MCP HTML and meeting-bot artwork are loaded through
+ASSETS; generated MCP HTML is copied to public assets during preparation.
+
+## Release validation
+
+Unit tests and TypeScript checks do not prove that the full Next bundle fits the Workers size and memory limits.
+Before production release, build the current sources and validate in workerd:
+
+- Bundle upload size, startup memory, and cold-start behavior.
+- A real Hyperdrive database query, concurrent requests, and streamed-response cleanup.
+- Queue publication, successful delivery, retry, and dead-letter routing.
+- Cron fanout, scheduled sends, and mailbox reconnection behavior.
+- Google/Nylas and Microsoft authorization and signed webhook processing.
+- IMAP and SMTP against supported test mailboxes.
+- JYI login, token metering, billing callbacks, and realtime chat behavior.
+
+Configure the custom domain and provider callback allowlists only for a deployment whose critical flows pass these
+checks. No production credentials or validation results are implied by this configuration guide.

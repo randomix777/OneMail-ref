@@ -48,6 +48,9 @@ next-env.d.ts
 .turbo
 dist
 .next
+.open-next
+cloudflare-env.d.ts
+apps/web/public/_mcp/
 
 # tinybird
 .tinyb
@@ -121,3 +124,7 @@ eval-results/
 .tmp/
 
 /.private-build-install.json
+
+# rust / tauri
+/target
+/apps/desktop-tauri/.tauri

@@ -1,25 +1,21 @@
 "use server";
 
-import { after } from "next/server";
 import {
   cleanInboxSchema,
   undoCleanInboxSchema,
   changeKeepToDoneSchema,
 } from "@/utils/actions/clean.validation";
-import { bulkPublishToQstash } from "@/utils/upstash";
 import {
   getLabel,
   getOrCreateBrandLabel,
   GmailLabel,
   labelThread,
 } from "@/utils/gmail/label";
-import type { CleanThreadBody } from "@/app/api/clean/controller";
-import { isDefined } from "@/utils/types";
 import { brandLabels } from "@/utils/label";
 import prisma from "@/utils/prisma";
+import { enqueueCleanFanout } from "@/utils/clean/fanout";
 import { CleanAction } from "@/generated/prisma/enums";
 import { updateThread } from "@/utils/redis/clean";
-import { getUnhandledCount } from "@/utils/assess";
 import { getGmailClientForEmail } from "@/utils/email-account-client";
 import { actionClient } from "@/utils/actions/safe-action";
 import { SafeError } from "@/utils/error";
@@ -27,7 +23,6 @@ import { createEmailProvider } from "@/utils/email/provider";
 import { isGoogleProvider } from "@/utils/email/provider-types";
 import { getUserPremium } from "@/utils/user/get";
 import { isActivePremium } from "@/utils/premium";
-import { ONE_DAY_MS } from "@/utils/date";
 
 export const cleanInboxAction = actionClient
   .metadata({ name: "cleanInbox" })
@@ -88,89 +83,25 @@ export const cleanInboxAction = actionClient
         },
       });
 
-      const process = async () => {
-        const { type } = await getUnhandledCount(emailProvider);
-
-        let nextPageToken: string | undefined | null;
-
-        let totalEmailsProcessed = 0;
-
-        do {
-          // fetch all emails from the user's inbox
-          const { threads, nextPageToken: pageToken } =
-            await emailProvider.getThreadsWithQuery({
-              query: {
-                ...(daysOld > 0 && {
-                  before: new Date(Date.now() - daysOld * ONE_DAY_MS),
-                }),
-                labelIds:
-                  type === "inbox"
-                    ? [GmailLabel.INBOX]
-                    : [GmailLabel.INBOX, GmailLabel.UNREAD],
-                excludeLabelNames: [brandLabels.processed.name],
-              },
-              maxResults: Math.min(maxEmails || 100, 100),
-            });
-
-          logger.info("Fetched threads", {
-            threadCount: threads.length,
-            nextPageToken,
-          });
-
-          nextPageToken = pageToken;
-
-          if (threads.length === 0) break;
-
-          logger.info("Pushing to Qstash", {
-            threadCount: threads.length,
-            nextPageToken,
-          });
-
-          const items = threads
-            .map((thread) => {
-              if (!thread.id) return;
-              return {
-                path: "/api/clean",
-                body: {
-                  emailAccountId,
-                  threadId: thread.id,
-                  markedDoneLabelId,
-                  processedLabelId,
-                  jobId: job.id,
-                  action,
-                  instructions,
-                  skips,
-                } satisfies CleanThreadBody,
-                // give every user their own queue for ai processing. if we get too many parallel users we may need more
-                // api keys or a global queue
-                // problem with a global queue is that if there's a backlog users will have to wait for others to finish first
-                flowControl: {
-                  key: `ai-clean-${emailAccountId}`,
-                  parallelism: 3,
-                },
-              };
-            })
-            .filter(isDefined);
-
-          await bulkPublishToQstash({ items });
-
-          totalEmailsProcessed += items.length;
-        } while (
-          nextPageToken &&
-          !isMaxEmailsReached(totalEmailsProcessed, maxEmails)
-        );
-      };
-
-      after(() => process());
+      await enqueueCleanFanout(
+        {
+          emailAccountId,
+          jobId: job.id,
+          markedDoneLabelId,
+          processedLabelId,
+          action,
+          instructions,
+          daysOld,
+          skips,
+          maxEmails,
+          totalEmailsProcessed: 0,
+        },
+        logger,
+      );
 
       return { jobId: job.id };
     },
   );
-
-function isMaxEmailsReached(totalEmailsProcessed: number, maxEmails?: number) {
-  if (!maxEmails) return false;
-  return totalEmailsProcessed >= maxEmails;
-}
 
 export const undoCleanInboxAction = actionClient
   .metadata({ name: "undoCleanInbox" })

@@ -16,6 +16,8 @@ import { checkSenderRuleHistory } from "@/utils/rule/check-sender-rule-history";
 import { createEmailProvider } from "@/utils/email/provider";
 import type { EmailProvider } from "@/utils/email/types";
 import { upsertSenderRecord } from "@/utils/senders/record";
+import { cloudflareRequestScope } from "@/utils/cloudflare/context";
+import { enqueueCloudflareJob } from "@/utils/queue/cloudflare";
 
 export const maxDuration = 60;
 
@@ -40,6 +42,17 @@ export const POST = withError(
     logger = logger.with({ from });
 
     logger.trace("Analyzing sender pattern");
+
+    const scope = cloudflareRequestScope.getStore();
+    if (scope?.queueDelivery) return process({ emailAccountId, from, logger });
+    if (scope) {
+      await enqueueCloudflareJob({
+        path: "/api/ai/analyze-sender-pattern",
+        body: data,
+        topic: "analyze-sender-pattern",
+      });
+      return NextResponse.json({ processing: true });
+    }
 
     // return immediately and process in background
     after(() => process({ emailAccountId, from, logger }));

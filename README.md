@@ -1,21 +1,16 @@
-# OneMail — Local email assistant
+# OneMail
 
-OneMail is a desktop email assistant. Mail connects directly from your computer over IMAP/SMTP and is cached in local SQLite. AI analysis uses your JYI account and is charged through the JYI gateway.
+OneMail is a hosted AI email workspace. It runs on Cloudflare Workers, signs users in through JYI, and connects Google mail through Nylas, Microsoft mail through Microsoft Graph, and other IMAP providers with app passwords. AI analysis is charged through the JYI gateway.
 
-**Closing the last window quits OneMail on Windows, macOS, and Linux.** Syncing, queued mail processing, and AI requests stop. Pending local operations can resume the next time you open the app. A message already accepted by your mail server cannot be recalled by closing OneMail.
+## Hosted capabilities
 
-## Current desktop capabilities
+- Connect Google and Microsoft mailboxes with OAuth, or other IMAP mailboxes with an app password.
+- Read, search, compose, send, archive, and organize mail from any device with a browser.
+- Run AI analysis and assistant workflows through the JYI gateway.
+- Keep mailbox credentials encrypted in the OneMail database; mailbox data is owned by the OneMail deployment.
+- Use Cloudflare Queues and Cron Triggers for background sync, webhooks, and scheduled work.
 
-- Connect multiple IMAP/SMTP mailboxes with a password or app password.
-- Read and search downloaded mail; open conversations and download attachments.
-- Archive messages and change read status.
-- Compose and queue plain text messages locally, with delivery status feedback.
-- Ask JYI to analyze a selected conversation. Only downloaded messages included in the analysis dialog are sent when you click Analyze; attachments are excluded.
-- Store mailbox passwords and JYI device credentials using the operating system credential store.
-
-The Tauri app requires a JYI sign-in before opening the local mail UI. A OneMail mailbox subscription is not required, but AI analysis needs a JYI account with model access and sufficient credits. SQLite mail content itself is not encrypted by the app; protect the computer and its backups accordingly.
-
-This desktop flow does not yet implement native Google/Microsoft OAuth, reply composition, attachment uploads, automated AI rules, meeting briefs, or cloud messaging integrations. Providers that disable password or app-password access need a future OAuth integration. The earlier hosted implementation remains in this repository as an optional deployment target.
+Production deployment uses a dedicated OneMail Worker at `onemail.jyisolutions.com`, separate from the JYI main site. See [Cloudflare Workers deployment](docs/hosting/cloudflare-workers.mdx).
 
 ## Development
 
@@ -23,27 +18,31 @@ Use Node.js 24 and the pnpm version pinned in `package.json`.
 
 ```sh
 pnpm install
-pnpm dev
-```
-
-The default command opens the local Tauri desktop interface. No OneMail web server, PostgreSQL, Redis, Nylas, or Resend is required for local mailbox operation. Configure your mail provider's IMAP/SMTP servers in Settings.
-
-```sh
-pnpm build          # Build the Tauri desktop app
-pnpm desktop:dist   # Build the Tauri desktop app locally; does not publish
-```
-
-See [Tauri desktop configuration and packaging](apps/desktop-tauri/README.md) for JYI authorization, storage, signing, and release requirements. Real mailbox connections and live JYI login still need runtime validation.
-
-## Optional hosted implementation
-
-```sh
 pnpm web:dev
+```
+
+`pnpm web:dev` starts the hosted Next.js app. It requires the database, Redis, and provider configuration described in `apps/web/.env.example`; it is not the local desktop client.
+
+## Hosted deployment
+
+```sh
 pnpm workers:build
+pnpm preview:workers
 pnpm workers:deploy
 ```
 
-These commands target the separate hosted application and require its own service configuration. See [Workers hosting](docs/hosting/cloudflare-workers.mdx). They are not part of normal desktop startup.
+The deploy command provisions the app Worker and the internal documents Worker, and uses the Cloudflare Queues configured in `apps/web/wrangler.jsonc`. Database migrations run separately against the direct PostgreSQL connection before a release.
+
+## Optional local desktop
+
+The Tauri client in `apps/desktop-tauri` remains available as an experimental offline client. It connects directly to IMAP/SMTP, caches mail in local SQLite, and stores credentials in the operating system's credential store. It is not the main product.
+
+```sh
+pnpm desktop        # run the Tauri client
+pnpm desktop:dist   # build locally; does not publish
+```
+
+See [Tauri desktop configuration](apps/desktop-tauri/README.md) for local setup and packaging details.
 
 ## Attribution and license
 

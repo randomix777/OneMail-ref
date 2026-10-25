@@ -13,6 +13,7 @@
  */
 
 import type { Logger } from "@/utils/logger";
+import { extractDocumentContents } from "@/utils/drive/document-extraction-engine";
 
 // ============================================================================
 // Types
@@ -58,20 +59,11 @@ export async function extractTextFromDocument(
   const { maxLength = 10_000, maxPages = 50, logger } = options;
 
   try {
-    switch (mimeType) {
-      case "application/pdf":
-        return await extractFromPdf(buffer, maxLength, maxPages, logger);
-
-      case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        return await extractFromDocx(buffer, maxLength, logger);
-
-      case "text/plain":
-        return extractFromPlainText(buffer, maxLength);
-
-      default:
-        logger?.info("Unsupported MIME type for extraction", { mimeType });
-        return null;
-    }
+    return await extractDocumentContents(buffer, mimeType, {
+      maxLength,
+      maxPages,
+      logger,
+    });
   } catch (error) {
     logger?.error("Error extracting text from document", { error, mimeType });
     return null;
@@ -101,117 +93,6 @@ export function canUseNativePdfSupport(
   const pagesOk = !pageCount || pageCount <= MAX_PAGES;
 
   return sizeOk && pagesOk;
-}
-
-// ============================================================================
-// PDF Extraction (using unpdf - serverless compatible)
-// ============================================================================
-
-async function extractFromPdf(
-  buffer: Buffer,
-  maxLength: number,
-  maxPages: number,
-  logger?: Logger,
-): Promise<ExtractionResult> {
-  const { getDocumentProxy } = await import("unpdf");
-
-  const pdf = await getDocumentProxy(new Uint8Array(buffer));
-
-  try {
-    const pageCount = pdf.numPages;
-    const pagesToProcess = Math.min(pageCount, maxPages);
-
-    const textParts: string[] = [];
-    let totalLength = 0;
-    let truncated = false;
-
-    for (let i = 1; i <= pagesToProcess && !truncated; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-
-      // Extract text items and join them
-      const pageText = (textContent.items as Array<{ str?: string }>)
-        .map((item) => item.str ?? "")
-        .join(" ");
-
-      if (totalLength + pageText.length > maxLength) {
-        // Truncate to fit within maxLength
-        const remaining = maxLength - totalLength;
-        textParts.push(pageText.slice(0, remaining));
-        truncated = true;
-      } else {
-        textParts.push(pageText);
-        totalLength += pageText.length;
-      }
-    }
-
-    // Check if we hit page limit
-    if (pagesToProcess < pageCount) {
-      truncated = true;
-    }
-
-    const text = textParts.join("\n\n");
-
-    logger?.info("PDF extraction complete", {
-      pageCount,
-      pagesProcessed: pagesToProcess,
-      textLength: text.length,
-      truncated,
-    });
-
-    return {
-      text,
-      pageCount,
-      truncated,
-    };
-  } finally {
-    await pdf.cleanup?.();
-  }
-}
-
-// ============================================================================
-// DOCX Extraction
-// ============================================================================
-
-async function extractFromDocx(
-  buffer: Buffer,
-  maxLength: number,
-  logger?: Logger,
-): Promise<ExtractionResult> {
-  // Dynamic import to avoid loading the library if not needed
-  const mammoth = await import("mammoth");
-
-  const result = await mammoth.extractRawText({ buffer });
-  const text = result.value || "";
-  const truncated = text.length > maxLength;
-
-  logger?.info("DOCX extraction complete", {
-    textLength: text.length,
-    truncated,
-    messageCount: result.messages?.length ?? 0,
-  });
-
-  return {
-    text: truncated ? text.slice(0, maxLength) : text,
-    truncated,
-  };
-}
-
-// ============================================================================
-// Plain Text Extraction
-// ============================================================================
-
-function extractFromPlainText(
-  buffer: Buffer,
-  maxLength: number,
-): ExtractionResult {
-  const text = buffer.toString("utf-8");
-  const truncated = text.length > maxLength;
-
-  return {
-    text: truncated ? text.slice(0, maxLength) : text,
-    truncated,
-  };
 }
 
 // ============================================================================

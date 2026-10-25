@@ -1,4 +1,4 @@
-import { lookup } from "node:dns/promises";
+import { lookup, resolve4, resolve6 } from "node:dns/promises";
 import type {
   LookupAddress,
   LookupAllOptions,
@@ -31,10 +31,13 @@ export async function resolveHostAddresses(
     return [{ address: ipAddress, family: ipVersion }];
   }
 
-  const results = await lookup(hostname, {
-    all: true,
-    verbatim: true,
-  });
+  // Workers provides DNS record resolution but does not implement dns.lookup.
+  const isWorker =
+    typeof navigator !== "undefined" &&
+    navigator.userAgent === "Cloudflare-Workers";
+  const results = isWorker
+    ? await resolveWorkerAddresses(hostname)
+    : await lookup(hostname, { all: true, verbatim: true });
 
   if (!results.length) {
     throw Object.assign(new Error("DNS lookup returned no results"), {
@@ -87,4 +90,27 @@ export function createPinnedLookup(addresses: ResolvedAddress[]): PinnedLookup {
 
     callback(null, selected.address, selected.family);
   };
+}
+
+async function resolveWorkerAddresses(
+  hostname: string,
+): Promise<ResolvedAddress[]> {
+  const records = await Promise.allSettled([
+    resolve4(hostname),
+    resolve6(hostname),
+  ]);
+  const addresses: ResolvedAddress[] = [];
+  for (const [index, result] of records.entries()) {
+    if (result.status === "fulfilled") {
+      for (const address of result.value) {
+        addresses.push({ address, family: index === 0 ? 4 : 6 });
+      }
+    }
+  }
+  if (addresses.length === 0) {
+    throw Object.assign(new Error("DNS lookup returned no results"), {
+      code: "ENOTFOUND",
+    });
+  }
+  return addresses;
 }
