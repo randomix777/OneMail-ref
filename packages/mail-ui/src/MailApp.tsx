@@ -178,6 +178,18 @@ export function MailApp({
           >
             Sync
           </button>
+          {host.analyzeConversation ? (
+            <button
+              type="button"
+              style={styles.secondaryButton}
+              disabled={!selected}
+              onClick={() => {
+                if (selected) host.analyzeConversation?.(selected);
+              }}
+            >
+              Ask AI
+            </button>
+          ) : null}
         </header>
         <StatusLine mailbox={mailbox} />
         <MailboxThreadList

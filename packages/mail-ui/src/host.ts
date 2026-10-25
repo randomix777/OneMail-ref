@@ -1,4 +1,7 @@
-import type { MessageKey } from "@inboxzero/mail-core/identities";
+import type {
+  MessageKey,
+  ConversationKey,
+} from "@inboxzero/mail-core/identities";
 
 export type MailUiHost = {
   openSettings(): void;
@@ -7,4 +10,5 @@ export type MailUiHost = {
   ) => Promise<Blob>;
   openAccount?(accountId: string): void;
   compose?: () => void;
+  analyzeConversation?: (key: ConversationKey) => void;
 };
