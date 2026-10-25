@@ -1,138 +1,50 @@
-[![](apps/web/app/opengraph-image.jpg)](https://www.jyisolutions.com)
+# OneMail — Local email assistant
 
-<p align="center">
-  <a href="https://www.jyisolutions.com">
-    <h1 align="center">OneMail - your 24/7 AI email assistant and email app</h1>
-  </a>
-  <p align="center">
-    Organizes your inbox, pre-drafts replies, manages your calendar, and organizes attachments. Chat with it from Slack or Telegram to manage your inbox on the go. Open source alternative to Fyxer, but more customizable and secure. We also offer an email app, an open source alternative to Superhuman.
-    <br />
-    <a href="https://www.jyisolutions.com">Website</a>
-    ·
-    <a href="https://www.jyisolutions.com/discord">Discord</a>
-    ·
-    <a href="https://github.com/randomix777/OneMail-ref/issues">Issues</a>
-  </p>
-</p>
+OneMail is a desktop email assistant. Mail connects directly from your computer over IMAP/SMTP and is cached in local SQLite. AI analysis uses your JYI account and is charged through the JYI gateway.
 
-<div align="center">
+**Closing the last window quits OneMail on Windows, macOS, and Linux.** Syncing, queued mail processing, and AI requests stop. Pending local operations can resume the next time you open the app. A message already accepted by your mail server cannot be recalled by closing OneMail.
 
-![Stars](https://img.shields.io/github/stars/randomix777/OneMail-ref?labelColor=black&style=for-the-badge&color=2563EB)
-![Forks](https://img.shields.io/github/forks/randomix777/OneMail-ref?labelColor=black&style=for-the-badge&color=2563EB)
+## Current desktop capabilities
 
-<a href="https://trendshift.io/repositories/6400" target="_blank"><img src="https://trendshift.io/api/badge/repositories/6400" alt="elie222%2Finbox-zero | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+- Connect multiple IMAP/SMTP mailboxes with a password or app password.
+- Read and search downloaded mail; open conversations and download attachments.
+- Archive messages and change read status.
+- Compose and queue plain text messages locally, with delivery status feedback.
+- Ask JYI to analyze a selected conversation. Only downloaded messages included in the analysis dialog are sent when you click Analyze; attachments are excluded.
+- Store mailbox passwords and JYI device credentials using the operating system credential store.
 
-[![Vercel OSS Program](https://vercel.com/oss/program-badge.svg)](https://vercel.com/oss)
+The Tauri app requires a JYI sign-in before opening the local mail UI. A OneMail mailbox subscription is not required, but AI analysis needs a JYI account with model access and sufficient credits. SQLite mail content itself is not encrypted by the app; protect the computer and its backups accordingly.
 
-</div>
+This desktop flow does not yet implement native Google/Microsoft OAuth, reply composition, attachment uploads, automated AI rules, meeting briefs, or cloud messaging integrations. Providers that disable password or app-password access need a future OAuth integration. The earlier hosted implementation remains in this repository as an optional deployment target.
 
-## Mission
+## Development
 
-To help you spend less time in your inbox, so you can focus on what matters most.
+Use Node.js 24 and the pnpm version pinned in `package.json`.
 
-## Features
-
-OneMail has two parts: an AI email assistant that works in the background on your Gmail or Outlook account, and an email client. Each works on its own.
-
-### AI email assistant
-
-- **AI Personal Assistant:** Organizes your inbox and pre-drafts replies in your tone and style.
-- **AI Rules for email:** Explain in plain English how your AI should handle your inbox.
-- **Reply Zero:** Track emails to reply to and those awaiting responses.
-- **Bulk Unsubscriber:** One-click unsubscribe and archive emails you never read.
-- **Bulk Archiver:** Clean up your inbox by bulk archiving old emails.
-- **Cold Email Blocker:** Auto‑block cold emails.
-- **Email Analytics:** Track your activity and trends over time.
-- **Meeting Briefs:** Get personalized briefings before every meeting, pulling context from your email and calendar.
-- **Smart Filing:** Automatically save email attachments to Google Drive or OneDrive.
-- **Slack & Telegram Integration:** Chat with your AI assistant from Slack or Telegram to manage your inbox without leaving the apps you already use.
-
-### Email client
-
-A fast email client for Gmail and Outlook, with a split inbox, all your accounts in one place, and team comments.
-
-- **Web and desktop:** open source. The desktop app is Electron, in [`apps/desktop`](apps/desktop).
-- **iOS:** a native Swift app, not open source yet. The [App Store app](https://www.jyisolutions.com/app) can connect to your own server URL if you self-host.
-- **Android:** an older React Native [Android app](https://www.jyisolutions.com/android).
-
-Learn more in our [docs](https://docs.jyisolutions.com).
-
-## Demo
-
-[![OneMail demo](https://image.mux.com/YeTrweHxCIM5tcBMXlvRbmDuPqL028lJrmJ3F6ZgwnDY/thumbnail.jpg?time=4.4&width=1280)](https://player.mux.com/YeTrweHxCIM5tcBMXlvRbmDuPqL028lJrmJ3F6ZgwnDY)
-
-## Built with
-
-- [Next.js](https://nextjs.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [shadcn/ui](https://ui.shadcn.com/)
-- [Prisma](https://www.prisma.io/)
-- [Upstash](https://upstash.com/)
-- [Turborepo](https://turbo.build/)
-- [Popsy Illustrations](https://popsy.co/)
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=randomix777/OneMail-ref&type=Date)](https://www.star-history.com/#randomix777/OneMail-ref&Date)
-
-## Feature Requests
-
-To request a feature open a [GitHub issue](https://github.com/randomix777/OneMail-ref/issues), or join our [Discord](https://www.jyisolutions.com/discord).
-
-## Getting Started
-
-We offer a hosted version of Inbox Zero at [jyisolutions.com](https://www.jyisolutions.com).
-
-### Self-Hosting
-
-The fastest way to self-host OneMail is with the CLI:
-
-> **Prerequisites**: [Docker](https://docs.docker.com/engine/install/) and [Node.js](https://nodejs.org/) v24+
-
-```bash
-npx @inbox-zero/cli setup      # One-time setup wizard
-npx @inbox-zero/cli start      # Start containers
-```
-
-Open http://localhost:3000
-
-For complete self-hosting instructions, production deployment, OAuth setup, and configuration options, see our **[Self-Hosting Docs](https://docs.jyisolutions.com/hosting/quick-start)**.
-
-### Local Development
-
-> **Prerequisites**: macOS or Linux (WSL on Windows), [Node.js](https://nodejs.org/) v24, and the pnpm version pinned in `package.json`. Install either [Docker Desktop](https://docs.docker.com/desktop/) with Compose or native PostgreSQL and Redis. On macOS, native services can be installed with `brew install postgresql@16 redis`.
-
-```bash
-git clone https://github.com/randomix777/OneMail-ref.git
-cd OneMail-ref
+```sh
 pnpm install
-pnpm local:start
+pnpm dev
 ```
 
-Open http://localhost:3000/mail and sign in with Google as `developer@example.com`, or Microsoft as `developer@outlook.test`. The Google mailbox contains demo messages. Demo users have onboarding completed, and premium checks are bypassed for local development.
+The default command opens the local Tauri desktop interface. No OneMail web server, PostgreSQL, Redis, Nylas, or Resend is required for local mailbox operation. Configure your mail provider's IMAP/SMTP servers in Settings.
 
-The command starts an isolated database, Redis and its HTTP endpoint, both mail-provider emulators, billing and email-delivery emulators, an LLM emulator, and Next.js. It applies migrations and waits for services to become ready. No OAuth credentials or AI API keys are required. AI responses are canned; this mode exercises application flows, not model quality.
-
-Existing `.env` files are left unchanged and ignored by this launcher. Generated credentials, seed data, and the current service addresses are stored under `.context/local-dev/`. Native database data stays there; Docker database data stays in a volume unique to the checkout. Restarts preserve database data and credentials. Redis caches and provider/emulator state start fresh on each run.
-
-Press **Ctrl-C** to stop the app and the services this command started. Start it again with the same command. If port 3000 is occupied, use `pnpm local:start --port 3001`. Native PostgreSQL and Redis are selected when available; use `--backend docker` or `--backend native` to select explicitly. A checkout-specific loopback port prevents concurrent launchers; the operating system releases that lock after a crash, and stale PID files are replaced automatically. Services use automatically assigned ports, so existing databases and Redis instances are not reused or stopped.
-
-Run `pnpm local:start --help` for options. If an unrelated process occupies the reported lock port, stop that process or use a different checkout location. PostgreSQL data must be opened with the same major version that created it. If you upgrade your native PostgreSQL major version, back up or move `.context/local-dev/postgres` before starting a new cluster.
-
-For development against real providers, continue to use `pnpm setup`, your own environment files, and `pnpm dev`. See the **[Contributing Guide](https://docs.jyisolutions.com/contributing)** for configuration and devcontainer setup.
-
-## Contributing
-
-View open tasks in [GitHub Issues](https://github.com/randomix777/OneMail-ref/issues) and join our [Discord](https://www.jyisolutions.com/discord) to discuss what's being worked on.
-
-OneMail is a fork of [elie222/inbox-zero](https://github.com/elie222/inbox-zero), which is the code base it is built on. To pull the original project's changes into your fork, add it as a second remote:
-
-```bash
-git remote add upstream https://github.com/elie222/inbox-zero.git
-git fetch upstream
-git merge upstream/main
+```sh
+pnpm build          # Build the Tauri desktop app
+pnpm desktop:dist   # Build the Tauri desktop app locally; does not publish
 ```
 
-See the **[Contributing Guide](https://docs.jyisolutions.com/contributing)** for local setup, the upstream sync workflow, and the identifiers that still have to keep the original project's names.
+See [Tauri desktop configuration and packaging](apps/desktop-tauri/README.md) for JYI authorization, storage, signing, and release requirements. Real mailbox connections and live JYI login still need runtime validation.
 
-Docker images are automatically built on every push to `main` and tagged with the commit SHA (e.g., `randomix777/OneMail-ref:abc1234`). The `latest` tag always points to the most recent main build. Formal releases use version tags (e.g., `v2.26.0`).
+## Optional hosted implementation
+
+```sh
+pnpm web:dev
+pnpm workers:build
+pnpm workers:deploy
+```
+
+These commands target the separate hosted application and require its own service configuration. See [Workers hosting](docs/hosting/cloudflare-workers.mdx). They are not part of normal desktop startup.
+
+## Attribution and license
+
+OneMail is built on [elie222/inbox-zero](https://github.com/elie222/inbox-zero). Existing upstream notices and licenses continue to apply; see [LICENSE](LICENSE).
