@@ -91,6 +91,7 @@ pub struct Message<'a> {
     pub subject: &'a str,
     pub html: &'a str,
     pub message_id: &'a str,
+    pub in_reply_to: Option<&'a str>,
     pub date_ms: i64,
 }
 
@@ -207,10 +208,7 @@ pub fn build_message(message: &Message<'_>) -> Result<Vec<u8>, SmtpError> {
         format!("Date: {}", format_date(message.date_ms)),
         folded_header("From", &mailbox(message.from_name, &from)),
         folded_header("To", &to.join(", ")),
-        format!(
-            "Message-ID: {}",
-            header_value(message.message_id).trim().to_string()
-        ),
+        folded_header("Message-ID", &header_message_id(message.message_id)),
         folded_header("Subject", &encode_word(message.subject)),
         "MIME-Version: 1.0".to_string(),
         "Content-Type: text/html; charset=UTF-8".to_string(),
@@ -218,6 +216,11 @@ pub fn build_message(message: &Message<'_>) -> Result<Vec<u8>, SmtpError> {
     ];
     if !cc.is_empty() {
         headers.insert(3, folded_header("Cc", &cc.join(", ")));
+    }
+    if let Some(parent) = message.in_reply_to {
+        let parent = header_message_id(parent);
+        headers.push(folded_header("In-Reply-To", &parent));
+        headers.push(folded_header("References", &parent));
     }
     // Bcc is an envelope recipient only: the delivered message must not show it.
 
@@ -568,6 +571,16 @@ fn header_value(value: &str) -> String {
         .collect()
 }
 
+fn header_message_id(value: &str) -> String {
+    let value = header_value(value);
+    let value = value.trim();
+    if value.starts_with('<') && value.ends_with('>') {
+        value.to_string()
+    } else {
+        format!("<{value}>")
+    }
+}
+
 /// Folds a header at spaces so address lists and encoded-word subjects stay
 /// inside the RFC 5322 line-length budget. A single token longer than the
 /// budget is left whole rather than split into invalid fragments.
@@ -702,6 +715,7 @@ mod tests {
             subject: "Hello",
             html: "<p>Hi</p>",
             message_id: "<abc@onemail.local>",
+            in_reply_to: None,
             date_ms: 1_709_210_096_000,
         }
     }
@@ -721,6 +735,18 @@ mod tests {
         let body = body.trim_end_matches("\r\n");
         let decoded = BASE64.decode(body).expect("decodes");
         assert_eq!(String::from_utf8(decoded).expect("utf8"), "<p>Hi</p>");
+    }
+
+    #[test]
+    fn a_reply_carries_both_threading_headers() {
+        let raw = build_message(&Message {
+            in_reply_to: Some("parent@example.com"),
+            ..message()
+        })
+        .expect("builds");
+        let raw = String::from_utf8(raw).expect("utf8");
+        assert!(raw.contains("In-Reply-To: <parent@example.com>\r\n"));
+        assert!(raw.contains("References: <parent@example.com>\r\n"));
     }
 
     #[test]

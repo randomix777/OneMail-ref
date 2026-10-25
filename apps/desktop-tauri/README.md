@@ -193,10 +193,11 @@ keystore (Windows Credential Manager, macOS Keychain, Secret Service) under
   is written or read. Provider draft ids are preserved in draft content but
   ignored.
 - Send features beyond the compose form: attachments, signatures, rich-text
-  editing, send-as authorization checks, and `In-Reply-To`/`References` headers.
-  `replyTo` resolves and stores the conversation id but does not add threading
-  headers. A deferred send is a persisted operation that resumes on the next
-  launch; there is no OS-level scheduled-send job.
+  editing and send-as authorization checks. `replyTo` resolves and stores the
+  conversation id and adds `In-Reply-To`/`References` for the immediate parent;
+  it does not build the full References chain. A deferred send is a persisted
+  operation that resumes on the next launch; there is no OS-level scheduled-send
+  job.
 - IMAP coverage: custom folders are not mirrored, and there is no IDLE;
   accounts are polled every 60 seconds instead. Archived, trashed and restored
   messages are updated locally, and Archive/Trash/Spam/Drafts are refreshed on

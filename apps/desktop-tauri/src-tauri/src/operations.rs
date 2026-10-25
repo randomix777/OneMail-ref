@@ -410,6 +410,7 @@ async fn perform_send(
         subject: &intent.subject,
         html: &html,
         message_id: &message_id,
+        in_reply_to: intent.reply_to_message_id.as_deref(),
         date_ms: queued_at_ms,
     };
     let smtp = crate::sync::smtp_credentials_for(account, &credentials.password);
