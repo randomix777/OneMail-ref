@@ -8,7 +8,7 @@ import {
   getRequiresReconsentDescription,
 } from "@/app/(landing)/login/messages";
 import { auth } from "@/utils/auth";
-import { isJyiOauthEnabled } from "@/utils/oauth/jyi-oauth";
+import { isFirebaseHandoffEnabled } from "@/utils/oauth/firebase-handoff";
 import { AlertBasic } from "@/components/Alert";
 import { Button } from "@/components/ui/button";
 import { WELCOME_PATH } from "@/utils/config";
@@ -53,7 +53,7 @@ export default async function AuthenticationPage(props: {
           <Suspense>
             <JyiOAuthRedirect
               callbackURL={callbackURL}
-              configured={isJyiOauthEnabled()}
+              configured={isFirebaseHandoffEnabled()}
             />
           </Suspense>
         </div>

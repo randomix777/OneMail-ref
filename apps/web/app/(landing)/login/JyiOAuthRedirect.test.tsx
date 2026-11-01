@@ -17,43 +17,24 @@ describe("JyiOAuthRedirect", () => {
     vi.clearAllMocks();
   });
 
-  it("sends the user to the provider's authorize page", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        url: "https://identity.example.com/authorize?state=abc",
-      }),
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
+  it("starts the account-centre Firebase handoff", async () => {
     render(<JyiOAuthRedirect callbackURL="/welcome-redirect" />);
 
     await waitFor(() => {
       expect(redirectToSafeUrl).toHaveBeenCalledWith(
-        "https://identity.example.com/authorize?state=abc",
-        { allowExternal: true },
+        "/api/auth/firebase/start?callbackURL=%2Fwelcome-redirect",
       );
     });
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/auth/sign-in/oauth2",
-      expect.objectContaining({ method: "POST" }),
-    );
   });
 
-  it("does not bypass JYI sign-in when the provider cannot be reached", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        json: async () => ({ message: "Could not reach the sign-in page" }),
-      }),
+  it("does not redirect when the handoff is not configured", () => {
+    render(
+      <JyiOAuthRedirect callbackURL="/welcome-redirect" configured={false} />,
     );
 
-    render(<JyiOAuthRedirect callbackURL="/welcome-redirect" />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Could not reach the sign-in page")).toBeTruthy();
-    });
-    expect(screen.queryByRole("link")).toBeNull();
+    expect(
+      screen.getByText("Sign-in is not configured on this instance."),
+    ).toBeTruthy();
+    expect(redirectToSafeUrl).not.toHaveBeenCalled();
   });
 });

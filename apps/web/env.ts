@@ -107,6 +107,12 @@ const parsedEnv = createEnv({
     JYI_OAUTH_CLIENT_ID: z.string().optional(),
     JYI_OAUTH_CLIENT_SECRET: z.string().optional(),
     JYI_OAUTH_SCOPES: z.string().default("openid email profile"),
+    // Account-centre Firebase handoff. OneMail uses the same one-time-ticket
+    // flow as the other JYI brands instead of the OAuth provider.
+    FIREBASE_HANDOFF_ENABLED: z.string().optional(),
+    FIREBASE_ACCOUNT_ORIGIN: z.string().url().optional(),
+    FIREBASE_HANDOFF_CLIENT_ID: z.string().optional(),
+    FIREBASE_CLIENT_SECRET_ONEMAIL: z.string().optional(),
     // Nylas carries Google mail so we inherit its CASA assessment instead of
     // running our own. Optional so the app still boots without it; Google
     // mailboxes simply cannot be connected until it is configured.

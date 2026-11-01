@@ -23,9 +23,7 @@
   // created and certified by Cloudflare, so the zone must be in this account.
   "workers_dev": false,
   "preview_urls": false,
-  "routes": [
-    { "pattern": "onemail.jyisolutions.com", "custom_domain": true }
-  ],
+  "routes": [{ "pattern": "onemail.jyisolutions.com", "custom_domain": true }],
   "services": [
     { "binding": "WORKER_SELF_REFERENCE", "service": "onemail" },
     { "binding": "DOCUMENTS", "service": "onemail-documents" }
@@ -47,16 +45,15 @@
   // matching route. The schedule table lives in utils/cron/schedule.ts.
   "triggers": {
     "crons": ["* * * * *"]
-  }
+  },
 
   // Required before deployment. Hyperdrive pools origin connections; request
   // clients read this binding directly. Disable query caching for mailbox and
   // subscription state. Keep credentials out of this configuration file.
-  //
-  // "hyperdrive": [
-  //   {
-  //     "binding": "HYPERDRIVE",
-  //     "id": "<hyperdrive-id>"
-  //   }
-  // ]
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "3cf6db42392a4f3ca9510e5be0f215aa"
+    }
+  ]
 }

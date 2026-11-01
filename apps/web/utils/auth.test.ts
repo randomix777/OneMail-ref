@@ -125,7 +125,7 @@ describe("betterAuthConfig", () => {
   it("does not trust Microsoft for implicit social account linking", () => {
     expect(
       (betterAuthConfig as any).options.account.accountLinking.trustedProviders,
-    ).toEqual(["google", "apple"]);
+    ).toEqual(["google", "apple", "jyi"]);
   });
 
   describe("inline profile photos", () => {
