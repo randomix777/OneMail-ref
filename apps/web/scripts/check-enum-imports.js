@@ -29,8 +29,8 @@
  * ✅ Type-only import from client (always safe)
  */
 
-const { execSync } = require("node:child_process");
 const fs = require("node:fs");
+const { collectSourceFiles } = require("./lib/source-files");
 
 // All Prisma enums that should be imported from @/generated/prisma/enums
 const PRISMA_ENUMS = [
@@ -53,21 +53,7 @@ const PRISMA_ENUMS = [
 console.log("🔍 Checking for problematic Prisma enum imports...\n");
 
 try {
-  // Search for files importing from @/generated/prisma/client (from current directory)
-  const grepCommand =
-    'grep -r "from \\"@/generated/prisma/client\\"" . --include="*.tsx" --include="*.ts" -l';
-
-  let files;
-  try {
-    files = execSync(grepCommand, { encoding: "utf-8" })
-      .trim()
-      .split("\n")
-      .filter(Boolean);
-  } catch {
-    console.log("✅ No imports from @/generated/prisma/client found!");
-    process.exit(0);
-  }
-
+  const files = [...collectSourceFiles(process.cwd())];
   const problematicFiles = [];
 
   for (const file of files) {

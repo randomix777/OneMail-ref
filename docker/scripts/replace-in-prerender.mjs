@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // Replaces a build-time placeholder in a prerendered Next.js file without
 // corrupting its React Server Components payload.
 //

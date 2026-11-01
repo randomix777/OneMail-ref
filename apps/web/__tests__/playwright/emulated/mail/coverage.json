@@ -14,12 +14,8 @@
     "app/api/mail/v1/accounts/[accountId]/assistant-state/route.ts",
     "utils/mail-engine/MailEngineHost.tsx"
   ],
-  "attachment-previews.spec.ts": [
-    "components/email-list/EmailAttachments.tsx"
-  ],
-  "cached-settings.spec.ts": [
-    "hooks/useMailSettings.ts"
-  ],
+  "attachment-previews.spec.ts": ["components/email-list/EmailAttachments.tsx"],
+  "cached-settings.spec.ts": ["hooks/useMailSettings.ts"],
   "calendar-invitation.spec.ts": [
     "components/email-list/CalendarInvitation.tsx"
   ],
@@ -108,9 +104,7 @@
     "hooks/useThreadPlans.ts",
     "utils/threads/load.ts"
   ],
-  "message-overflow.spec.ts": [
-    "components/email-list/EmailContents.tsx"
-  ],
+  "message-overflow.spec.ts": ["components/email-list/EmailContents.tsx"],
   "navigation-and-views.spec.ts": [
     "app/(app)/[emailAccountId]/mail/MailSidebar.tsx",
     "app/(app)/[emailAccountId]/mail/MailboxItemContextMenu.tsx",
@@ -125,9 +119,7 @@
     "utils/mail-engine/wasm-sqlite.ts",
     "utils/mail-engine/active-client.ts"
   ],
-  "plain-text-links.spec.ts": [
-    "components/email-list/EmailMessage.tsx"
-  ],
+  "plain-text-links.spec.ts": ["components/email-list/EmailMessage.tsx"],
   "reader-transition.spec.ts": [
     "app/(app)/[emailAccountId]/mail/BufferedThreadReader.tsx",
     "components/email-list/EmailContents.tsx"
@@ -155,9 +147,7 @@
     "components/email-list/EmailMessage.tsx",
     "utils/parse/extract-reply.client.ts"
   ],
-  "split-tabs.spec.ts": [
-    "app/(app)/[emailAccountId]/mail/SplitTabs.tsx"
-  ],
+  "split-tabs.spec.ts": ["app/(app)/[emailAccountId]/mail/SplitTabs.tsx"],
   "starring.spec.ts": [
     "app/(app)/[emailAccountId]/mail/star-state.ts",
     "app/(app)/[emailAccountId]/mail/ThreadRow.tsx",
@@ -177,10 +167,7 @@
     "components/team-comments/ConversationDiscussion.tsx",
     "app/(app)/shared/[conversationId]/SharedConversationReader.tsx"
   ],
-  "theme.spec.ts": [
-    "components/CommandK.tsx",
-    "components/theme-provider.tsx"
-  ],
+  "theme.spec.ts": ["components/CommandK.tsx", "components/theme-provider.tsx"],
   "thread-navigation.spec.ts": [
     "components/email-list/EmailThread.tsx",
     "app/(app)/[emailAccountId]/mail/ReaderToolbar.tsx"

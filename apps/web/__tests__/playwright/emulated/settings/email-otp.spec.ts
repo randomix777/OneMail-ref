@@ -3,7 +3,7 @@ import { test } from "../playwright-test";
 
 for (const path of ["/login/email", "/login/options"]) {
   test(`routes ${path} to the JYI sign-in page`, async ({ page }) => {
-    await page.route("**/api/auth/sign-in/oauth2", (route) =>
+    await page.route("**/api/auth/sign-in/social", (route) =>
       route.fulfill({
         status: 503,
         contentType: "application/json",
@@ -25,7 +25,7 @@ for (const path of ["/login/email", "/login/options"]) {
 }
 
 test("legacy email-code endpoints are rejected", async ({ page }) => {
-  await page.route("**/api/auth/sign-in/oauth2", (route) =>
+  await page.route("**/api/auth/sign-in/social", (route) =>
     route.fulfill({
       status: 503,
       contentType: "application/json",

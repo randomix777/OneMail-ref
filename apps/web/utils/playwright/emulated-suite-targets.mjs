@@ -39,10 +39,7 @@ const featureGroups = [
   },
   {
     name: "mail-engine",
-    specs: [
-      "mail/mail-engine-inspect.spec.ts",
-      "mail/mail-queue.spec.ts",
-    ],
+    specs: ["mail/mail-engine-inspect.spec.ts", "mail/mail-queue.spec.ts"],
   },
   {
     name: "mail-send",

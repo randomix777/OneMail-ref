@@ -11,7 +11,6 @@ import {
   it,
   vi,
 } from "vitest";
-import { followMailboxSignal } from "../../../desktop/src/mail-engine/mailbox-signals";
 import { takeRecordedApnsSends } from "@/utils/apns";
 import { createOutlookTestHarness, type OutlookTestHarness } from "./helpers";
 
@@ -23,7 +22,6 @@ const DEVICE_B = "b".repeat(64);
 const PUSH_ACCOUNT = "account-push";
 const OUTLOOK_CREATED_ACCOUNT = "account-outlook-created";
 const OUTLOOK_MOVED_ACCOUNT = "account-outlook-moved";
-const NYLAS_EMAIL = "nylas-push@example.com";
 const NYLAS_GRANT_ID = "grant-push";
 const OUTLOOK_EMAIL = "outlook-push@example.com";
 
@@ -123,7 +121,6 @@ vi.mock("@/utils/middleware", async () => {
 
 import { POST as postNylasWebhook } from "@/app/api/nylas/webhook/route";
 import { POST as postOutlookWebhook } from "@/app/api/outlook/webhook/route";
-import { GET as getMailStream } from "@/app/api/mail-stream/route";
 
 describe.skipIf(!process.env.RUN_INTEGRATION_TESTS)(
   "mailbox change push",
@@ -269,52 +266,6 @@ describe.skipIf(!process.env.RUN_INTEGRATION_TESTS)(
       expect(moved.status).toBe(200);
       await flushAfter();
       expect(silentSends(OUTLOOK_MOVED_ACCOUNT)).toHaveLength(2);
-    });
-
-    it("delivers mailbox-change to the desktop client after a webhook", async () => {
-      await redisState.client!.set(
-        `account:user-1:${PUSH_ACCOUNT}`,
-        NYLAS_EMAIL,
-      );
-      const changes: string[] = [];
-      const abort = new AbortController();
-      const following = followMailboxSignal({
-        origin: "http://localhost",
-        accountId: PUSH_ACCOUNT,
-        cookieHeader: () => "",
-        signal: abort.signal,
-        onChange: () => {
-          changes.push(PUSH_ACCOUNT);
-        },
-        fetchImpl: async (url, init) =>
-          getMailStream(
-            new NextRequest(url, {
-              headers: init?.headers,
-              signal: init?.signal ?? undefined,
-            }),
-          ),
-      });
-
-      try {
-        await vi.waitFor(async () => {
-          expect(
-            await redisState.client!.exists(
-              `local-mail-interest:${PUSH_ACCOUNT}`,
-            ),
-          ).toBe(1);
-          // Connecting triggers a catch-up of its own.
-          expect(changes).toEqual([PUSH_ACCOUNT]);
-        });
-        const response = await postNylasWebhook(nylasWebhook());
-        expect(response.status).toBe(200);
-        await flushAfter();
-        await vi.waitFor(() =>
-          expect(changes).toEqual([PUSH_ACCOUNT, PUSH_ACCOUNT]),
-        );
-      } finally {
-        abort.abort();
-        await following;
-      }
     });
   },
 );

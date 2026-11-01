@@ -18,10 +18,10 @@ Use Node.js 24 and the pnpm version pinned in `package.json`.
 
 ```sh
 pnpm install
-pnpm web:dev
+pnpm dev
 ```
 
-`pnpm web:dev` starts the hosted Next.js app. It requires the database, Redis, and provider configuration described in `apps/web/.env.example`; it is not the local desktop client.
+`pnpm dev` starts the hosted Next.js app. It requires the database, Redis, and provider configuration described in `apps/web/.env.example`; it is not the local desktop client.
 
 ## Hosted deployment
 

@@ -50,7 +50,9 @@ console.error(
 );
 
 for (const violation of violations) {
-  console.error(`${path.relative(root, violation.file)}:${violation.line}`);
+  console.error(
+    `${path.relative(root, violation.file).split(path.sep).join("/")}:${violation.line}`,
+  );
   console.error(`  ${violation.match}`);
   console.error(`  ${violation.message}\n`);
 }

@@ -126,7 +126,7 @@ pnpm preview:workers
 pnpm workers:deploy
 ```
 
-The default root `pnpm build` now targets the local desktop app. Use `pnpm workers:build` for this optional hosted deployment.
+The root `pnpm dev` and `pnpm build` target the hosted app. `pnpm workers:build` produces the OpenNext Worker bundles used by preview and deployment; the local desktop app is built separately with `pnpm desktop:dist`.
 `pnpm workers:deploy` publishes the internal documents Worker before the application Worker. The preview command runs both
 locally. Document parsing libraries are deliberately excluded from the application's Next bundle and bundled by
 Wrangler into the documents Worker; this keeps each deployment within the platform's package-size limit.
