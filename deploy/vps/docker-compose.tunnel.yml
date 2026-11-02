@@ -1,0 +1,20 @@
+# Adds a Cloudflare Tunnel, so the VM needs no public HTTP ports, no open
+# security-list rules and no TLS certificates: the tunnel dials out to
+# Cloudflare and serves onemail.jyisolutions.com through the existing zone.
+#
+# Usage (from the directory that holds docker-compose.yml):
+#   docker compose -f docker-compose.yml -f docker-compose.tunnel.yml \
+#     --profile all --profile queue-worker up -d
+#
+# The public hostname in the Zero Trust dashboard must point at http://web:3000.
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    # Fails fast (instead of starting a broken container) when the token is unset.
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in .env first}
+    depends_on:
+      - web
+    networks:
+      - inbox-zero-network

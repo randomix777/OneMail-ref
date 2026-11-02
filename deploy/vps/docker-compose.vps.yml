@@ -1,0 +1,20 @@
+# Corrects the image reference for this deployment.
+#
+# The repository's docker-compose.yml pins `ghcr.io/randomix777/OneMail-ref:latest`,
+# but Docker rejects uppercase repository names ("repository name must be
+# lowercase"), and the workflow publishes the image as `one-mail`. This override
+# points both app services at the published (multi-arch) name.
+#
+# `pull_policy: missing` also lets a locally built tag work (`ONEMAIL_IMAGE=onemail:local`),
+# which `always` would refuse. Run `./up.sh --pull` to fetch a newer image.
+#
+# Always use it together with the repository compose file:
+#   docker compose -f docker-compose.yml -f docker-compose.vps.yml ...
+
+services:
+  web:
+    image: ${ONEMAIL_IMAGE:-ghcr.io/randomix777/one-mail:latest}
+    pull_policy: missing
+  worker:
+    image: ${ONEMAIL_IMAGE:-ghcr.io/randomix777/one-mail:latest}
+    pull_policy: missing

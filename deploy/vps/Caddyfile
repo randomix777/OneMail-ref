@@ -1,0 +1,12 @@
+# Alternative to the Cloudflare Tunnel: terminate TLS on the VM itself.
+#
+# Requires ports 80 and 443 reachable (OCI security list + ufw). Caddy runs on
+# the host and proxies to the web container published on 127.0.0.1:3000.
+#
+#   sudo cp Caddyfile /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+
+onemail.jyisolutions.com {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3000
+}
